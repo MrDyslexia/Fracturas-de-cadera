@@ -24,3 +24,93 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* Animaciones CSS personalizadas */
+
+/* Animación de desvanecimiento y deslizamiento ligero */
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animación de deslizamiento desde la izquierda */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Zoom sutil para imágenes */
+@keyframes subtleZoom {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.03); /* Un zoom muy ligero */
+  }
+}
+
+/* Animación de fondo degradado para el panel de login */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Aplicar animaciones */
+.animate-fade-in-slide {
+  animation: fadeInSlide 0.7s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.8s ease-out forwards;
+}
+
+.animate-subtle-zoom {
+  animation: subtleZoom 15s ease-in-out infinite alternate; /* Animación de zoom lenta y continua */
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%; /* Hace que el degradado sea más grande que el contenedor */
+  animation: gradientShift 15s ease infinite; /* Desplazamiento lento y continuo */
+}
+
+/* Estilo personalizado para el enfoque de los inputs */
+.input-focus-ring:focus {
+  outline: none;
+  border-color: var(--blue-500); /* Usa el azul principal */
+  box-shadow: 0 0 0 3px oklch(50% 0.25 240 / 0.3); /* Un anillo de enfoque más suave */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Efecto hover/active para botones */
+.button-hover-effect {
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.button-hover-effect:hover {
+  transform: translateY(-2px); /* Ligeramente hacia arriba */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); /* Sombra más pronunciada */
+}
+
+.button-hover-effect:active {
+  transform: translateY(0); /* Vuelve a la posición original al hacer click */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Sombra de presionado */
+  background-color: var(--blue-700); /* Un poco más oscuro al presionar */
+}
