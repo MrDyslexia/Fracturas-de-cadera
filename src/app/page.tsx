@@ -75,7 +75,7 @@ export default function LoginPage() {
                   type="text"
                   value={rut}
                   onChange={(e) => setRut(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="text-blue-600 w-full pl-10 pr-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="12.345.678-9"
                   required
                 />
@@ -93,7 +93,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="text-blue-600 w-full pl-10 pr-12 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="********"
                   required
                 />
