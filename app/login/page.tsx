@@ -7,21 +7,17 @@ import { useAuth } from '@/contexts/AuthContext';
 // 👇 importa tus componentes del folder components/Login
 import { LoginForm, ForgotPassword, ContactSupport, PatientRegister } from '@/components/Login';
 
+
 type Mode = 'login' | 'forgot' | 'support' | 'register';
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('login');
   const router = useRouter();
-  const { login } = useAuth();
+    const { login, portalFor } = useAuth();
 
-  // misma lógica de login que ya tenías
-  const onSubmit = async (rut: string, password: string) => {
-    const u = await login(rut, password);
-    const target =
-      u.role === 'admin' ? '/admin' :
-      u.role === 'investigador' ? '/investigador' :
-      u.role === 'tecnologo' ? '/tech' :
-      u.role === 'paciente' ? '/paciente' : '/funcionario';
+  const onSubmit = async (correoORut: string, password: string) => {
+    const u = await login(correoORut, password);  // ahora viene con u.roles: UserRole[]
+    const target = portalFor(u.roles);            // decide el portal según los roles
     router.replace(target);
   };
 

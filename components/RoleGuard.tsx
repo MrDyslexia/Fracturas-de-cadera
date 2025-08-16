@@ -2,41 +2,40 @@
 
 import { ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import type { UserRole } from '@/types/auth';
+import { useAuth } from '@/contexts/AuthContext'; // ← de tu contexto real
+import type { UserRole } from '@/contexts/AuthContext'; // usa el mismo origen
 
-export default function RoleGuard({
-  allow,
-  children,
-}: {
-  allow: UserRole[]; 
+type Props = {
+  allow: UserRole[];   // roles permitidos para este bloque
   children: ReactNode;
-}) {
-  const { user, loading } = useAuth();
+};
+
+export default function RoleGuard({ allow, children }: Props) {
+  const { user, loading, portalFor } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
+
+    // 1) no logeado → al login
     if (!user) {
       router.replace('/login');
       return;
     }
-    if (!allow.includes(user.role)) {
-      // Redirige a su “home” por defecto
-      const target =
-        user.role === 'admin' ? '/admin' :
-        user.role === 'funcionario' ? '/funcionario' :
-        user.role === 'paciente' ? '/paciente' :
-        user.role === 'investigador' ? '/investigador' :
-        '/tecnologo';
-      router.replace(target);
+
+    // 2) ¿tiene al menos un rol permitido?
+    const hasAccess = user.roles?.some(r => allow.includes(r));
+    if (!hasAccess) {
+      // redirige a su “home” por defecto según prioridad
+      router.replace(portalFor(user.roles ?? []));
     }
-  }, [user, loading, allow, router]);
+  }, [user, loading, allow, router, portalFor]);
 
   if (loading) return <div className="p-6">Cargando…</div>;
-  if (!user || !allow.includes(user.role)) return null;
+  if (!user) return null;
+
+  const canSee = user.roles?.some(r => allow.includes(r));
+  if (!canSee) return null;
 
   return <>{children}</>;
 }
-
-
