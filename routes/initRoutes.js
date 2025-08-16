@@ -16,6 +16,7 @@ const alertaRoutes       = require("./alerta.routes");
 const minutaRoutes       = require("./minuta.routes");
 const descargaRoutes     = require("./descarga.routes");
 const registroRoutes     = require("./registro.routes");
+const loginRoutes = require("./login.routes");
 
 /**
  * Inicializa todas las rutas bajo un prefijo (ej: /api o /api/v1)
@@ -39,6 +40,7 @@ function initRoutes(app, basePath = "/api") {
   api.use("/minutas",         minutaRoutes);
   api.use("/descargas",       descargaRoutes);
   api.use("/registros",       registroRoutes);
+  api.use("/login", loginRoutes);
 
   // fallback para rutas desconocidas
   api.use((req, res) => {
