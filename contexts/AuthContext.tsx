@@ -1,3 +1,4 @@
+// contexts/AuthContext.tsx
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
@@ -9,20 +10,23 @@ export interface User {
   nombre: string;
   correo: string;
   rut?: string;
-  roles: UserRole[]; // array de roles del front
+  roles: UserRole[];
 }
 
 type AuthState = {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (correoOrRut: string, password: string) => Promise<User>;
+  login: (rut: string, password: string) => Promise<User>;   // 👈 recibe RUT
   logout: () => void;
   authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   portalFor: (roles: UserRole[]) => string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001';
+// contexts/AuthContext.tsx
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
+
 
 const ROLE_MAP: Record<string, UserRole> = {
   PACIENTE: 'paciente',
@@ -33,15 +37,18 @@ const ROLE_MAP: Record<string, UserRole> = {
 };
 
 const STORAGE_KEY = 'session_v1';
-
 const AuthContext = createContext<AuthState | undefined>(undefined);
+
+// normaliza RUT (igual que el back)
+function normRut(r: string) {
+  return (r || '').replace(/\./g, '').replace(/-/g, '').toUpperCase();
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restaurar sesión al cargar
   useEffect(() => {
     try {
       const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
@@ -55,7 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // (Opcional) Sincroniza logout/login entre pestañas
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
@@ -73,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // Decide portal según prioridad de roles
   const portalFor = (roles: UserRole[]) => {
     if (roles.includes('admin')) return '/admin';
     if (roles.includes('investigador')) return '/investigador';
@@ -83,25 +88,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return '/';
   };
 
-  const login = async (correoOrRut: string, password: string) => {
+  // 👇 ahora el login envía { rut, password } a /auth/login
+  const login = async (rut: string, password: string) => {
     try {
-      const res = await fetch(`${API_BASE}/login`, {
+      const url = `${API_BASE}/auth/login`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo: correoOrRut, password }),
+        body: JSON.stringify({ rut: normRut(rut), password }),
       });
 
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'Error de autenticación');
+        throw new Error(body?.error || `HTTP ${res.status}: ${url}`);
       }
 
       const data: {
         token: string;
         user: { id: number | string; rut?: string; nombre: string; correo: string; roles: string[] };
-      } = await res.json();
+      } = body;
 
-      // Mapea roles del backend (cualquier casing) → roles del front
       const mappedRoles: UserRole[] = (data.user.roles || [])
         .map((r) => ROLE_MAP[r?.toUpperCase?.() ?? ''] || null)
         .filter(Boolean) as UserRole[];
@@ -119,7 +125,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: u, token: data.token }));
       return u;
     } catch (e: any) {
-      // Limpia por si quedó algo inconsistente
       localStorage.removeItem(STORAGE_KEY);
       setUser(null);
       setToken(null);
@@ -133,7 +138,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  // fetch con Bearer automático
   const authFetch: AuthState['authFetch'] = async (input, init = {}) => {
     const headers = new Headers(init.headers || {});
     if (token && !headers.has('Authorization')) {
@@ -143,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers.set('Content-Type', 'application/json');
     }
     const resp = await fetch(input, { ...init, headers });
-    if (resp.status === 401) logout(); // token inválido/expirado
+    if (resp.status === 401) logout();
     return resp;
   };
 
@@ -152,9 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, token, loading]
   );
 
-  // Evita parpadeo de UI protegida mientras carga la sesión
   if (loading) return null;
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
