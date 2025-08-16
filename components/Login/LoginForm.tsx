@@ -1,7 +1,8 @@
+// components/Login/LoginForm.tsx
 'use client';
 
 import { useState } from 'react';
-import { LogIn, User, Lock, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import { LogIn, User, Lock, Eye, EyeOff, HelpCircle, AlertCircle } from 'lucide-react';
 
 type Props = {
   onForgot: () => void;
@@ -15,11 +16,20 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
   const [pass, setPass] = useState('');
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null); // 👈 NUEVO
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErr(null);           // 👈 limpia mensaje anterior
     setLoading(true);
-    try { await onSubmit(rut, pass); } finally { setLoading(false); }
+    try {
+      await onSubmit(rut, pass);
+    } catch (e: any) {
+      // 👇 muestra exactamente lo que lanzó AuthContext (viene del back)
+      setErr(e?.message || 'Error de autenticación');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,6 +58,18 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
           </div>
         </div>
       </div>
+
+      {/* Mensaje de error */}
+      {err && (
+        <div
+          className="mb-4 flex items-start gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-3"
+          role="alert"
+          aria-live="assertive"
+        >
+          <AlertCircle className="w-5 h-5 mt-0.5" />
+          <span>{err}</span>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handle} className="space-y-6">
@@ -80,8 +102,12 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
               placeholder="********"
               required
             />
-            <button type="button" onClick={() => setShow(s => !s)}
-              className="absolute right-3 top-3 text-blue-500">
+            <button
+              type="button"
+              onClick={() => setShow((s) => !s)}
+              className="absolute right-3 top-3 text-blue-500"
+              aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
               {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
