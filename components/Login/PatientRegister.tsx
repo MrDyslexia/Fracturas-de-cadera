@@ -5,6 +5,8 @@ import { ArrowLeft, UserPlus, User, Mail, Lock, AlertCircle, CheckCircle2 } from
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
+
+
 export default function PatientRegister({ onBack }: { onBack: () => void }) {
   const [rut, setRut] = useState('');
   const [nombres, setNombres] = useState('');
@@ -12,6 +14,9 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
   const [apellidoMaterno, setApellidoMaterno] = useState('');
   const [correo, setCorreo] = useState('');
   const [pass, setPass] = useState('');
+  const [sexo, setSexo] = useState<'M' | 'F' | 'O' | ''>(''); // O=Otro
+  const [fechaNac, setFechaNac] = useState('');               // 'YYYY-MM-DD'
+
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
@@ -21,19 +26,37 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
     [pass]
   );
 
+  const fechaOk = useMemo(() => {
+    if (!fechaNac) return false;
+    const d = new Date(fechaNac + 'T00:00:00');
+    const today = new Date();
+    return !Number.isNaN(d.getTime()) && d <= today; // no permite futuro
+  }, [fechaNac]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
     setOk(null);
+
     if (!passOk) {
       setErr('La contraseña debe tener al menos 8 caracteres, 1 mayúscula y 1 número.');
       return;
     }
+    if (!fechaOk) {
+      setErr('Fecha de nacimiento inválida.');
+      return;
+    }
+    if (!sexo) {
+      setErr('Selecciona el sexo.');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // 🧩 Claves alineadas con el backend
         body: JSON.stringify({
           rut: rut.trim() || null,
           nombres: nombres.trim(),
@@ -41,6 +64,8 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
           apellido_materno: apellidoMaterno.trim(),
           correo: correo.trim().toLowerCase(),
           password: pass,
+          sexo,                         // 'M' | 'F' | 'O'
+          fecha_nacimiento: fechaNac,   // 'YYYY-MM-DD'
         }),
       });
 
@@ -58,11 +83,13 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="max-w-md mx-auto w-full">
+      {/* Volver */}
       <button onClick={onBack} className="group inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 mb-6" type="button">
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition" />
         Volver al login
       </button>
 
+      {/* Título */}
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4 shadow-lg">
           <UserPlus className="w-8 h-8 text-white" />
@@ -70,7 +97,9 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
         <h2 className="text-3xl font-bold text-blue-900">Registro de Paciente</h2>
       </div>
 
+      {/* Form */}
       <form onSubmit={submit} className="bg-white/70 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/60 space-y-4">
+        {/* RUT */}
         <div>
           <label className="block text-sm font-medium text-blue-900 mb-2">RUT</label>
           <div className="relative">
@@ -85,6 +114,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
+        {/* Nombres */}
         <div>
           <label className="block text-sm font-medium text-blue-900 mb-2">Nombre</label>
           <input
@@ -97,6 +127,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
           />
         </div>
 
+        {/* Apellidos */}
         <div>
           <label className="block text-sm font-medium text-blue-900 mb-2">Apellido paterno</label>
           <input
@@ -121,6 +152,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
           />
         </div>
 
+        {/* Correo */}
         <div>
           <label className="block text-sm font-medium text-blue-900 mb-2">Correo</label>
           <div className="relative">
@@ -136,6 +168,38 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
+        {/* Sexo */}
+        <div>
+          <label className="block text-sm font-medium text-blue-900 mb-2">Sexo</label>
+          <select
+            value={sexo}
+            onChange={(e) => setSexo(e.target.value as 'M' | 'F' | 'O' | '')}
+            className="text-blue-600 w-full px-3 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 bg-white"
+            required
+          >
+            <option value="" disabled>Selecciona…</option>
+            <option value="F">Femenino</option>
+            <option value="M">Masculino</option>
+            <option value="O">Otro / Prefiere no decir</option>
+          </select>
+        </div>
+
+        {/* Fecha de nacimiento */}
+        <div>
+          <label className="block text-sm font-medium text-blue-900 mb-2">Fecha de nacimiento</label>
+          <input
+            type="date"
+            value={fechaNac}
+            onChange={(e) => setFechaNac(e.target.value)}
+            className="text-blue-600 w-full px-3 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          {!fechaOk && fechaNac && (
+            <p className="text-xs mt-1 text-blue-700">Revisa la fecha ingresada.</p>
+          )}
+        </div>
+
+        {/* Contraseña */}
         <div>
           <label className="block text-sm font-medium text-blue-900 mb-2">Contraseña</label>
           <div className="relative">
@@ -154,6 +218,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
           </p>
         </div>
 
+        {/* Mensajes */}
         {err && (
           <div className="flex items-start gap-2 text-red-700 text-sm bg-red-50 border border-red-200 rounded-md p-2">
             <AlertCircle className="w-4 h-4 mt-0.5" />
@@ -168,7 +233,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
         )}
 
         <button
-          disabled={loading || !nombres || !apellidoPaterno || !apellidoMaterno || !correo || !passOk}
+          disabled={loading || !nombres || !apellidoPaterno || !apellidoMaterno || !correo || !passOk || !fechaOk || !sexo}
           className="w-full bg-blue-600 text-white font-semibold rounded-lg py-3 shadow-lg
                      transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:shadow-md
                      disabled:opacity-60"
