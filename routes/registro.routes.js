@@ -1,11 +1,14 @@
-const express = require("express");
-const router = express.Router();
-const c = require("../controller/registro.controller");
+// routes/registro.routes.js
+const express = require('express');
+const { auth } = require('../middleware/auth');
+const ctrl = require('../controller/registro.controller');
 
-router.get("/", c.list);
-router.get("/:id", c.getOne);
-router.post("/", c.create);
-router.put("/:id", c.update);
-router.delete("/:id", c.remove);
+const router = express.Router();
+
+router.get('/',       auth(['ADMIN']), ctrl.list);
+router.get('/:id',    auth(['ADMIN']), ctrl.getOne);
+router.post('/',      auth(['ADMIN']), ctrl.create);
+router.put('/:id',    auth(['ADMIN']), ctrl.update);
+router.delete('/:id', auth(['ADMIN']), ctrl.remove);
 
 module.exports = router;

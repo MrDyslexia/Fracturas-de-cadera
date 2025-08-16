@@ -1,11 +1,15 @@
-const express = require("express");
-const router = express.Router();
-const c = require("../controller/paciente.controller");
+// routes/paciente.routes.js
+const express = require('express');
+const { auth } = require('../middleware/auth');
 
-router.get("/", c.list);
-router.get("/:user_id", c.getOne);
-router.post("/", c.create);
-router.put("/:user_id", c.update);
-router.delete("/:user_id", c.remove);
+const c = require('../controller/paciente.controller');
+const router = express.Router();
+
+// Gestión interna del perfil Paciente (si la usas)
+router.get('/', auth(['ADMIN','FUNCIONARIO','INVESTIGADOR']), c.list);
+router.get('/:user_id', auth(['ADMIN','FUNCIONARIO','INVESTIGADOR']), c.getOne);
+router.post('/', auth(['ADMIN','FUNCIONARIO']), c.create);
+router.put('/:user_id', auth(['ADMIN','FUNCIONARIO']), c.update);
+router.delete('/:user_id', auth(['ADMIN']), c.remove);
 
 module.exports = router;

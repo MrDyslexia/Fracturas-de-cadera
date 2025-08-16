@@ -1,11 +1,14 @@
-const express = require("express");
-const router = express.Router();
-const c = require("../controller/funcionario.controller");
+// routes/funcionario.routes.js
+const express = require('express');
+const { auth } = require('../middleware/auth');
 
-router.get("/", c.list);
-router.get("/:user_id", c.getOne);
-router.post("/", c.create);
-router.put("/:user_id", c.update);
-router.delete("/:user_id", c.remove);
+const c = require('../controller/funcionario.controller');
+const router = express.Router();
+
+router.get('/', auth(['ADMIN']), c.list);
+router.get('/:user_id', auth(['ADMIN']), c.getOne);
+router.post('/', auth(['ADMIN']), c.create);
+router.put('/:user_id', auth(['ADMIN']), c.update);
+router.delete('/:user_id', auth(['ADMIN']), c.remove);
 
 module.exports = router;

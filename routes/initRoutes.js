@@ -1,53 +1,31 @@
-// routes/initRoutes.js
-const express = require("express");
+const express = require('express');
+const authRoutes = require('./auth');          // ← este archivo
+// … (las demás rutas de dominio)
 
-// importa cada archivo de rutas
-const userRoutes         = require("./user.routes");
-const pacienteRoutes     = require("./paciente.routes");
-const funcionarioRoutes  = require("./funcionario.routes");
-const tecnologoRoutes    = require("./tecnologo.routes");
-const investigadorRoutes = require("./investigador.routes");
-const administradorRoutes= require("./administrador.routes");
-const examenRoutes       = require("./examen.routes");
-const muestraRoutes      = require("./muestra.routes");
-const resultadoRoutes    = require("./resultado.routes");
-const indicadorRoutes    = require("./indicador.routes");
-const alertaRoutes       = require("./alerta.routes");
-const minutaRoutes       = require("./minuta.routes");
-const descargaRoutes     = require("./descarga.routes");
-const registroRoutes     = require("./registro.routes");
-const loginRoutes = require("./login.routes");
-
-/**
- * Inicializa todas las rutas bajo un prefijo (ej: /api o /api/v1)
- * @param {express.Express} app
- * @param {string} basePath
- */
-function initRoutes(app, basePath = "/api") {
+function initRoutes(app, basePath = '/api') {
   const api = express.Router();
 
-  api.use("/users",           userRoutes);
-  api.use("/pacientes",       pacienteRoutes);
-  api.use("/funcionarios",    funcionarioRoutes);
-  api.use("/tecnologos",      tecnologoRoutes);
-  api.use("/investigadores",  investigadorRoutes);
-  api.use("/administradores", administradorRoutes);
-  api.use("/examenes",        examenRoutes);
-  api.use("/muestras",        muestraRoutes);
-  api.use("/resultados",      resultadoRoutes);
-  api.use("/indicadores",     indicadorRoutes);
-  api.use("/alertas",         alertaRoutes);
-  api.use("/minutas",         minutaRoutes);
-  api.use("/descargas",       descargaRoutes);
-  api.use("/registros",       registroRoutes);
-  api.use("/login", loginRoutes);
+  // públicas / sesión
+  api.use('/auth', authRoutes);                // → /api/auth/login  y  /api/auth/register
 
-  // fallback para rutas desconocidas
-  api.use((req, res) => {
-    res.status(404).json({ error: "Ruta no encontrada" });
-  });
+  // dominio (protegidas)
+  api.use('/registros',       require('./registro.routes'));
+  api.use('/pacientes',       require('./paciente.routes'));
+  api.use('/funcionarios',    require('./funcionario.routes'));
+  api.use('/tecnologos',      require('./tecnologo.routes'));
+  api.use('/investigadores',  require('./investigador.routes'));
+  api.use('/administradores', require('./administrador.routes'));
+  api.use('/examenes',        require('./examen.routes'));
+  api.use('/muestras',        require('./muestra.routes'));
+  api.use('/resultados',      require('./resultado.routes'));
+  api.use('/indicadores',     require('./indicador.routes'));
+  api.use('/alertas',         require('./alerta.routes'));
+  api.use('/minutas',         require('./minuta.routes'));
+  api.use('/descargas',       require('./descarga.routes'));
 
   app.use(basePath, api);
-}
 
+  // 404 global
+  app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
+}
 module.exports = { initRoutes };
