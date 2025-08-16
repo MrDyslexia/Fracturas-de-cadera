@@ -1,15 +1,13 @@
 // index.js
 require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 
 const { connectDB, sequelize } = require('./model/db');
-// Registra modelos/asociaciones antes de sincronizar
 require('./model/initModels');
 
-// Rutas main (monta todas bajo BASE_PATH)
 const { initRoutes } = require('./routes/initRoutes');
+const { verifyMailTransport } = require('./utils/mailer'); // 👈 AÑADIDO
 
 const app = express();
 
@@ -57,9 +55,11 @@ app.use((err, _req, res, _next) => {
 // ---------- Boot ----------
 (async () => {
   try {
-    // En dev: alter opcional; en prod: usa migraciones
     const ALTER = String(process.env.DB_ALTER || '').toLowerCase() === 'true';
-    await connectDB({ alter: ALTER }); // { alter: true } solo si DB_ALTER=true
+    await connectDB({ alter: ALTER });
+
+    // 👇 inicializa el mailer (imprime las credenciales de Ethereal en consola)
+    await verifyMailTransport();
 
     app.listen(PORT, () => {
       console.log(`🚀 API escuchando en http://localhost:${PORT}${BASE_PATH}`);
