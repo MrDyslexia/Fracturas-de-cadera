@@ -18,6 +18,7 @@ const alertaRoutes       = require('./alerta.routes');
 const minutaRoutes       = require('./minuta.routes');
 const descargaRoutes     = require('./descarga.routes');
 const registroRoutes     = require('./registro.routes');
+const adminUser          = require('./admin.users');
 
 function initRoutes(app, basePath = '/api') {
   const api = express.Router();
@@ -40,6 +41,7 @@ function initRoutes(app, basePath = '/api') {
   api.use('/minutas',         minutaRoutes);
   api.use('/descargas',       descargaRoutes);
   api.use('/registros',       registroRoutes);
+  api.use('/adminUser',       adminUser);
 
   app.use(basePath, api);
 

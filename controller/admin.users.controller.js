@@ -8,19 +8,22 @@ function normEmail(s){return (s||'').trim().toLowerCase();}
 function strongPwd(s){return s?.length>=8 && /[A-Z]/.test(s) && /\d/.test(s);}
 
 async function ensureRoleProfile(userId, role) {
-  // Crea el perfil según rol. Asume tablas 1:1 con PK = user.id
   switch (role) {
     case 'FUNCIONARIO':
-      if (!await models.Funcionario.findByPk(userId)) await models.Funcionario.create({ id: userId });
+      if (!await models.Funcionario.findOne({ where: { user_id: userId } }))
+        await models.Funcionario.create({ user_id: userId });
       break;
     case 'TECNOLOGO':
-      if (!await models.Tecnologo.findByPk(userId)) await models.Tecnologo.create({ id: userId });
+      if (!await models.Tecnologo.findOne({ where: { user_id: userId } }))
+        await models.Tecnologo.create({ user_id: userId });
       break;
     case 'INVESTIGADOR':
-      if (!await models.Investigador.findByPk(userId)) await models.Investigador.create({ id: userId });
+      if (!await models.Investigador.findOne({ where: { user_id: userId } }))
+        await models.Investigador.create({ user_id: userId });
       break;
     case 'ADMIN':
-      if (!await models.Administrador.findByPk(userId)) await models.Administrador.create({ id: userId });
+      if (!await models.Administrador.findByPk(userId)) // PK = user_id
+        await models.Administrador.create({ user_id: userId });
       break;
     default:
       throw new Error('Rol inválido para perfil administrativo');
@@ -29,23 +32,24 @@ async function ensureRoleProfile(userId, role) {
 
 async function removeRoleProfile(userId, role) {
   switch (role) {
-    case 'FUNCIONARIO': { const r=await models.Funcionario.findByPk(userId); if (r) await r.destroy(); break; }
-    case 'TECNOLOGO': { const r=await models.Tecnologo.findByPk(userId); if (r) await r.destroy(); break; }
-    case 'INVESTIGADOR': { const r=await models.Investigador.findByPk(userId); if (r) await r.destroy(); break; }
-    case 'ADMIN': { const r=await models.Administrador.findByPk(userId); if (r) await r.destroy(); break; }
+    case 'FUNCIONARIO': { const r = await models.Funcionario.findOne({ where:{ user_id:userId } }); if (r) await r.destroy(); break; }
+    case 'TECNOLOGO':   { const r = await models.Tecnologo.findOne({ where:{ user_id:userId } });   if (r) await r.destroy(); break; }
+    case 'INVESTIGADOR':{ const r = await models.Investigador.findOne({ where:{ user_id:userId } });if (r) await r.destroy(); break; }
+    case 'ADMIN':       { const r = await models.Administrador.findByPk(userId); if (r) await r.destroy(); break; }
     default: throw new Error('Rol inválido');
   }
 }
+
 
 // POST /admin/users
 // body: { nombre, correo, rut?, password, role }  // role ∈ VALID_ROLES
 async function createUserWithRole(req, res) {
   try {
-    let { nombre, correo, rut, password, role } = req.body || {};
+    let { nombres, apellido_paterno, apellido_materno, correo, rut, password, role } = req.body || {};
     role = String(role || '').toUpperCase();
     correo = normEmail(correo);
 
-    if (!nombre || !correo || !password || !role) {
+    if (!nombres || !correo || !password || !role) {
       return res.status(400).json({ error: 'nombre, correo, password y role son obligatorios' });
     }
     if (!VALID_ROLES.has(role)) {
@@ -59,14 +63,14 @@ async function createUserWithRole(req, res) {
     if (exists) return res.status(409).json({ error: 'Correo ya registrado' });
 
     const password_hash = await bcrypt.hash(password, 10);
-    const user = await models.User.create({ nombre, correo, rut: rut || null, password_hash });
+    const user = await models.User.create({ nombres, apellido_paterno, apellido_materno, correo, rut: rut || null, password_hash });
 
     // crea perfil según rol
     await ensureRoleProfile(user.id, role);
 
     return res.status(201).json({
       message: 'Usuario creado por admin',
-      user: { id: user.id, nombre: user.nombre, correo: user.correo, rut: user.rut },
+      user: { id: user.id, nombres: user.nombres, correo: user.correo, rut: user.rut },
       role_created: role,
     });
   } catch (err) {
