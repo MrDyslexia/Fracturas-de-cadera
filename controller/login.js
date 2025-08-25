@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
     
     console.log('[login] roles calculados para', user.id, roles);
 
-    // 👉 set cookie httpOnly
+
     res.cookie('auth', token, cookieOpts);
 
     return res.json({

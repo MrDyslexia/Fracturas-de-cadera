@@ -4,7 +4,7 @@ module.exports = (sequelize) => {
 
   const GenericReport = sequelize.define("GenericReport", {
     report_id:       { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    examen_id:       { type: DataTypes.INTEGER, allowNull: false }, // FK → examen.examen_id
+    examen_id:       { type: DataTypes.INTEGER, allowNull: false }, 
 
     // Imagen
     modalidad:       { type: DataTypes.STRING, allowNull: true },   // RX, TC, RM, ECO…
@@ -20,7 +20,7 @@ module.exports = (sequelize) => {
     impresion:       { type: DataTypes.TEXT,   allowNull: true },
 
     cod_snomed:      { type: DataTypes.STRING, allowNull: true },
-    informado_por:   { type: DataTypes.INTEGER, allowNull: true },  // profesional_id
+    informado_por:   { type: DataTypes.INTEGER, allowNull: true },  
     informado_en:    { type: DataTypes.DATE,   allowNull: true },
   }, {
     tableName: "generic_report",

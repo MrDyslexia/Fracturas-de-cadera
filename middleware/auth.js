@@ -8,7 +8,7 @@ function auth(requiredRoles = []) {
     // 1) token por cookie httpOnly o por Authorization: Bearer
     const header = (req.headers.authorization || '').trim();
     const bearer = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
-    const cookieToken = req.cookies?.auth || null; // 👈 ahora también desde cookie
+    const cookieToken = req.cookies?.auth || null;
     const token = cookieToken || bearer;
 
     if (!token) {

@@ -31,8 +31,6 @@ exports.me = async (req, res) => {
     const cargo = String(user?.professional_profile?.cargo || '').trim().toUpperCase();
     if (ROLE_MAP[cargo]) roles.push(ROLE_MAP[cargo]);
 
-    // si además tienes tabla de roles, aquí los agregas…
-
     res.json({ me: user, roles });
   } catch (err) {
     console.error(err);

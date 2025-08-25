@@ -27,11 +27,11 @@ async function verifyMailTransport() {
     console.log('📧 Ethereal user:', testAcc.user);
     console.log('🔑 Ethereal pass:', testAcc.pass);
   } else {
-    // SMTP real (Gmail, Outlook, etc)
+
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
-      secure: false, // STARTTLS
+      secure: false, 
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -40,7 +40,7 @@ async function verifyMailTransport() {
   }
 
   await transporter.verify();
-  console.log('✅ SMTP listo para enviar');
+  console.log('SMTP listo para enviar');
 }
 
 function getFrom() {
@@ -61,7 +61,6 @@ async function sendWelcomeMail(to, nombre) {
     `,
   });
 
-  // Si es Ethereal, muestra el link de vista previa
   const host = (process.env.SMTP_HOST || '').trim().toLowerCase();
   if (host === 'ethereal') {
     const url = nodemailer.getTestMessageUrl(info);

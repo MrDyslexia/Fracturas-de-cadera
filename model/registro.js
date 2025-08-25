@@ -4,8 +4,8 @@ module.exports = (sequelize) => {
     registro_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     accion: DataTypes.STRING,
     fecha_registro: { type: DataTypes.DATE, allowNull: false },
-    administrador_id: { type: DataTypes.INTEGER, allowNull: true },   // → administradores.user_id
-    actor_user_id: { type: DataTypes.INTEGER, allowNull: true },      // → users.id (quien fue modificado o actuó)
+    administrador_id: { type: DataTypes.INTEGER, allowNull: true },   
+    actor_user_id: { type: DataTypes.INTEGER, allowNull: true },     
   }, { tableName: "registro", timestamps: false });
   return Registro;
 };

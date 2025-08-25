@@ -1,7 +1,7 @@
 // controller/paciente.controller.js
 const models = require('../model/initModels');
 const { logRegistro } = require('./registro.controller');
-const { Op } = require('sequelize'); // 👈 añade esto
+const { Op } = require('sequelize'); 
 
 // Helpers
 function parseUserIdParam(req) {
@@ -25,16 +25,12 @@ async function search(req, res) {
     if (!q) return res.json({ items: [] });
 
     const qRut = normRut(q);
-
-    // ⚠️ IMPORTANTE: usa el alias de tu relación Paciente → User.
-    // Si en tu initModels declaraste Paciente.belongsTo(User, { as: 'user', foreignKey: 'user_id' }),
-    // entonces "as" debe ser 'user'. Si tu alias es distinto, cámbialo aquí.
     const userAlias = 'user';
 
     const rows = await models.Paciente.findAll({
       include: [{
         model: models.User,
-        as: userAlias,               // 🔁 ajusta si tu alias difiere
+        as: userAlias,               
         required: true,
         attributes: ['rut', 'nombres', 'apellido_paterno', 'apellido_materno'],
         where: {
@@ -198,4 +194,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { search, list, getOne, create, update, remove }; // 👈 exporta search
+module.exports = { search, list, getOne, create, update, remove };

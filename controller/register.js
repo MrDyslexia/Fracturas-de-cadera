@@ -9,8 +9,7 @@ const strongPwd = (s) => s?.length >= 8 && /[A-Z]/.test(s) && /\d/.test(s);
 const isValidSexo = (s) => ['M', 'F', 'O'].includes(String(s || '').toUpperCase());
 const isValidISODate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 
-// Lee la bandera del .env (default: true). 
-// Pon EMAIL_VERIFICATION_REQUIRED=false para pruebas.
+
 const REQUIRE_VERIFY =
   String(process.env.EMAIL_VERIFICATION_REQUIRED ?? "true").toLowerCase() !== "false";
 

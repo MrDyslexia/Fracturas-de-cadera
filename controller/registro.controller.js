@@ -60,7 +60,7 @@ async function create(req, res) {
     if (!fecha) return res.status(400).json({ error: 'fecha_registro inválida (ISO recomendado)' });
 
     const actorId = req.user?.id || null;
-    // Si quieres permitir administrador_id explícito, valida:
+    
     let administrador_id = null;
     if (req.body?.administrador_id != null) {
       const adm = await models.Administrador.findByPk(req.body.administrador_id);
@@ -113,7 +113,7 @@ async function update(req, res) {
       }
     }
 
-    // actor_user_id NO se actualiza desde el body (auditoría)
+  
     await row.save();
     res.json(row);
   } catch (err) {
@@ -149,7 +149,6 @@ async function logRegistro(req, accion, administrador_id = null) {
     });
   } catch (e) {
     console.error('logRegistro error:', e);
-    // ojo: no rompe el flujo principal, solo registra el error
   }
 }
 

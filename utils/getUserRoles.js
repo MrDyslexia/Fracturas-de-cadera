@@ -1,23 +1,21 @@
 // utils/getUserRoles.js
-// Devuelve un arreglo de roles UPPERCASE, únicos (p.ej. ["FUNCIONARIO","ADMIN"])
 
 module.exports = async function getUserRoles(models, userId) {
   const roles = new Set();
 
-  // --- helpers ---
   const pick = (...names) => names.map(n => models[n]).find(Boolean) || null;
 
   const findByUser = async (Model) => {
     if (!Model) return null;
     try {
-      // Detecta el nombre correcto del campo FK
+
       const attrs = Model.rawAttributes || {};
       if ('user_id' in attrs) return await Model.findOne({ where: { user_id: userId } });
       if ('userId'  in attrs) return await Model.findOne({ where: { userId:  userId } });
-      // Si la PK es user_id/userId, usa findByPk
+
       const pk = Array.isArray(Model.primaryKeyAttributes) ? Model.primaryKeyAttributes[0] : null;
       if (pk === 'user_id' || pk === 'userId') return await Model.findByPk(userId);
-      // Fallback común:
+
       return await Model.findOne({ where: { user_id: userId } });
     } catch {
       return null;
@@ -36,17 +34,17 @@ module.exports = async function getUserRoles(models, userId) {
     return null;
   };
 
-  // --- modelos posibles (alias comunes) ---
+
   const M_Admin         = pick('Administrador','Admin','administrator');
   const M_Funcionario   = pick('Funcionario');
   const M_Tecnologo     = pick('Tecnologo','Technologist');
   const M_Investigador  = pick('Investigador','Researcher');
   const M_Paciente      = pick('Paciente','Patient');
 
-  // perfiles profesionales (distintos nombres/alias)
+
   const M_ProfProfile   = pick('ProfessionalProfile','professional_profile','professionalProfile');
 
-  // --- consultas en paralelo ---
+
   const [admin, func, tec, inv, pac, prof] = await Promise.all([
     findByUser(M_Admin),
     findByUser(M_Funcionario),
@@ -55,7 +53,7 @@ module.exports = async function getUserRoles(models, userId) {
     findByUser(M_Paciente),
     (async () => {
       if (!M_ProfProfile) return null;
-      // intenta ambos nombres de FK
+
       const attrs = M_ProfProfile.rawAttributes || {};
       const where = 'user_id' in attrs ? { user_id: userId } :
                     'userId'  in attrs ? { userId:  userId } : { user_id: userId };
@@ -67,14 +65,14 @@ module.exports = async function getUserRoles(models, userId) {
     })(),
   ]);
 
-  // --- agrega roles encontrados ---
+
   if (admin) roles.add('ADMIN');
   if (func)  roles.add('FUNCIONARIO');
   if (tec)   roles.add('TECNOLOGO');
   if (inv)   roles.add('INVESTIGADOR');
   if (pac)   roles.add('PACIENTE');
 
-  // cargo desde professional_profile
+
   const cargo = prof?.cargo ?? prof?.dataValues?.cargo;
   const fromCargo = mapCargoToRole(cargo);
   if (fromCargo) roles.add(fromCargo);

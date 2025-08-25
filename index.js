@@ -2,19 +2,19 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const cookieParser = require('cookie-parser'); // 👈 AÑADIR AQUÍ
+const cookieParser = require('cookie-parser'); 
 const bcrypt = require('bcryptjs');
 
 const { connectDB, sequelize } = require('./model/db');
 const modelos = require('./model/initModels');
 
 const { initRoutes } = require('./routes/initRoutes');
-const { verifyMailTransport } = require('./utils/mailer'); // 👈 AÑADIDO
+const { verifyMailTransport } = require('./utils/mailer'); 
 
 const app = express();
 
 // ---------- Config ----------
-const PORT = Number(process.env.PORT) || 3001;             // backend en 3001
+const PORT = Number(process.env.PORT) || 3001;            
 const BASE_PATH = process.env.API_BASE || '/api/v1';
 const FRONT_ORIGIN = process.env.FRONT_ORIGIN || 'http://localhost:3000';
 
@@ -102,8 +102,7 @@ app.use((err, _req, res, _next) => {
         user_id: admin.id,
         nivel_acceso: null,
       },
-    });
-    // 👇 inicializa el mailer (imprime las credenciales de Ethereal en consola)
+    }); 
     await verifyMailTransport();
 
     app.listen(PORT, () => {

@@ -30,6 +30,5 @@ module.exports = (sequelize) => {
     ],
   });
 
-  // El belongsTo lo declaramos en initModels para tener todo centralizado.
   return ProfessionalProfile;
 };

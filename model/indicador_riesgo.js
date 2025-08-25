@@ -4,7 +4,7 @@ module.exports = (sequelize) => {
     indicador_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     descripcion: DataTypes.TEXT,
     puntaje: DataTypes.FLOAT,
-    resultado_id: { type: DataTypes.INTEGER, allowNull: false }, // → resultado.resultado_id
+    resultado_id: { type: DataTypes.INTEGER, allowNull: false }, 
   }, { tableName: "indicador_riesgo", timestamps: false });
   return IndicadorRiesgo;
 };

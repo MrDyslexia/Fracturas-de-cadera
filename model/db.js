@@ -12,8 +12,8 @@ const sequelize = new Sequelize(
     dialect: "postgres",
     logging: false,
     define: {
-      underscored: true,     // columnas created_at, etc. si activaras timestamps
-      freezeTableName: true, // no pluraliza
+      underscored: true,     
+      freezeTableName: true, 
     },
   }
 );
@@ -21,7 +21,7 @@ const sequelize = new Sequelize(
 async function connectDB(syncOptions = { alter: true }) {
   await sequelize.authenticate();
   console.log("✅ Conexión a PostgreSQL establecida correctamente");
-  // ¡OJO! Los modelos deben estar registrados antes (ver initModels).
+  
   await sequelize.sync(syncOptions);
   console.log("✅ Modelos sincronizados");
 }
