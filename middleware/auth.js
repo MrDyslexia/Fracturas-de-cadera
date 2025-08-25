@@ -7,7 +7,7 @@ function auth(requiredRoles = []) {
 
   return (req, res, next) => {
     const header = (req.headers.authorization || '').trim();
-    const isBearer = header.toLowerCase().startsWith('bearer ');
+    const isBearer = header.toLowerCase().startsWith('Bearer ');
     const token = isBearer ? header.slice(7).trim() : null;
 
     if (!token) {
