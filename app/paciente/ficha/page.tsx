@@ -1,26 +1,22 @@
-// app/paciente/page.tsx
 'use client';
 
 import RoleGuard from '@/components/RoleGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirmBackToLogin } from '@/hooks/useConfirmBackToLogin';
-
 import React from 'react';
 import PatientHeader from '@/components/Pacientes/PatientHeader';
-import ExamsTable from '@/components/Pacientes/ExamsTable';
+import PatientInfoTable from '@/components/Pacientes/PatientInfoTable';
 import { usePatient } from '@/contexts/PatientContext';
 import { RefreshCcw } from 'lucide-react';
 
-function PacienteScreen() {
+function FichaScreen() {
   const { logout } = useAuth();
   const { refresh, loading } = usePatient();
-
-  // Mantiene tu lógica de ruteo/cierre de sesión
   useConfirmBackToLogin(() => { logout(); });
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      {/* Resumen breve del paciente */}
+      {/* Puedes mantener el header arriba si te gusta el título/identificación */}
       <div className="flex items-center justify-between">
         <PatientHeader />
         <button
@@ -34,18 +30,17 @@ function PacienteScreen() {
         </button>
       </div>
 
-      {/* Tabla de exámenes */}
       <div className="mt-6">
-        <ExamsTable />
+        <PatientInfoTable />
       </div>
     </div>
   );
 }
 
-export default function PacientePage() {
+export default function FichaPage() {
   return (
     <RoleGuard allow={['paciente']}>
-      <PacienteScreen />
+      <FichaScreen />
     </RoleGuard>
   );
 }
