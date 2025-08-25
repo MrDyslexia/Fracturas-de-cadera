@@ -1,33 +1,83 @@
 // utils/getUserRoles.js
+// Devuelve un arreglo de roles UPPERCASE, únicos (p.ej. ["FUNCIONARIO","ADMIN"])
+
 module.exports = async function getUserRoles(models, userId) {
-  const roles = [];
+  const roles = new Set();
 
-  // ADMIN (tu modelo Administrador tiene PK = user_id, así que findByPk sirve)
-  if (models.Administrador) {
-    const a = await models.Administrador.findByPk(userId);
-    if (a) roles.push('ADMIN');
-  }
+  // --- helpers ---
+  const pick = (...names) => names.map(n => models[n]).find(Boolean) || null;
 
-  // PROFESIONALES vía tablas separadas
-  if (models.Funcionario) {
-    const f = await models.Funcionario.findOne({ where: { user_id: userId } });
-    if (f) roles.push('FUNCIONARIO');
-  }
-  if (models.Tecnologo) {
-    const t = await models.Tecnologo.findOne({ where: { user_id: userId } });
-    if (t) roles.push('TECNOLOGO');
-  }
-  if (models.Investigador) {
-    const i = await models.Investigador.findOne({ where: { user_id: userId } });
-    if (i) roles.push('INVESTIGADOR');
-  }
+  const findByUser = async (Model) => {
+    if (!Model) return null;
+    try {
+      // Detecta el nombre correcto del campo FK
+      const attrs = Model.rawAttributes || {};
+      if ('user_id' in attrs) return await Model.findOne({ where: { user_id: userId } });
+      if ('userId'  in attrs) return await Model.findOne({ where: { userId:  userId } });
+      // Si la PK es user_id/userId, usa findByPk
+      const pk = Array.isArray(Model.primaryKeyAttributes) ? Model.primaryKeyAttributes[0] : null;
+      if (pk === 'user_id' || pk === 'userId') return await Model.findByPk(userId);
+      // Fallback común:
+      return await Model.findOne({ where: { user_id: userId } });
+    } catch {
+      return null;
+    }
+  };
 
-  // PACIENTE (si existe)
-  if (models.Paciente?.findOne) {
-    const p = await models.Paciente.findOne({ where: { user_id: userId } });
-    if (p) roles.push('PACIENTE');
-  }
+  const mapCargoToRole = (cargo) => {
+    const k = String(cargo || '').trim().toUpperCase();
+    if (!k) return null;
+    if (k in ({ PACIENTE:1,FUNCIONARIO:1,TECNOLOGO:1,INVESTIGADOR:1,ADMIN:1 })) return k;
+    if (k.includes('FUNCIONARIO'))  return 'FUNCIONARIO';
+    if (k.includes('TECNOLOG'))     return 'TECNOLOGO';
+    if (k.includes('INVESTIG'))     return 'INVESTIGADOR';
+    if (k.includes('PACIENTE'))     return 'PACIENTE';
+    if (k.includes('ADMIN'))        return 'ADMIN';
+    return null;
+  };
 
-  // únicos en mayúscula
-  return Array.from(new Set(roles.map(r => String(r).toUpperCase())));
+  // --- modelos posibles (alias comunes) ---
+  const M_Admin         = pick('Administrador','Admin','administrator');
+  const M_Funcionario   = pick('Funcionario');
+  const M_Tecnologo     = pick('Tecnologo','Technologist');
+  const M_Investigador  = pick('Investigador','Researcher');
+  const M_Paciente      = pick('Paciente','Patient');
+
+  // perfiles profesionales (distintos nombres/alias)
+  const M_ProfProfile   = pick('ProfessionalProfile','professional_profile','professionalProfile');
+
+  // --- consultas en paralelo ---
+  const [admin, func, tec, inv, pac, prof] = await Promise.all([
+    findByUser(M_Admin),
+    findByUser(M_Funcionario),
+    findByUser(M_Tecnologo),
+    findByUser(M_Investigador),
+    findByUser(M_Paciente),
+    (async () => {
+      if (!M_ProfProfile) return null;
+      // intenta ambos nombres de FK
+      const attrs = M_ProfProfile.rawAttributes || {};
+      const where = 'user_id' in attrs ? { user_id: userId } :
+                    'userId'  in attrs ? { userId:  userId } : { user_id: userId };
+      try {
+        return await M_ProfProfile.findOne({ where, attributes: ['cargo','activo','hospital'] });
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
+
+  // --- agrega roles encontrados ---
+  if (admin) roles.add('ADMIN');
+  if (func)  roles.add('FUNCIONARIO');
+  if (tec)   roles.add('TECNOLOGO');
+  if (inv)   roles.add('INVESTIGADOR');
+  if (pac)   roles.add('PACIENTE');
+
+  // cargo desde professional_profile
+  const cargo = prof?.cargo ?? prof?.dataValues?.cargo;
+  const fromCargo = mapCargoToRole(cargo);
+  if (fromCargo) roles.add(fromCargo);
+
+  return Array.from(roles);
 };
