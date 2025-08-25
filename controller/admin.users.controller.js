@@ -2,89 +2,114 @@
 const models = require('../model/initModels');
 const bcrypt = require('bcryptjs');
 
-const VALID_ROLES = new Set(['FUNCIONARIO','TECNOLOGO','INVESTIGADOR','ADMIN']); // NO 'PACIENTE' aquí
+const VALID_ROLES = new Set(['FUNCIONARIO','TECNOLOGO','INVESTIGADOR','MEDICO','ADMIN']);
 
-function normEmail(s){return (s||'').trim().toLowerCase();}
-function strongPwd(s){return s?.length>=8 && /[A-Z]/.test(s) && /\d/.test(s);}
-
-async function ensureRoleProfile(userId, role) {
-  switch (role) {
-    case 'FUNCIONARIO':
-      if (!await models.Funcionario.findOne({ where: { user_id: userId } }))
-        await models.Funcionario.create({ user_id: userId });
-      break;
-    case 'TECNOLOGO':
-      if (!await models.Tecnologo.findOne({ where: { user_id: userId } }))
-        await models.Tecnologo.create({ user_id: userId });
-      break;
-    case 'INVESTIGADOR':
-      if (!await models.Investigador.findOne({ where: { user_id: userId } }))
-        await models.Investigador.create({ user_id: userId });
-      break;
-    case 'ADMIN':
-      if (!await models.Administrador.findByPk(userId)) // PK = user_id
-        await models.Administrador.create({ user_id: userId });
-      break;
-    default:
-      throw new Error('Rol inválido para perfil administrativo');
-  }
+const normEmail = (s) => (s||'').trim().toLowerCase();
+const strongPwd = (s) => s?.length>=8 && /[A-Z]/.test(s) && /\d/.test(s);
+function normRut(r) {
+  if (!r) return '';
+  return String(r).replace(/\./g, '').replace(/-/g, '').toUpperCase();
 }
 
-async function removeRoleProfile(userId, role) {
-  switch (role) {
-    case 'FUNCIONARIO': { const r = await models.Funcionario.findOne({ where:{ user_id:userId } }); if (r) await r.destroy(); break; }
-    case 'TECNOLOGO':   { const r = await models.Tecnologo.findOne({ where:{ user_id:userId } });   if (r) await r.destroy(); break; }
-    case 'INVESTIGADOR':{ const r = await models.Investigador.findOne({ where:{ user_id:userId } });if (r) await r.destroy(); break; }
-    case 'ADMIN':       { const r = await models.Administrador.findByPk(userId); if (r) await r.destroy(); break; }
-    default: throw new Error('Rol inválido');
-  }
-}
-
-
-// POST /admin/users
-// body: { nombre, correo, rut?, password, role }  // role ∈ VALID_ROLES
+// POST /admin/users  (soporta {user,profile} o plano legado)
 async function createUserWithRole(req, res) {
   try {
-    let { nombres, apellido_paterno, apellido_materno, correo, rut, password, role } = req.body || {};
-    role = String(role || '').toUpperCase();
-    correo = normEmail(correo);
 
-    if (!nombres || !correo || !password || !role) {
-      return res.status(400).json({ error: 'nombre, correo, password y role son obligatorios' });
-    }
-    if (!VALID_ROLES.has(role)) {
-      return res.status(400).json({ error: `role inválido. Use uno de: ${[...VALID_ROLES].join(', ')}` });
+    const payload = req.body || {};
+    
+    console.log('createUserWithRole payload:', payload);
+    const userIn = payload.user ? payload.user : {
+      nombres: payload.nombres,
+      apellido_paterno: payload.apellido_paterno,
+      apellido_materno: payload.apellido_materno,
+      correo: payload.correo,
+      rut: payload.rut,
+      password: payload.password,
+      telefono: payload.telefono,
+      sexo: payload.sexo,
+      fecha_nacimiento: payload.fecha_nacimiento,
+    };
+
+    const profileIn = payload.user ? (payload.profile || {}) : {};
+    let role = payload.user ? (profileIn.cargo || payload.role) : payload.role;
+    role = String(role || '').toUpperCase();
+
+    const correo = normEmail(userIn.correo);
+    const password = userIn.password || '';
+
+    if (!userIn.nombres || !userIn.apellido_paterno || !userIn.apellido_materno || !correo || !password) {
+      return res.status(400).json({ error: 'nombres, apellidos, correo y password son obligatorios' });
     }
     if (!strongPwd(password)) {
       return res.status(400).json({ error: 'La contraseña debe tener ≥8, 1 mayúscula y 1 número' });
     }
+    if (!VALID_ROLES.has(role)) {
+      return res.status(400).json({ error: `cargo/role inválido. Use: ${[...VALID_ROLES].join(', ')}` });
+    }
 
-    const exists = await models.User.findOne({ where: { correo } });
-    if (exists) return res.status(409).json({ error: 'Correo ya registrado' });
+    if (await models.User.findOne({ where: { correo } })) {
+      return res.status(409).json({ error: 'Correo ya registrado' });
+    }
+    if (userIn.rut) {
+      const dupeRut = await models.User.findOne({ where: { rut: userIn.rut } });
+      if (dupeRut) return res.status(409).json({ error: 'RUT ya registrado' });
+    }
 
-    const password_hash = await bcrypt.hash(password, 10);
-    const user = await models.User.create({ nombres, apellido_paterno, apellido_materno, correo, rut: rut || null, password_hash });
+    const t = await models.User.sequelize.transaction();
+    try {
+      const password_hash = await bcrypt.hash(password, 10);
+      const user = await models.User.create({
+        rut: normRut(userIn.rut || ''),
+        nombres: userIn.nombres,
+        apellido_paterno: userIn.apellido_paterno,
+        apellido_materno: userIn.apellido_materno,
+        correo,
+        password_hash,
+        telefono: userIn.telefono || null,
+        sexo: userIn.sexo,
+        fecha_nacimiento: userIn.fecha_nacimiento,
+      }, { transaction: t });
 
-    // crea perfil según rol
-    await ensureRoleProfile(user.id, role);
+      // Perfil profesional (si viene desde el frontend nuevo)
+      if (payload.user) {
+        await models.ProfessionalProfile.create({
+          user_id: user.id,
+          rut_profesional: normRut(profileIn.rut_profesional|| ''),
+          especialidad: profileIn.especialidad || null,
+          cargo: role,
+          hospital: profileIn.hospital || null,
+          departamento: profileIn.departamento || null,
+        }, { transaction: t });
+      }
 
-    return res.status(201).json({
-      message: 'Usuario creado por admin',
-      user: { id: user.id, nombres: user.nombres, correo: user.correo, rut: user.rut },
-      role_created: role,
-    });
+      // Si role = ADMIN, asegura registro en administradores
+      if (role === 'ADMIN') {
+        if (!await models.Administrador.findByPk(user.id)) {
+          await models.Administrador.create({ user_id: user.id }, { transaction: t });
+        }
+      }
+
+      await t.commit();
+      return res.status(201).json({
+        message: 'Usuario creado',
+        user: { id: user.id, nombres: user.nombres, correo: user.correo, rut: user.rut },
+        cargo: role,
+      });
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
   } catch (err) {
     console.error('createUserWithRole error', err);
     return res.status(500).json({ error: 'Error en el servidor' });
   }
 }
 
-// POST /admin/users/:id/roles
-// body: { role } // agrega rol adicional
+// POST /admin/users/:id/roles  (aquí lo tomamos como "cambiar/asegurar cargo")
 async function addRoleToUser(req, res) {
   try {
     const userId = Number(req.params.id);
-    let { role } = req.body || {};
+    let { role, rut_profesional, especialidad, hospital, departamento } = req.body || {};
     role = String(role || '').toUpperCase();
 
     if (!Number.isInteger(userId)) return res.status(400).json({ error: 'id inválido' });
@@ -93,8 +118,34 @@ async function addRoleToUser(req, res) {
     const user = await models.User.findByPk(userId);
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    await ensureRoleProfile(user.id, role);
-    return res.status(201).json({ message: 'Rol agregado', userId, role });
+    if (role === 'ADMIN') {
+      if (!await models.Administrador.findByPk(userId)) {
+        await models.Administrador.create({ user_id: userId });
+      }
+      return res.status(201).json({ message: 'Rol ADMIN asegurado', userId, role });
+    }
+
+    // Asegura/actualiza ProfessionalProfile
+    const existing = await models.ProfessionalProfile.findOne({ where: { user_id: userId } });
+    if (existing) {
+      existing.cargo = role;
+      if (rut_profesional !== undefined) existing.rut_profesional = rut_profesional || null;
+      if (especialidad !== undefined)    existing.especialidad   = especialidad   || null;
+      if (hospital !== undefined)        existing.hospital       = hospital       || null;
+      if (departamento !== undefined)    existing.departamento   = departamento   || null;
+      await existing.save();
+    } else {
+      await models.ProfessionalProfile.create({
+        user_id: userId,
+        cargo: role,
+        rut_profesional: rut_profesional || null,
+        especialidad: especialidad || null,
+        hospital: hospital || null,
+        departamento: departamento || null,
+      });
+    }
+
+    return res.status(201).json({ message: 'Rol profesional asegurado', userId, role });
   } catch (err) {
     console.error('addRoleToUser error', err);
     return res.status(500).json({ error: 'Error en el servidor' });
@@ -110,10 +161,20 @@ async function removeRoleFromUser(req, res) {
     if (!Number.isInteger(userId)) return res.status(400).json({ error: 'id inválido' });
     if (!VALID_ROLES.has(role)) return res.status(400).json({ error: 'role inválido' });
 
-    const user = await models.User.findByPk(userId);
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (role === 'ADMIN') {
+      const r = await models.Administrador.findByPk(userId);
+      if (r) await r.destroy();
+      return res.status(204).send();
+    }
 
-    await removeRoleProfile(user.id, role);
+    const prof = await models.ProfessionalProfile.findOne({ where: { user_id: userId } });
+    if (prof) {
+      if (prof.cargo === role) {
+        // Si quitas su rol principal, lo dejamos como FUNCIONARIO o borra perfil si prefieres:
+        prof.cargo = 'FUNCIONARIO';
+        await prof.save();
+      }
+    }
     return res.status(204).send();
   } catch (err) {
     console.error('removeRoleFromUser error', err);
@@ -121,11 +182,10 @@ async function removeRoleFromUser(req, res) {
   }
 }
 
-// (Opcional) GET /admin/users
+// GET /admin/users
 async function listUsers(_req, res) {
   try {
-    // Simple: lista todos los usuarios; si quieres, incluye perfiles con LEFT JOINs
-    const users = await models.User.findAll({ order: [['id', 'DESC']] });
+    const users = await models.User.findAll({ order: [['id','DESC']] });
     res.json(users);
   } catch (err) {
     console.error('listUsers error', err);

@@ -28,16 +28,17 @@ async function login(req, res) {
     let { rut, password } = req.body || {};
     rut = normRut(rut || '');
     password = (password || '').trim();
-
+    
     if (!rut || !password) {
       return res.status(400).json({ error: 'rut y password son obligatorios' });
     }
-
+    console.log('login attempt for RUT:', rut);
     // 1) Busca SOLO por RUT
     const user = await models.User.findOne({ where: { rut } });
     if (!user) {
       return res.status(404).json({ error: 'Usuario no registrado' });
     }
+    console.log('login payload:', req.body);
 
     // 2) Verificación de correo (según bandera)
     if (REQUIRE_VERIFY && user.email_verified === false) {
