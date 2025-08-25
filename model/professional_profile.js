@@ -1,3 +1,4 @@
+// model/professional_profile.js
 module.exports = (sequelize) => {
   const { DataTypes } = require("sequelize");
 
@@ -5,12 +6,13 @@ module.exports = (sequelize) => {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     user_id: {
       type: DataTypes.INTEGER, allowNull: false, unique: true,
-      references: { model: "users", key: "id" }, onUpdate: "CASCADE", onDelete: "CASCADE",
+      references: { model: "users", key: "id" },
+      onUpdate: "CASCADE", onDelete: "CASCADE",
     },
     rut_profesional: { type: DataTypes.STRING(16), allowNull: true, unique: true },
     especialidad: { type: DataTypes.STRING(120), allowNull: true },
     cargo: {
-      type: DataTypes.ENUM("TECNOLOGO", "MEDICO", "INVESTIGADOR", "FUNCIONARIO"), // ✅ sin cero
+      type: DataTypes.ENUM("TECNOLOGO", "INVESTIGADOR", "FUNCIONARIO"),
       allowNull: false,
     },
     hospital: { type: DataTypes.STRING(120), allowNull: true },
@@ -28,9 +30,6 @@ module.exports = (sequelize) => {
     ],
   });
 
-  ProfessionalProfile.associate = (models) => {
-    ProfessionalProfile.belongsTo(models.User, { foreignKey: "user_id", as: "usuario" });
-  };
-
+  // El belongsTo lo declaramos en initModels para tener todo centralizado.
   return ProfessionalProfile;
 };

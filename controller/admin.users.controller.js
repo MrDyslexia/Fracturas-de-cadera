@@ -2,7 +2,7 @@
 const models = require('../model/initModels');
 const bcrypt = require('bcryptjs');
 
-const VALID_ROLES = new Set(['FUNCIONARIO','TECNOLOGO','INVESTIGADOR','MEDICO','ADMIN']);
+const VALID_ROLES = new Set(['FUNCIONARIO','TECNOLOGO','INVESTIGADOR','ADMIN']);
 
 const normEmail = (s) => (s||'').trim().toLowerCase();
 const strongPwd = (s) => s?.length>=8 && /[A-Z]/.test(s) && /\d/.test(s);
@@ -182,10 +182,21 @@ async function removeRoleFromUser(req, res) {
   }
 }
 
-// GET /admin/users
+// GET /adminUser/users
 async function listUsers(_req, res) {
   try {
-    const users = await models.User.findAll({ order: [['id','DESC']] });
+    const users = await models.User.findAll({
+      order: [['id', 'DESC']],
+      include: [{
+        model: models.ProfessionalProfile,
+        as: 'professional_profile',          // 👈 alias debe coincidir con initModels
+        required: false,                     // LEFT JOIN
+        attributes: [
+          'id', 'rut_profesional', 'cargo',
+          'especialidad', 'hospital', 'departamento', 'activo'
+        ],
+      }],
+    });
     res.json(users);
   } catch (err) {
     console.error('listUsers error', err);
@@ -193,9 +204,37 @@ async function listUsers(_req, res) {
   }
 }
 
+// GET /adminUser/users/:id
+async function getUser(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'id inválido' });
+
+    const user = await models.User.findByPk(id, {
+      include: [{
+        model: models.ProfessionalProfile,
+        as: 'professional_profile',
+        required: false,
+        attributes: [
+          'id', 'rut_profesional', 'cargo',
+          'especialidad', 'hospital', 'departamento', 'activo'
+        ],
+      }],
+    });
+
+    if (!user) return res.status(404).json({ error: 'No encontrado' });
+    res.json(user);
+  } catch (err) {
+    console.error('getUser error', err);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+}
+
+
 module.exports = {
   createUserWithRole,
   addRoleToUser,
   removeRoleFromUser,
   listUsers,
+  getUser, // 👈 nuevo (si lo agregaste)
 };
