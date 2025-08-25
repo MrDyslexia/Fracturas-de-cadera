@@ -19,22 +19,45 @@ const nombreCompleto = (u) =>
   [u.nombres, u.apellido_paterno, u.apellido_materno].filter(Boolean).join(' ').trim();
 
 async function getUserRoles(models, userId) {
-  // Ajusta según tus tablas de perfil:
   const roles = new Set();
-  const Admin = models.Administrador;
-  const Func = models.Funcionario;
-  const Tec  = models.Tecnologo;
-  const Inv  = models.Investigador;
-  const Pac  = models.Paciente;
 
+  // helper: toma el primer modelo que exista
+  const pick = (...names) => names.map(n => models[n]).find(Boolean);
+
+  // ADMIN
+  const Admin = pick('Administrador', 'Administradores', 'admin', 'Admin');
   if (Admin && await Admin.findOne({ where: { user_id: userId } })) roles.add('ADMIN');
-  if (Func  && await Func.findOne({ where: { user_id: userId } })) roles.add('FUNCIONARIO');
-  if (Tec   && await Tec.findOne({ where: { user_id: userId } })) roles.add('TECNOLOGO');
-  if (Inv   && await Inv.findOne({ where: { user_id: userId } })) roles.add('INVESTIGADOR');
-  if (Pac   && await Pac.findOne({ where: { user_id: userId } })) roles.add('PACIENTE');
+
+  // FUNCIONARIO (y derivados desde perfil profesional)
+  const Func = pick('Funcionario', 'Funcionarios', 'funcionario', 'ProfessionalProfile', 'professional_profile', 'PerfilProfesional');
+  if (Func) {
+    // si existe fila por user_id -> es funcionario
+    const row = await Func.findOne({ where: { user_id: userId } }).catch(() => null);
+    if (row) roles.add('FUNCIONARIO');
+
+    // además intenta deducir por cargo si el modelo tiene ese campo
+    const cargo = String(row?.cargo ?? '').toUpperCase();
+    if (cargo.includes('FUNCIONARIO')) roles.add('FUNCIONARIO');
+    if (cargo.includes('TECNOLOG')) roles.add('TECNOLOGO');
+    if (cargo.includes('INVESTIG')) roles.add('INVESTIGADOR');
+    if (cargo.includes('MEDIC')) roles.add('MEDICO');
+  }
+
+  // TECNÓLOGO
+  const Tec = pick('Tecnologo', 'Tecnologos', 'tec', 'Tech');
+  if (Tec && await Tec.findOne({ where: { user_id: userId } })) roles.add('TECNOLOGO');
+
+  // INVESTIGADOR
+  const Inv = pick('Investigador', 'Investigadores');
+  if (Inv && await Inv.findOne({ where: { user_id: userId } })) roles.add('INVESTIGADOR');
+
+  // PACIENTE
+  const Pac = pick('Paciente', 'Pacientes', 'paciente');
+  if (Pac && await Pac.findOne({ where: { user_id: userId } })) roles.add('PACIENTE');
 
   return Array.from(roles);
 }
+
 
 exports.login = async (req, res) => {
   try {
@@ -61,6 +84,8 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET || 'dev_secret_change_me',
       { expiresIn: process.env.JWT_EXPIRES || '1d' }
     );
+    
+    console.log('[login] roles calculados para', user.id, roles);
 
     // 👉 set cookie httpOnly
     res.cookie('auth', token, cookieOpts);
