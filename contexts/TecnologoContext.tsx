@@ -28,13 +28,11 @@ type TecnologoContextType = {
   loading: boolean;
   error: string | null;
 
-  // búsqueda
   searching: boolean;
   results: SearchItem[];
   searchPacientes: (q: string) => Promise<void>;
   clearResults: () => void;
 
-  // paciente elegido
   paciente?: PacienteLite | null;
   loadPaciente: (user_id: number) => Promise<void>;
 };

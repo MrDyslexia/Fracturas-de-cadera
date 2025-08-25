@@ -16,7 +16,7 @@ export type PacienteHeader = {
   edad?: number | null;
 };
 
-// 👇 Para la tabla de exámenes (queda vacío por ahora)
+
 export type Examen = {
   id: string | number;
   tipo: string;
@@ -32,7 +32,7 @@ type PatientContextType = {
   loading: boolean;
   error?: string | null;
   paciente?: PacienteHeader | null;
-  examenes: Examen[];           // 👈 agregado
+  examenes: Examen[];         
   refresh: () => Promise<void>;
 };
 
@@ -40,7 +40,7 @@ const PatientContext = createContext<PatientContextType>({
   loading: true,
   paciente: null,
   error: null,
-  examenes: [],                  // 👈 por defecto vacío
+  examenes: [],                
   refresh: async () => {},
 });
 
@@ -62,7 +62,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [paciente, setPaciente] = useState<PacienteHeader | null>(null);
-  const [examenes, setExamenes] = useState<Examen[]>([]); // 👈 estado local
+  const [examenes, setExamenes] = useState<Examen[]>([]); 
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json' }), []);
 
@@ -70,7 +70,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setLoading(true);
     setError(null);
     try {
-      // 1) user id
+
       let userId: number | null = (authUser as any)?.id ?? null;
       if (!userId) {
         const rMe = await fetch(`${API_BASE}/perfil`, { credentials: 'include' });
@@ -80,12 +80,12 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       if (!userId) throw new Error('No se pudo resolver el id del usuario autenticado');
 
-      // 2) User
+
       const rUser = await fetch(`${API_BASE}/users/${userId}`, { headers, credentials: 'include' });
       if (!rUser.ok) throw new Error(`Usuario HTTP ${rUser.status}`);
       const u = await rUser.json();
 
-      // 3) Paciente (puede no existir)
+     
       let p: any = null;
       const rPac = await fetch(`${API_BASE}/pacientes/${userId}`, { headers, credentials: 'include' });
       if (rPac.status === 200) p = await rPac.json();
@@ -109,8 +109,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       setPaciente(header);
 
-      // 4) Exámenes -> por ahora vacío (si luego agregas endpoint, cárgalo aquí)
-      setExamenes([]); // deja la tabla mostrando "No hay exámenes registrados."
+      setExamenes([]); 
     } catch (err: any) {
       setError(err?.message ?? 'Error al cargar datos del paciente');
       setPaciente(null);

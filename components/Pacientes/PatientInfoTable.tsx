@@ -42,7 +42,6 @@ export default function PatientInfoTable() {
 
   return (
     <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
-      {/* ✅ Sin título dentro de la tarjeta; el degradado pasa al thead */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

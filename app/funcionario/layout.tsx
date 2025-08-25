@@ -32,7 +32,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   // Confirmar si el usuario navega hacia atrás
   useConfirmBackToLogin(() => { logout(); });
 
-  // ✅ Home solo activo en coincidencia exacta; el resto permite prefijo
+
   const isActive = (href: string) => {
     if (href === '/funcionario') return pathname === '/funcionario';
     return pathname === href || pathname.startsWith(href + '/');
@@ -40,7 +40,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
-      {/* Sidebar con el MISMO formato que Paciente */}
+      
       <aside className="fixed left-0 top-0 h-screen w-[72px] border-r border-slate-200 bg-white/70 backdrop-blur">
         <div className="flex h-full flex-col items-center py-4 gap-3">
 
@@ -63,7 +63,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             ))}
           </div>
 
-          {/* Configuración (nuevo) */}
+          {/* Configuración */}
           <button
             onClick={() => router.push('/funcionario/configuracion')}
             title="Configuración"

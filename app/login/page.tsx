@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // 👈 añadido useSearchParams
+import { useRouter, useSearchParams } from 'next/navigation'; 
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginForm, ForgotPassword, ContactSupport, PatientRegister } from '@/components/Login';
 
@@ -11,10 +11,10 @@ type Mode = 'login' | 'forgot' | 'support' | 'register';
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('login');
   const router = useRouter();
-  const search = useSearchParams();                         // 👈 leer querystring
-  const next = search.get('next');                          // 👈 destino protegido
-  const { login, portalFor, user } = useAuth();             // 👈 también traemos user
-
+  const search = useSearchParams();                        
+  const next = search.get('next');                          
+  const { login, portalFor, user } = useAuth();            
+  
   // Si ya hay sesión y abren /login, redirige a su portal o al "next"
   useEffect(() => {
     if (!user) return;
@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   const onSubmit = async (correoORut: string, password: string) => {
     const u = await login(correoORut, password);
-    const target = (next && next.startsWith('/')) ? next : portalFor(u.roles); // 👈 usa next si corresponde
+    const target = (next && next.startsWith('/')) ? next : portalFor(u.roles); 
     router.replace(target);
   };
 

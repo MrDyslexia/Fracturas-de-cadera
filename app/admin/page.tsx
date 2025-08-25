@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import RoleGuard from '@/components/RoleGuard';           // ⬅️ añadido
+import RoleGuard from '@/components/RoleGuard';        
 import { AdminUsersProvider, useAdminUsers } from '../../contexts/AdminUsersContext';
 import { UsersTable } from '../../components/Admin/UsersTable';
 import { CreateUserCard } from '../../components/Admin/CreateUserCard';
@@ -40,7 +40,7 @@ function AdminUsersScreen() {
 
 export default function AdminPage() {
   return (
-    <RoleGuard allow={['admin']}>          {/* ⬅️ protege la ruta por rol */}
+    <RoleGuard allow={['admin']}>     
       <AdminUsersProvider>
         <AdminUsersScreen />
       </AdminUsersProvider>

@@ -44,11 +44,10 @@ function normRut(r: string) {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null); // mantenemos por compatibilidad
+  const [token, setToken] = useState<string | null>(null); 
   const [loading, setLoading] = useState(true);
 
-  // Cargar sesión preguntando al backend por la cookie httpOnly.
-  // Si falla, hace fallback a lo que hubiera en localStorage (compatibilidad).
+
   useEffect(() => {
     (async () => {
       try {
@@ -66,11 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             rut: me?.rut,
             roles: mapped,
           });
-          setToken(null); // el token ya no es necesario con cookie httpOnly
+          setToken(null); 
           return;
         }
 
-        // --- Fallback legacy ---
+  
         const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
         if (raw) {
           const parsed = JSON.parse(raw) as { user: User; token: string };
@@ -90,7 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // portal por prioridad; nunca devuelve '/'
   const portalFor = (roles: UserRole[]) => {
     const set = new Set((roles ?? []).map((r) => r.toLowerCase()));
     if (set.has('admin')) return '/admin';
@@ -102,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (rut: string, password: string) => {
-    // IMPORTANTE: credentials:'include' para recibir la cookie httpOnly
+
     const url = `${API_BASE}/auth/login`;
     const res = await fetch(url, {
       method: 'POST',
@@ -114,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}: ${url}`);
 
-    // roles desde la respuesta
+
     const mappedRoles: UserRole[] = (body?.user?.roles || [])
       .map((r: string) => ROLE_MAP[String(r).trim().toUpperCase()] || null)
       .filter(Boolean) as UserRole[];
@@ -129,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setUser(u);
 
-    // Si el backend aún devuelve token, lo conservamos en estado/localStorage por compatibilidad.
+   
     const tok: string | null = body?.token ?? null;
     setToken(tok);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: u, token: tok || '' }));
@@ -138,14 +136,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    // borra la cookie httpOnly en backend y limpia estado local
+
     await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
     setUser(null);
     setToken(null);
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  // Preferimos cookie httpOnly. Si tienes endpoints antiguos, dejamos el header Bearer sólo si existe.
+
   const authFetch: AuthState['authFetch'] = async (input, init = {}) => {
     const headers = new Headers(init.headers || {});
     if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);

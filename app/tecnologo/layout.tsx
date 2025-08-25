@@ -11,7 +11,6 @@ import React from 'react';
 
 const navItems = [
   { href: '/tecnologo', icon: House, label: 'Panel del tecnólogo' },
-  // más enlaces a futuro...
 ];
 
 export default function TecnologoLayout({ children }: { children: React.ReactNode }) {
@@ -29,7 +28,6 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   useConfirmBackToLogin(() => { logout(); });
 
-  // ✅ Home solo activo en coincidencia exacta; el resto permite prefijo
   const isActive = (href: string) => {
     if (href === '/tecnologo') return pathname === '/tecnologo';
     return pathname === href || pathname.startsWith(href + '/');
@@ -44,7 +42,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
-      {/* Sidebar (mismo estilo que paciente/funcionario, activo en negro) */}
+      
       <aside className="fixed left-0 top-0 h-screen w-[72px] border-r border-slate-200 bg-white/70 backdrop-blur">
         <div className="flex h-full flex-col items-center py-4 gap-3">
           <div className="mt-2 flex flex-col gap-2">

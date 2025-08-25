@@ -11,7 +11,7 @@ function ConfiguracionScreen() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="text-2xl font-semibold mb-4">Configuración (Funcionario)</h1>
-      <p className="text-slate-600">Aquí podrás ajustar preferencias del módulo Funcionario. (placeholder)</p>
+      <p className="text-slate-600">Aquí se podrán ajustar preferencias del módulo Funcionario.</p>
     </div>
   );
 }

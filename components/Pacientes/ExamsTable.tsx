@@ -17,7 +17,7 @@ export default function ExamsTable() {
   const { examenes, loading } = usePatient();
   const router = useRouter();
   const pathname = usePathname();
-  const isExamsPage = pathname?.startsWith('/paciente/examenes'); // 👈 detecta página dedicada
+  const isExamsPage = pathname?.startsWith('/paciente/examenes'); 
 
   if (loading) {
     return (

@@ -4,7 +4,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Si tienes ya este tipo úsalo; si no, este es suficiente para el buscador:
 export type Paciente = {
   rut: string;
   nombres: string;
@@ -21,7 +20,6 @@ type Props = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
-// Normaliza un objeto cualquiera a la forma Paciente (por si tu API usa snake_case)
 function toPaciente(x: any): Paciente {
   return {
     rut: String(x?.rut ?? '').trim(),
@@ -31,7 +29,6 @@ function toPaciente(x: any): Paciente {
   };
 }
 
-// Texto normalizado para filtrar localmente si hace falta
 const norm = (s: string) =>
   s
     .normalize('NFD')
@@ -47,7 +44,6 @@ export default function PacienteSearch({ value, onChange, onOpen, recientes }: P
 
   const abortRef = useRef<AbortController | null>(null);
 
-  // Llama al backend con debounce de 250ms
   useEffect(() => {
     const q = value.trim();
     setErr(null);
@@ -66,8 +62,6 @@ export default function PacienteSearch({ value, onChange, onOpen, recientes }: P
 
         setLoading(true);
 
-        // Puedes cambiar el endpoint si tu API usa otro nombre.
-        // Espera: items[], pacientes[] o un array plano.
         const resp = await authFetch(
           `${API_BASE}/pacientes/search?q=${encodeURIComponent(q)}&limit=6`,
           { signal: ctrl.signal }
@@ -99,7 +93,6 @@ export default function PacienteSearch({ value, onChange, onOpen, recientes }: P
 
   const hayTexto = value.trim() !== '';
 
-  // (Opcional) filtro defensivo local si tu API devuelve más de lo pedido
   const sugerencias = useMemo(() => {
     if (!hayTexto) return [];
     const s = norm(value.trim());

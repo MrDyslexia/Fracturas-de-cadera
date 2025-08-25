@@ -10,7 +10,6 @@ export default function SearchPaciente() {
   const [q, setQ] = useState('');
   const router = useRouter();
 
-  // ✅ tipado correcto + valor inicial
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {

@@ -66,7 +66,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero con imagen de fondo */}
+      {/* Imagen de fondo */}
       <section
         className="relative"
         style={{

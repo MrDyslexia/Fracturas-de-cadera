@@ -15,7 +15,6 @@ function PacienteScreen() {
   const { logout } = useAuth();
   const { refresh, loading } = usePatient();
 
-  // Mantiene tu lógica de ruteo/cierre de sesión
   useConfirmBackToLogin(() => { logout(); });
 
   return (

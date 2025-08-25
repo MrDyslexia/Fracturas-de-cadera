@@ -16,16 +16,16 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
   const [pass, setPass] = useState('');
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null); // 👈 NUEVO
+  const [err, setErr] = useState<string | null>(null); 
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErr(null);           // 👈 limpia mensaje anterior
+    setErr(null);         
     setLoading(true);
     try {
       await onSubmit(rut, pass);
     } catch (e: any) {
-      // 👇 muestra exactamente lo que lanzó AuthContext (viene del back)
+ 
       setErr(e?.message || 'Error de autenticación');
     } finally {
       setLoading(false);

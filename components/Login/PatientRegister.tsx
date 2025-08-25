@@ -6,7 +6,7 @@ import { ArrowLeft, UserPlus, User, Mail, Lock, AlertCircle, CheckCircle2 } from
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
-// --- Validación RUT (igual que el back) ---
+
 function isValidRut(rutRaw: string) {
   if (!rutRaw) return false;
   const rut = rutRaw.replace(/\./g, '').replace(/-/g, '').toUpperCase();
@@ -30,11 +30,11 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
   const [apellidoMaterno, setApellidoMaterno] = useState('');
   const [correo, setCorreo] = useState('');
   const [pass, setPass] = useState('');
-  const [pass2, setPass2] = useState(''); // confirmación
+  const [pass2, setPass2] = useState('');
   const [sexo, setSexo] = useState<'M' | 'F' | 'O' | ''>(''); 
   const [fechaNac, setFechaNac] = useState('');
 
-  const [showPass, setShowPass] = useState(false); // 👈 AQUÍ VA
+  const [showPass, setShowPass] = useState(false); 
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
     if (!fechaNac) return false;
     const d = new Date(fechaNac + 'T00:00:00');
     const today = new Date();
-    return !Number.isNaN(d.getTime()) && d <= today; // no permite futuro
+    return !Number.isNaN(d.getTime()) && d <= today; 
   }, [fechaNac]);
 
   const rutOk = useMemo(() => (rut ? isValidRut(rut) : false), [rut]);
@@ -102,9 +102,9 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'No se pudo registrar');
 
-      // ✅ IMPORTANTE: ahora pedimos verificación de correo
+
       setOk('Cuenta creada. Te enviamos un correo para activar tu cuenta. Revisa tu bandeja (y spam).');
-      // Redirige al login al ratito
+
       setTimeout(() => onBack(), 5000);
     } catch (e: any) {
       setErr(e?.message || 'Error inesperado');

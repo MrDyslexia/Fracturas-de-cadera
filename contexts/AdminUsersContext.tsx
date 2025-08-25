@@ -27,7 +27,7 @@ export type User = {
     activo?: boolean;
   } | null;
 
-  // nombres alternativos que podría enviar el backend
+
   professional_profile?: User['profile'] | null;
   professionalProfile?: User['profile'] | null;
 };
@@ -79,7 +79,7 @@ async function parseJsonSafe(res: Response) {
   try { return await res.json(); } catch { return null; }
 }
 
-// Normaliza cualquier forma de “profile” que venga del backend
+
 function pickProfile(u: any): User['profile'] | null {
   return (
     u?.profile ??
@@ -107,7 +107,7 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      // 1) listado base
+
       const r = await fetch(`${API_BASE}/adminUser/users`, {
         credentials: 'include',
         headers,
@@ -117,10 +117,10 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
 
       const raw: any[] = (data?.users ?? data) ?? [];
 
-      // 2) normalización inicial
+
       let normalized: User[] = raw.map((u) => ({ ...u, profile: pickProfile(u) }));
 
-      // 3) ids sin perfil → enriquecemos llamando GET /adminUser/users/:id
+
       const missingIds = normalized.filter(u => !u.profile).map(u => u.id);
       if (missingIds.length) {
         const detailPairs = await Promise.all(
@@ -138,7 +138,7 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
             }
           })
         );
-        const detailMap = Object.fromEntries(detailPairs); // { [id]: profile|null }
+        const detailMap = Object.fromEntries(detailPairs); 
 
         normalized = normalized.map(u => (
           u.profile ? u : { ...u, profile: detailMap[u.id] ?? null }
