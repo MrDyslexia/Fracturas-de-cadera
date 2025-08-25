@@ -18,7 +18,8 @@ export default function FuncionarioHome() {
   const [q, setQ] = useState('');
 
   const irAPerfil = (rut: string) =>
-    router.push(`/funcionario/${encodeURIComponent(rut)}`);
+    router.push(`/funcionario/paciente/${encodeURIComponent(rut)}`);
+
 
   // filtro de la tabla a partir de q
   const filtrados = useMemo<Paciente[]>(() => {

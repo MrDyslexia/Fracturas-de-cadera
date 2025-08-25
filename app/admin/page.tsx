@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import RoleGuard from '@/components/RoleGuard';           // ⬅️ añadido
 import { AdminUsersProvider, useAdminUsers } from '../../contexts/AdminUsersContext';
 import { UsersTable } from '../../components/Admin/UsersTable';
 import { CreateUserCard } from '../../components/Admin/CreateUserCard';
@@ -9,11 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 
 function AdminUsersScreen() {
   const { fetchUsers, loading, error } = useAdminUsers();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
-
-  // Maneja la flecha atrás del navegador
   useConfirmBackToLogin(() => { logout(); });
 
   return (
@@ -41,8 +40,10 @@ function AdminUsersScreen() {
 
 export default function AdminPage() {
   return (
-    <AdminUsersProvider>
-      <AdminUsersScreen />
-    </AdminUsersProvider>
+    <RoleGuard allow={['admin']}>          {/* ⬅️ protege la ruta por rol */}
+      <AdminUsersProvider>
+        <AdminUsersScreen />
+      </AdminUsersProvider>
+    </RoleGuard>
   );
 }

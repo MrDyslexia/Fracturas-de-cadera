@@ -1,29 +1,36 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation'; // 👈 añadido useSearchParams
 import { useAuth } from '@/contexts/AuthContext';
-// 👇 importa tus componentes del folder components/Login
 import { LoginForm, ForgotPassword, ContactSupport, PatientRegister } from '@/components/Login';
-
 
 type Mode = 'login' | 'forgot' | 'support' | 'register';
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('login');
   const router = useRouter();
-    const { login, portalFor } = useAuth();
+  const search = useSearchParams();                         // 👈 leer querystring
+  const next = search.get('next');                          // 👈 destino protegido
+  const { login, portalFor, user } = useAuth();             // 👈 también traemos user
+
+  // Si ya hay sesión y abren /login, redirige a su portal o al "next"
+  useEffect(() => {
+    if (!user) return;
+    const target = (next && next.startsWith('/')) ? next : portalFor(user.roles);
+    router.replace(target);
+  }, [user, next, router, portalFor]);
 
   const onSubmit = async (correoORut: string, password: string) => {
-    const u = await login(correoORut, password);  // ahora viene con u.roles: UserRole[]
-    const target = portalFor(u.roles);            // decide el portal según los roles
+    const u = await login(correoORut, password);
+    const target = (next && next.startsWith('/')) ? next : portalFor(u.roles); // 👈 usa next si corresponde
     router.replace(target);
   };
 
   return (
     <div className="flex min-h-screen overflow-hidden relative">
-      {/* Fondo de imagen fijo (igual que antes) */}
+      {/* Fondo de imagen fijo */}
       <div className="fixed inset-0 z-0">
         <Image
           src="/hospital-real.webp"
@@ -43,14 +50,14 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Panel derecho (mismo estilo) */}
+      {/* Panel derecho */}
       <div className="w-full lg:w-1/3 ml-auto bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 flex flex-col justify-center px-8 lg:px-16 py-12 relative z-10 min-h-screen shadow-2xl animate-fade-in-slide animation-delay-[0.2s] rounded-lg">
         {/* Burbujas */}
         <div className="absolute top-10 left-10 w-48 h-48 bg-gradient-to-br from-blue-300 to-blue-500 rounded-full opacity-20 animate-float-pulse animation-delay-[0.5s] z-0" />
         <div className="absolute bottom-20 right-10 w-32 h-32 bg-gradient-to-tl from-blue-200 to-blue-400 rounded-full opacity-20 animate-float-pulse animation-delay-[1s] z-0" />
         <div className="absolute top-1/4 right-1/4 w-24 h-24 bg-gradient-to-tr from-blue-100 to-blue-300 rounded-full opacity-20 animate-float-pulse animation-delay-[1.5s] z-0" />
 
-        {/* 👇 Aquí va el contenido que cambia según el modo */}
+        {/* Contenido según modo */}
         <div className="max-w-md mx-auto w-full z-10">
           {mode === 'login' && (
             <LoginForm
@@ -65,11 +72,10 @@ export default function LoginPage() {
           {mode === 'support' && <ContactSupport onBack={() => setMode('login')} />}
           {mode === 'register' && <PatientRegister onBack={() => setMode('login')} />}
 
-          {/* Footer fijo */}
           {mode === 'login' && (
-          <div className="mt-8 text-center animate-fade-in-slide animation-delay-[1.8s]">
-            <p className="text-sm text-blue-600">Inicia sesión para acceder a tu perfil.</p>
-          </div>
+            <div className="mt-8 text-center animate-fade-in-slide animation-delay-[1.8s]">
+              <p className="text-sm text-blue-600">Inicia sesión para acceder a tu perfil.</p>
+            </div>
           )}
         </div>
       </div>
