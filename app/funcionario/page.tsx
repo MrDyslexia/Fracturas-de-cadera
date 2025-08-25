@@ -18,7 +18,7 @@ export default function FuncionarioHome() {
   const [q, setQ] = useState('');
 
   const irAPerfil = (rut: string) =>
-    router.push(`/funcionario/paciente/${encodeURIComponent(rut)}`);
+    router.push(`/funcionario/${encodeURIComponent(rut)}`);
 
 
   // filtro de la tabla a partir de q

@@ -1,23 +1,14 @@
+// app/paciente/page.tsx
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import RoleGuard from '@/components/RoleGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirmBackToLogin } from '@/hooks/useConfirmBackToLogin';
 
-export default function PacientePage() {
-  const router = useRouter();
-  const { user, logout } = useAuth();
+function PacienteScreen() {
+  const { logout } = useAuth();
 
-  // Si no hay sesión, redirige al login
-  useEffect(() => {
-    if (!user) router.replace('/login');
-  }, [user, router]);
-
-  // Maneja la flecha atrás del navegador
-  useConfirmBackToLogin(() => {
-    logout(); // cerrar sesión si confirma
-  });
+  useConfirmBackToLogin(() => { logout(); });
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -26,5 +17,13 @@ export default function PacientePage() {
       </h1>
       <p>Bienvenido al módulo de Pacientes.</p>
     </main>
+  );
+}
+
+export default function PacientePage() {
+  return (
+    <RoleGuard allow={['paciente']}>
+      <PacienteScreen />
+    </RoleGuard>
   );
 }
