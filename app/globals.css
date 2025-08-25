@@ -326,3 +326,52 @@ body {
 .force-light .users-table tbody .users-row:nth-child(odd) .td{
   background: var(--color-neutral-50) !important;
 }
+
+/* === FIX: colores de texto en la tabla (alto contraste) === */
+
+/* Texto base de todas las celdas */
+.users-table .td{ color: var(--color-neutral-800) !important; }
+
+/* 1) Nombre (primera línea) bien oscuro y sin opacidades heredadas */
+.users-table .users-row td:first-child .font-medium{
+  color: var(--color-neutral-900) !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Por si algún estilo global baja la opacidad del primer td */
+.users-table .users-row td:first-child,
+.users-table .users-row td:first-child *{
+  opacity: 1 !important;
+}
+
+/* 2) Texto “muted” (teléfono, badges de estado) sigue tenue pero legible */
+.users-table .td .text-muted{ color: var(--color-neutral-500) !important; }
+
+/* 3) Correo / RUT / demás celdas consistentes */
+.users-table .td.text-body,
+.users-table .td.text-body *{ color: var(--color-neutral-800) !important; }
+
+/* 4) Chip de cargo: texto brand más visible */
+.users-table .td .chip{
+  color: var(--color-brand-800) !important;
+  border-color: var(--color-brand-200);
+  background: var(--color-brand-50);
+}
+
+/* 5) Links dentro de la tabla: legibles (sin subrayado molesto) */
+.users-table .td a{
+  color: var(--color-neutral-800) !important;
+  text-decoration: none;
+}
+.users-table .td a:hover{ text-decoration: underline; }
+
+/* 6) (Opcional) Cabecera un poco más marcada */
+.users-table .th{ color: var(--color-neutral-700) !important; }
+
+/* ===== Si usas .force-light, blinda el contraste en claro ===== */
+.force-light .users-table .td{ color: var(--color-neutral-800) !important; }
+.force-light .users-table .users-row td:first-child .font-medium{
+  color: var(--color-neutral-900) !important;
+}
+.force-light .users-table .td .text-muted{ color: var(--color-neutral-500) !important; }
