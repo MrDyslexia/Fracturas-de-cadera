@@ -7,9 +7,7 @@ function auth(requiredRoles = []) {
 
   return (req, res, next) => {
     const header = (req.headers.authorization || '').trim();
-    const isBearer = header.toLowerCase().startsWith('Bearer ');
-    const token = isBearer ? header.slice(7).trim() : null;
-
+    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
     if (!token) {
       // opcional: WWW-Authenticate ayuda a clientes
       res.set('WWW-Authenticate', 'Bearer');
