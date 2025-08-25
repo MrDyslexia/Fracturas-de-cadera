@@ -21,7 +21,7 @@ function AdminUsersScreen() {
     });
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-blue-50 to-blue-100">
+    <div className="min-h-[100vh] bg-gradient-to-br from-blue-50 to-blue-100">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-blue-100">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>

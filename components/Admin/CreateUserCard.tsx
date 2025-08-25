@@ -5,11 +5,10 @@ import { useAdminUsers } from '../../contexts/AdminUsersContext';
 import { Check, Loader2, Plus, UserPlus } from 'lucide-react';
 import { normEmail, strongPwd, isValidRutCl } from '../..//utils/rut';
 
-type Cargo = 'TECNOLOGO' | 'MEDICO' | 'INVESTIGADOR' | 'FUNCIONARIO';
+type Cargo = 'TECNOLOGO' | 'MEDICO' | 'INVESTIGADOR' | 'FUNCIONARIO' ;
 
 export function CreateUserCard() {
   const { createUser, loading } = useAdminUsers();
-
   const [rut, setRut] = useState('');
   const [nombres, setNombres] = useState('');
   const [apellidoPaterno, setApellidoPaterno] = useState('');
@@ -19,6 +18,7 @@ export function CreateUserCard() {
   const [sexo, setSexo] = useState<'M'|'F'|'O'|''>('');
   const [fechaNac, setFechaNac] = useState('');
   const [password, setPassword] = useState('');
+  const [status, setStatus] = useState<{type: 'ok' | 'err' | ''; msg: string}>({ type: '', msg: '' });
 
   // Profesional
   const [cargo, setCargo] = useState<Cargo>('TECNOLOGO');
@@ -46,27 +46,69 @@ export function CreateUserCard() {
     e.preventDefault();
     if (!puedeCrear) return;
 
-    await createUser({
-      user: {
-        rut, nombres,
-        apellido_paterno: apellidoPaterno,
-        apellido_materno: apellidoMaterno,
-        correo, password,
-        telefono, sexo,
-        fecha_nacimiento: fechaNac || undefined,
-      },
-      profile: {
-        rut_profesional: rutProfesional || null,
-        cargo,
-        especialidad: especialidad || null,
-        hospital: hospital || null,
-        departamento: departamento || null,
-      }
-    });
+    setStatus({ type: '', msg: '' });
 
-    setRut(''); setNombres(''); setApellidoPaterno(''); setApellidoMaterno('');
-    setCorreo(''); setTelefono(''); setSexo(''); setFechaNac(''); setPassword('');
-    setCargo('TECNOLOGO'); setRutProfesional(''); setEspecialidad(''); setHospital(''); setDepartamento('');
+    try {
+      const resp = await createUser({
+        user: {
+          rut, nombres,
+          apellido_paterno: apellidoPaterno,
+          apellido_materno: apellidoMaterno,
+          correo, password,
+          telefono, sexo,
+          fecha_nacimiento: fechaNac || undefined,
+        },
+        profile: {
+          rut_profesional: rutProfesional,
+          cargo,
+          especialidad: especialidad || null,
+          hospital: hospital || null,
+          departamento: departamento || null,
+        }
+      });
+
+      if ((resp as any)?.error) {
+        throw new Error((resp as any).error);
+      }
+
+      setStatus({
+        type: 'ok',
+        msg: `Usuario "${nombres} ${apellidoPaterno}" creado correctamente. Contraseña temporal: ${password}`
+      });
+
+      setRut(''); setNombres(''); setApellidoPaterno(''); setApellidoMaterno('');
+      setCorreo(''); setTelefono(''); setSexo(''); setFechaNac(''); setPassword('');
+      setCargo('TECNOLOGO'); setRutProfesional(''); setEspecialidad(''); setHospital(''); setDepartamento('');
+    } catch (err: any) {
+      setStatus({
+        type: 'err',
+        msg: err?.message || 'No se pudo crear el usuario'
+      });
+    }
+  }
+
+  // arriba (opcional): deja configurable el prefijo
+  const PWD_PREFIX = process.env.NEXT_PUBLIC_DEFAULT_PWD_PREFIX ?? 'ABCD';
+
+  // Funcion
+  function validarRut(rut: string): boolean {
+    return isValidRutCl(rut);
+  }
+
+  function handleRutChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const inputRut = e.target.value;
+    setRut(inputRut);
+
+    if (validarRut(inputRut)) {
+      // Deriva la contraseña ABCDXXXX (XXXX = últimos 4 del cuerpo sin DV)
+      const clean   = inputRut.replace(/\./g, '').replace(/-/g, '').toUpperCase(); // "12345678K"
+      const cuerpo  = clean.slice(0, -1);                                          // "12345678"
+      const last4   = cuerpo.slice(-4).padStart(4, '0');                           // "5678"
+      const pwd     = `${PWD_PREFIX}${last4}`;                                     // "ABCD5678"
+      setPassword(pwd);
+    } else {
+      setPassword('');
+    }
   }
 
   return (
@@ -77,10 +119,19 @@ export function CreateUserCard() {
           <UserPlus className="h-5 w-5" />
           <h2 className="font-semibold">Crear nuevo usuario</h2>
         </div>
-        <p className="text-white/70 text-sm mt-1">
-          Ingresa RUT nacional y RUT profesional (obligatorio para cargos clínicos e investigador).
-        </p>
       </div>
+
+      {/* Alertas */}
+      {status.type === 'ok' && (
+        <div className="mx-5 mt-4 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 px-4 py-2">
+          {status.msg}
+        </div>
+      )}
+      {status.type === 'err' && (
+        <div className="mx-5 mt-4 rounded-lg border border-red-300 bg-red-50 text-red-700 px-4 py-2">
+          {status.msg}
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={onSubmit} className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -90,7 +141,7 @@ export function CreateUserCard() {
         </div>
 
         <input className="fc-input" placeholder="RUT nacional (12.345.678-9)"
-               value={rut} onChange={e=>setRut(e.target.value)} />
+               value={rut} onChange={(e)=>{handleRutChange(e)}} />
         <input className="fc-input" placeholder="Correo"
                value={correo} onChange={e=>setCorreo(e.target.value)} />
 
@@ -115,8 +166,8 @@ export function CreateUserCard() {
 
         <input className="fc-input" placeholder="Teléfono (opcional)"
                value={telefono} onChange={e=>setTelefono(e.target.value)} />
-        <input className="fc-input" placeholder="Contraseña (min. 8, 1 mayúscula, 1 número)"
-               value={password} onChange={e=>setPassword(e.target.value)} type="password" />
+        <input className="fc-input" placeholder="Contraseña"
+               value={password} disabled/>
 
         {/* Profesional */}
         <div className="col-span-1 md:col-span-2 mt-2">
