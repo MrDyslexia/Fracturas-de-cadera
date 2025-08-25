@@ -72,7 +72,7 @@ app.use((err, _req, res, _next) => {
     const ALTER = String(process.env.DB_ALTER || '').toLowerCase() === 'true';
     await connectDB({ alter: ALTER });
     const Usuario = modelos.User; // <-- Usa el modelo correcto según tu initModels.js
-    const adminEmail = process.env.ADMIN_EMAIL || 'sofia@a.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'Admin@admin.com';
     const pass=await bcrypt.hash('Clave123', 10)
     const [admin, created] = await Usuario.findOrCreate({
       where: { correo: adminEmail }, // <-- Asegúrate de que el campo coincida con tu modelo

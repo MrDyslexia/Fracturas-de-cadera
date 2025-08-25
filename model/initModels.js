@@ -18,26 +18,27 @@ const Alerta            = require("./alerta")(sequelize);
 const Minuta            = require("./minuta")(sequelize);
 const Descarga          = require("./descarga")(sequelize);
 const Registro          = require("./registro")(sequelize);
-const GenericReport     = require("./generic_report")(sequelize); // <— nombre consistente
+const GenericReport     = require("./generic_report")(sequelize);
 
 // ─── Relaciones entre modelos ───
 
-// Examen ↔ GenericReport (1:1) — informe para IMAGEN / AP
+// Examen ↔ GenericReport (1:1)
 Examen.hasOne(GenericReport, { foreignKey: "examen_id" });
 GenericReport.belongsTo(Examen, { foreignKey: "examen_id" });
 
-// ---- Users ↔ Paciente/Administrador (1:1)
-User.hasOne(Paciente,      { as: "paciente",      foreignKey: "user_id", onDelete: "CASCADE" });
-Paciente.belongsTo(User,   { as: "user",          foreignKey: "user_id" });
+// Users ↔ Paciente (1:1)
+User.hasOne(Paciente, { as: "paciente", foreignKey: "user_id", onDelete: "CASCADE" });
+Paciente.belongsTo(User, { as: "user", foreignKey: "user_id" });
 
+// Users ↔ Administrador (1:1) — alias único y consistente: 'administrador'
 User.hasOne(Administrador, { as: "administrador", foreignKey: "user_id", onDelete: "CASCADE" });
-Administrador.belongsTo(User, { as: "user",      foreignKey: "user_id" });
+Administrador.belongsTo(User, { as: "user", foreignKey: "user_id" });
 
-// ---- Users ↔ ProfessionalProfile (1:1)
+// Users ↔ ProfessionalProfile (1:1) — alias único y consistente: 'professional_profile'
 User.hasOne(ProfessionalProfile, { as: "professional_profile", foreignKey: "user_id", onDelete: "CASCADE" });
 ProfessionalProfile.belongsTo(User, { as: "user", foreignKey: "user_id" });
 
-// ─── Relaciones de negocio (usando profesional_id) ───
+// ─── Relaciones de negocio ───
 Paciente.hasMany(Examen, { foreignKey: "paciente_id" });
 Examen.belongsTo(Paciente, { foreignKey: "paciente_id" });
 
@@ -53,8 +54,7 @@ Muestra.belongsTo(ProfessionalProfile, { foreignKey: "profesional_id" });
 Muestra.hasMany(Resultado, { foreignKey: "muestra_id" });
 Resultado.belongsTo(Muestra, { foreignKey: "muestra_id" });
 
-// (Opcional pero recomendado) Examen ↔ Resultado (1:N)
-// Requiere columna examen_id en la tabla resultado (añádela por migración si no existe)
+// Opcional si tienes columna examen_id en resultado:
 Examen.hasMany(Resultado, { foreignKey: "examen_id" });
 Resultado.belongsTo(Examen, { foreignKey: "examen_id" });
 
