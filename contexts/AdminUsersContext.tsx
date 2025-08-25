@@ -16,15 +16,20 @@ export type User = {
   sexo?: 'M'|'F'|'O';
   fecha_nacimiento?: string;
   email_verified?: boolean;
+
   profile?: {
     id?: number;
     rut_profesional?: string;
-    cargo?: 'TECNOLOGO'|'MEDICO'|'INVESTIGADOR'|'FUNCIONARIO';
+    cargo?: 'TECNOLOGO'|'INVESTIGADOR'|'FUNCIONARIO';
     especialidad?: string | null;
     hospital?: string | null;
     departamento?: string | null;
     activo?: boolean;
   } | null;
+
+  // nombres alternativos que podría enviar el backend
+  professional_profile?: User['profile'] | null;
+  professionalProfile?: User['profile'] | null;
 };
 
 type CreateUserPayload = {
@@ -41,7 +46,7 @@ type CreateUserPayload = {
   };
   profile: {
     rut_profesional: string;
-    cargo: 'TECNOLOGO'|'MEDICO'|'INVESTIGADOR'|'FUNCIONARIO';
+    cargo: 'TECNOLOGO'|'INVESTIGADOR'|'FUNCIONARIO';
     especialidad?: string | null;
     hospital?: string | null;
     departamento?: string | null;
@@ -61,10 +66,8 @@ type Ctx = {
 
 const AdminUsersCtx = createContext<Ctx | null>(null);
 
-/** Intenta obtener token desde localStorage (ajusta la key si usas otra) */
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  console.log('Available localStorage keys:', localStorage.getItem('token'), localStorage.getItem('auth_token'), localStorage.getItem('access_token'));
   return (
     localStorage.getItem('token') ||
     localStorage.getItem('auth_token') ||
@@ -74,6 +77,22 @@ function getAuthToken(): string | null {
 
 async function parseJsonSafe(res: Response) {
   try { return await res.json(); } catch { return null; }
+}
+
+// Normaliza cualquier forma de “profile” que venga del backend
+function pickProfile(u: any): User['profile'] | null {
+  return (
+    u?.profile ??
+    u?.professional_profile ??
+    u?.professionalProfile ??
+    u?.profesional_profile ??
+    u?.profile_profesional ??
+    u?.perfil_profesional ??
+    (Array.isArray(u?.profiles) ? u.profiles[0] : undefined) ??
+    (Array.isArray(u?.professional_profiles) ? u.professional_profiles[0] : undefined) ??
+    (Array.isArray(u?.professionalProfiles) ? u.professionalProfiles[0] : undefined) ??
+    null
+  );
 }
 
 export function AdminUsersProvider({ children }: { children: React.ReactNode }) {
@@ -88,15 +107,45 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
+      // 1) listado base
       const r = await fetch(`${API_BASE}/adminUser/users`, {
         credentials: 'include',
         headers,
       });
-
       const data = await parseJsonSafe(r);
       if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
 
-      setUsers(data?.users ?? data);
+      const raw: any[] = (data?.users ?? data) ?? [];
+
+      // 2) normalización inicial
+      let normalized: User[] = raw.map((u) => ({ ...u, profile: pickProfile(u) }));
+
+      // 3) ids sin perfil → enriquecemos llamando GET /adminUser/users/:id
+      const missingIds = normalized.filter(u => !u.profile).map(u => u.id);
+      if (missingIds.length) {
+        const detailPairs = await Promise.all(
+          missingIds.map(async (id) => {
+            try {
+              const rr = await fetch(`${API_BASE}/adminUser/users/${id}`, {
+                credentials: 'include',
+                headers,
+              });
+              const dd = await parseJsonSafe(rr);
+              const prof = pickProfile(dd);
+              return [id, prof] as const;
+            } catch {
+              return [id, null] as const;
+            }
+          })
+        );
+        const detailMap = Object.fromEntries(detailPairs); // { [id]: profile|null }
+
+        normalized = normalized.map(u => (
+          u.profile ? u : { ...u, profile: detailMap[u.id] ?? null }
+        ));
+      }
+
+      setUsers(normalized);
     } catch (e: any) {
       setErr(e?.message || 'No se pudieron obtener los usuarios');
     } finally {
@@ -105,7 +154,6 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const createUser = useCallback(async (p: CreateUserPayload) => {
-    // validaciones defensivas mínimas
     if (!isValidRutCl(p.user.rut)) throw new Error('RUT nacional inválido');
     if (p.profile.cargo !== 'FUNCIONARIO' && !isValidRutCl(p.profile.rut_profesional || '')) {
       throw new Error('RUT profesional inválido');
@@ -117,26 +165,20 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      const aux = JSON.stringify(p)
-      console.log('Payload createUser:', aux);  
-
       const r = await fetch(`${API_BASE}/adminUser/users`, {
         method: 'POST',
         credentials: 'include',
         headers,
-        body: aux,
+        body: JSON.stringify(p),
       });
-      console.log('Response createUser:', r);
-
       const data = await parseJsonSafe(r);
       if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
 
-      // refresca lista
       await fetchUsers();
-      return data; // <<-- permite a la UI mostrar mensaje de éxito
+      return data;
     } catch (e: any) {
       setErr(e?.message || 'No se pudo crear el usuario (revisa duplicados de correo/RUT).');
-      throw e; // <<-- deja que el componente capture y muestre alerta
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -155,7 +197,6 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
         headers,
         body: JSON.stringify({ role }),
       });
-
       const data = await parseJsonSafe(r);
       if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
 
@@ -179,7 +220,6 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
         credentials: 'include',
         headers,
       });
-
       if (!r.ok) {
         const data = await parseJsonSafe(r);
         throw new Error(data?.error || `HTTP ${r.status}`);
@@ -199,14 +239,12 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      // Ajusta el endpoint si tu backend usa otro:
       const r = await fetch(`${API_BASE}/adminUser/users/${userId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers,
         body: JSON.stringify({ profile: partial }),
       });
-
       const data = await parseJsonSafe(r);
       if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
 

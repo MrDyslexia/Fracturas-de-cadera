@@ -375,3 +375,358 @@ body {
   color: var(--color-neutral-900) !important;
 }
 .force-light .users-table .td .text-muted{ color: var(--color-neutral-500) !important; }
+
+/* Teléfono compacto bajo el nombre (solo cuando existe) */
+.cell-sub{
+  margin-top: .15rem;
+  font-size: .72rem;
+  color: var(--color-neutral-500);
+}
+
+/* Guion tenue para vacíos (no parece una “línea”) */
+.placeholder-dash{
+  color: var(--color-neutral-400);
+}
+
+
+/* Botón-link sutil para completar datos faltantes */
+.btn-link{
+  display:inline-flex; align-items:center; gap:.35rem;
+  font-size:.85rem; font-weight:600;
+  color: var(--color-brand-700);
+  background: transparent; border:0; padding:0;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.btn-link:hover{ color: var(--color-brand-800); }
+
+/* ===== Badges unificados (Paciente + Cargos) ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .22rem .55rem;
+  border-radius: 9999px;
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid var(--color-neutral-200);
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-700);
+}
+
+/* Si ya tenías .badge-paciente, puedes borrarla o dejarla;
+   esto la asegura por si no existía. */
+.badge--paciente {
+  border-color: var(--color-neutral-300);
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-700);
+}
+
+/* Badge base para cargos */
+.badge-role { composes: badge; }
+
+/* Colores por cargo */
+.badge--funcionario {
+  background: var(--color-brand-50);
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-800);
+}
+
+/* Indigo para tecnólogo */
+.badge--tecnologo {
+  background: #eef2ff;     /* indigo-50 */
+  border-color: #c7d2fe;   /* indigo-200 */
+  color: #3730a3;          /* indigo-800 */
+}
+
+/* Violet para investigador */
+.badge--investigador {
+  background: #f5f3ff;     /* violet-50 */
+  border-color: #ddd6fe;   /* violet-200 */
+  color: #6b21a8;          /* violet-800 */
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark){
+  .badge{
+    background: color-mix(in srgb, #fff 4%, transparent);
+    border-color: var(--color-neutral-700);
+    color: var(--color-neutral-100);
+  }
+  .badge--funcionario{
+    background: color-mix(in srgb, var(--color-brand-900) 35%, transparent);
+    border-color: color-mix(in srgb, var(--color-brand-700) 40%, transparent);
+    color: #e6ecff;
+  }
+  .badge--tecnologo{
+    background: color-mix(in srgb, #3730a3 25%, transparent);
+    border-color: color-mix(in srgb, #4f46e5 35%, transparent);
+    color: #eef2ff;
+  }
+  .badge--investigador{
+    background: color-mix(in srgb, #6b21a8 25%, transparent);
+    border-color: color-mix(in srgb, #7c3aed 35%, transparent);
+    color: #f5f3ff;
+  }
+
+  /* ===== Badges base (Paciente + Cargos) ===== */
+.badge,
+.badge-role {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .22rem .55rem;
+  border-radius: 9999px;
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid var(--color-neutral-200);
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-800) !important;  /* texto siempre visible */
+  white-space: nowrap;                         /* que no se corte el texto */
+}
+
+/* Paciente */
+.badge--paciente {
+  border-color: var(--color-neutral-300);
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-700) !important;
+}
+
+/* Cargos (colores por tipo) */
+.badge--funcionario {
+  background: var(--color-brand-50);
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-800) !important;
+}
+
+.badge--tecnologo {
+  background: #eef2ff;     /* indigo-50 */
+  border-color: #c7d2fe;   /* indigo-200 */
+  color: #3730a3 !important; /* indigo-800 */
+}
+
+.badge--investigador {
+  background: #f5f3ff;     /* violet-50 */
+  border-color: #ddd6fe;   /* violet-200 */
+  color: #6b21a8 !important; /* violet-800 */
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark){
+  .badge, .badge-role{
+    background: color-mix(in srgb, #fff 4%, transparent);
+    border-color: var(--color-neutral-700);
+    color: var(--color-neutral-100) !important;
+  }
+  .badge--funcionario{
+    background: color-mix(in srgb, var(--color-brand-900) 35%, transparent);
+    border-color: color-mix(in srgb, var(--color-brand-700) 40%, transparent);
+    color: #e6ecff !important;
+  }
+  .badge--tecnologo{
+    background: color-mix(in srgb, #3730a3 25%, transparent);
+    border-color: color-mix(in srgb, #4f46e5 35%, transparent);
+    color: #eef2ff !important;
+  }
+  .badge--investigador{
+    background: color-mix(in srgb, #6b21a8 25%, transparent);
+    border-color: color-mix(in srgb, #7c3aed 35%, transparent);
+    color: #f5f3ff !important;
+  }
+}
+
+/* ====================== Badges con mejor contraste ====================== */
+/* base */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.22rem .60rem;
+  border-radius:9999px;
+  font-size:.78rem;
+  font-weight:700;
+  line-height:1;
+  border:1px solid #cbd5e1;      /* neutral-300 (fallback) */
+  background:#f8fafc;            /* neutral-50 (fallback) */
+  color:#334155;                  /* neutral-700 */
+}
+
+/* Paciente (gris) */
+.badge--paciente{
+  background:#f1f5f9;            /* neutral-100 */
+  border-color:#cbd5e1;          /* neutral-300 */
+  color:#334155;                 /* neutral-700 */
+}
+
+/* Funcionario (azul) */
+.badge--funcionario{
+  background:#dbeafe;            /* brand-100 */
+  border-color:#93c5fd;          /* brand-300 */
+  color:#1d4ed8;                 /* brand-700 */
+}
+
+/* Tecnólogo (índigo) */
+.badge--tecnologo{
+  background:#e0e7ff;            /* indigo-100 */
+  border-color:#a5b4fc;          /* indigo-300 */
+  color:#3730a3;                 /* indigo-800 */
+}
+
+/* Investigador (violeta) */
+.badge--investigador{
+  background:#ede9fe;            /* violet-100 */
+  border-color:#c4b5fd;          /* violet-300 */
+  color:#6b21a8;                 /* violet-800 */
+}
+
+/* En dark mode mantenemos contraste alto */
+@media (prefers-color-scheme: dark){
+  .badge{
+    background: color-mix(in srgb, #fff 6%, transparent);
+    border-color:#64748b;        /* neutral-500 */
+    color:#e5e7eb;               /* neutral-200 */
+  }
+  .badge--funcionario{
+    background: color-mix(in srgb, #1e40af 35%, transparent);
+    border-color: color-mix(in srgb, #3b82f6 40%, transparent);
+    color:#e6ecff;
+  }
+  .badge--tecnologo{
+    background: color-mix(in srgb, #3730a3 30%, transparent);
+    border-color: color-mix(in srgb, #6366f1 40%, transparent);
+    color:#eef2ff;
+  }
+  .badge--investigador{
+    background: color-mix(in srgb, #6b21a8 30%, transparent);
+    border-color: color-mix(in srgb, #7c3aed 40%, transparent);
+    color:#f5f3ff;
+  }
+}
+
+/* =================== Detalles de tabla para verse “limpio” =================== */
+.users-table .td{ 
+  vertical-align: middle;         /* centra mejor los chips */
+  color:#0f172a;                  /* alto contraste en claro */
+}
+.force-light .users-table .td{ color:#0f172a !important; }
+
+/* si algún estilo global baja la opacidad, la blindo en las celdas */
+.users-table .td, 
+.users-table .td *{
+  opacity:1 !important;
+  filter:none !important;
+}
+
+/* separador suave entre filas (no línea negra) */
+.users-table tbody .users-row + .users-row .td{
+  box-shadow: inset 0 1px 0 #e2e8f0;
+}
+
+/* Hace que badge-role tenga exactamente la misma base que .badge */
+.badge-role,
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.22rem .60rem;
+  border-radius:9999px;
+  font-size:.78rem;
+  font-weight:700;
+  line-height:1;
+  border:1px solid #ffffff;
+  background:#002952;
+  color:#334155;
+}
+
+/* Centrar CARGO (columna 4) */
+.users-table thead th:nth-child(4),
+.users-table tbody td:nth-child(4) {
+  text-align: center;
+}
+.users-table tbody td:nth-child(4) {
+  vertical-align: middle; /* que el badge quede centrado verticalmente */
+}
+
+/* (Opcional) Centrar también RUT Profesional (5) y Estado (6) */
+.users-table thead th:nth-child(5),
+.users-table tbody td:nth-child(5),
+.users-table thead th:nth-child(6),
+.users-table tbody td:nth-child(6) {
+  text-align: center;
+}
+.users-table tbody td:nth-child(5),
+.users-table tbody td:nth-child(6) {
+  vertical-align: middle;
+}
+
+/* --- Tarjeta azul solo para este bloque --- */
+.users-card--brand{
+  background: linear-gradient(90deg, var(--color-brand-700), var(--color-brand-600));
+  border: 1px solid color-mix(in srgb, #000 10%, transparent);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+/* El header ya va encima del fondo azul: no vuelvas a pintarlo */
+.users-card--brand .users-card__header{
+  background: transparent;
+}
+
+/* El buscador dentro del header queda blanco para contraste */
+.users-card--brand .users-card__header .input-base{
+  background:#fff;
+  color: var(--color-neutral-800);
+  border-color: transparent;
+}
+
+/* La zona de la tabla queda blanca dentro de la tarjeta azul */
+.users-card--brand .users-table__wrap{
+  background:#ffffff;
+  border-top: none;
+  padding: .75rem 1rem 1rem;
+}
+
+/* Si tu tabla tiene borde propio, mantenlo suave */
+.users-card--brand .users-table{
+  background:#ffffff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: .75rem;
+  overflow: hidden;
+}
+
+/* --- Tarjeta azul solo para UsersTable --- */
+.users-card--brand{
+  background: linear-gradient(90deg, var(--color-brand-700), var(--color-brand-600));
+  border: 1px solid color-mix(in srgb, #000 10%, transparent);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+/* El header va “transparente” porque ya tiene la franja azul detrás */
+.users-card--brand .users-card__header{
+  background: transparent;
+}
+
+/* Buscador en blanco para contraste sobre el fondo azul */
+.users-card--brand .users-card__header .input-base{
+  background:#fff;
+  color: var(--color-neutral-800);
+  border-color: transparent;
+}
+
+/* La tabla queda blanca dentro de la tarjeta azul */
+.users-card--brand .users-table__wrap{
+  background:#fff;
+  border-top: none;
+  padding: .75rem 1rem 1rem;
+}
+
+.users-card--brand .users-table{
+  background:#ffffff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: .75rem;
+  overflow: hidden;
+}
+
+}
