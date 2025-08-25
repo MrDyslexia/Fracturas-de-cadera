@@ -1,30 +1,115 @@
 // components/Funcionario/PacienteSearch.tsx
 'use client';
 
-import { useMemo } from 'react';
-import { norm } from '../../utils/text';
-import type { Paciente } from '../../data/pacientes';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Si tienes ya este tipo úsalo; si no, este es suficiente para el buscador:
+export type Paciente = {
+  rut: string;
+  nombres: string;
+  ApellidoPaterno: string;
+  ApellidoMaterno: string;
+};
 
 type Props = {
   value: string;
   onChange: (v: string) => void;
   onOpen: (rut: string) => void;
-  pacientes: Paciente[];
   recientes: string[];
 };
 
-export default function PacienteSearch({
-  value, onChange, onOpen, pacientes, recientes,
-}: Props) {
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
+// Normaliza un objeto cualquiera a la forma Paciente (por si tu API usa snake_case)
+function toPaciente(x: any): Paciente {
+  return {
+    rut: String(x?.rut ?? '').trim(),
+    nombres: String(x?.nombres ?? x?.nombre ?? '').trim(),
+    ApellidoPaterno: String(x?.apellido_paterno ?? x?.ApellidoPaterno ?? '').trim(),
+    ApellidoMaterno: String(x?.apellido_materno ?? x?.ApellidoMaterno ?? '').trim(),
+  };
+}
+
+// Texto normalizado para filtrar localmente si hace falta
+const norm = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+
+export default function PacienteSearch({ value, onChange, onOpen, recientes }: Props) {
+  const { authFetch } = useAuth();
+
+  const [results, setResults] = useState<Paciente[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Llama al backend con debounce de 250ms
+  useEffect(() => {
+    const q = value.trim();
+    setErr(null);
+
+    if (!q) {
+      setResults([]);
+      abortRef.current?.abort();
+      return;
+    }
+
+    const handle = setTimeout(async () => {
+      try {
+        abortRef.current?.abort();
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+
+        setLoading(true);
+
+        // Puedes cambiar el endpoint si tu API usa otro nombre.
+        // Espera: items[], pacientes[] o un array plano.
+        const resp = await authFetch(
+          `${API_BASE}/pacientes/search?q=${encodeURIComponent(q)}&limit=6`,
+          { signal: ctrl.signal }
+        );
+
+        const data = await resp.json().catch(() => ({} as any));
+
+        const arr: any[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data.items)
+          ? data.items
+          : Array.isArray(data.pacientes)
+          ? data.pacientes
+          : [];
+
+        setResults(arr.map(toPaciente));
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') {
+          console.error(e);
+          setErr('Error al buscar pacientes');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(handle);
+  }, [value, authFetch]);
+
+  const hayTexto = value.trim() !== '';
+
+  // (Opcional) filtro defensivo local si tu API devuelve más de lo pedido
   const sugerencias = useMemo(() => {
+    if (!hayTexto) return [];
     const s = norm(value.trim());
-    if (!s) return [];
-    return pacientes.filter(p => {
-      const full = `${p.rut} ${p.nombres} ${p.ApellidoPaterno} ${p.ApellidoMaterno}`;
-      return norm(full).includes(s);
-    }).slice(0, 6);
-  }, [value, pacientes]);
+    return results
+      .filter((p) => {
+        const full = `${p.rut} ${p.nombres} ${p.ApellidoPaterno} ${p.ApellidoMaterno}`;
+        return norm(full).includes(s);
+      })
+      .slice(0, 6);
+  }, [value, results, hayTexto]);
 
   return (
     <div className="self-start z-3 w-full bg-white/80 backdrop-blur rounded-2xl shadow-xl border border-white/60">
@@ -34,7 +119,7 @@ export default function PacienteSearch({
 
       <div className="p-5 space-y-3">
         <label className="block text-sm font-medium text-blue-900">
-          Ingrese RUT o Nombre  Paciente
+          Ingrese RUT o Nombre Paciente
         </label>
 
         <div className="relative">
@@ -52,12 +137,14 @@ export default function PacienteSearch({
             Abrir
           </button>
 
-          {value.trim() !== '' && (
+          {hayTexto && (
             <div className="absolute left-0 right-0 mt-2 bg-white/95 backdrop-blur rounded-xl border border-blue-100 shadow-xl overflow-hidden">
-              {sugerencias.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-blue-700">
-                  Sin coincidencias.
-                </div>
+              {loading ? (
+                <div className="px-4 py-3 text-sm text-blue-700">Buscando…</div>
+              ) : err ? (
+                <div className="px-4 py-3 text-sm text-red-700">{err}</div>
+              ) : sugerencias.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-blue-700">Sin coincidencias.</div>
               ) : (
                 <ul className="max-h-64 overflow-auto">
                   {sugerencias.map((p) => (

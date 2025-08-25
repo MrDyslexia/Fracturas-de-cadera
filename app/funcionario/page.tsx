@@ -39,12 +39,11 @@ export default function FuncionarioHome() {
           Panel del Funcionario
         </h1>
         
-        <div className="grid grid-cols-1 xl:grid-cols-[360px,1fr] gap-12 items-start z-2 bg-trasparent"> 
+        <div className="grid grid-cols-1 xl:grid-cols-[360px,1fr] gap-12 items-start z-2 bg-trasparent">
           <PacienteSearch
             value={rutInput}
             onChange={setRutInput}
             onOpen={irAPerfil}
-            pacientes={PACIENTES}
             recientes={recientes}
           />
 
@@ -55,6 +54,7 @@ export default function FuncionarioHome() {
             onVerPerfil={irAPerfil}
           />
         </div>
+
       </div>
     </RoleGuard>
   );

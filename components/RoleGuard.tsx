@@ -1,41 +1,45 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext'; // ← de tu contexto real
-import type { UserRole } from '@/contexts/AuthContext'; // usa el mismo origen
+import { useAuth } from '@/contexts/AuthContext';
+import type { UserRole } from '@/contexts/AuthContext';
 
-type Props = {
-  allow: UserRole[];   // roles permitidos para este bloque
-  children: ReactNode;
-};
+type Props = { allow: UserRole[]; children: ReactNode };
+
+const norm = (s?: string) => String(s ?? '').trim().toLowerCase();
 
 export default function RoleGuard({ allow, children }: Props) {
   const { user, loading, portalFor } = useAuth();
   const router = useRouter();
 
+  // sets normalizados para comparar sin errores de mayúsculas/espacios
+  const allowSet = useMemo(() => new Set(allow.map(norm)), [allow]);
+  const rolesSet = useMemo(
+    () => new Set((user?.roles ?? []).map(norm)),
+    [user?.roles]
+  );
+
   useEffect(() => {
     if (loading) return;
 
-    // 1) no logeado → al login
-    if (!user) {
+    if (!user) {                   // no logeado
       router.replace('/login');
       return;
     }
 
-    // 2) ¿tiene al menos un rol permitido?
-    const hasAccess = user.roles?.some(r => allow.includes(r));
+    const hasAccess = [...rolesSet].some(r => allowSet.has(r));
     if (!hasAccess) {
-      // redirige a su “home” por defecto según prioridad
-      router.replace(portalFor(user.roles ?? []));
+      const dest = portalFor(user.roles ?? []);
+      // evita 404 si portalFor devuelve '/'
+      router.replace(dest && dest !== '/' ? dest : '/login');
     }
-  }, [user, loading, allow, router, portalFor]);
+  }, [loading, user, rolesSet, allowSet, router, portalFor]);
 
-  if (loading) return <div className="p-6">Cargando…</div>;
-  if (!user) return null;
+  if (loading || !user) return null;
 
-  const canSee = user.roles?.some(r => allow.includes(r));
-  if (!canSee) return null;
+  const allowed = [...rolesSet].some(r => allowSet.has(r));
+  if (!allowed) return null;
 
   return <>{children}</>;
 }
