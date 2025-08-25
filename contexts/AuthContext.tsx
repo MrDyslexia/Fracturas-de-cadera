@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token: string;
         user: { id: number | string; rut?: string; nombre: string; correo: string; roles: string[] };
       } = body;
-
+      console.log('Login success, user roles:', data);
       const mappedRoles: UserRole[] = (data.user.roles || [])
         .map((r) => ROLE_MAP[r?.toUpperCase?.() ?? ''] || null)
         .filter(Boolean) as UserRole[];
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(u);
       setToken(data.token);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: u, token: data.token }));
+      localStorage.setItem("token", data.token);
       return u;
     } catch (e: any) {
       localStorage.removeItem(STORAGE_KEY);

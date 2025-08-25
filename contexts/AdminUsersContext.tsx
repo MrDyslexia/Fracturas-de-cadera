@@ -64,6 +64,7 @@ const AdminUsersCtx = createContext<Ctx | null>(null);
 /** Intenta obtener token desde localStorage (ajusta la key si usas otra) */
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
+  console.log('Available localStorage keys:', localStorage.getItem('token'), localStorage.getItem('auth_token'), localStorage.getItem('access_token'));
   return (
     localStorage.getItem('token') ||
     localStorage.getItem('auth_token') ||
@@ -87,7 +88,7 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      const r = await fetch(`${API_BASE}/admin/users`, {
+      const r = await fetch(`${API_BASE}/adminUser/users`, {
         credentials: 'include',
         headers,
       });
@@ -116,12 +117,16 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      const r = await fetch(`${API_BASE}/admin/users`, {
+      const aux = JSON.stringify(p)
+      console.log('Payload createUser:', aux);  
+
+      const r = await fetch(`${API_BASE}/adminUser/users`, {
         method: 'POST',
         credentials: 'include',
         headers,
-        body: JSON.stringify(p),
+        body: aux,
       });
+      console.log('Response createUser:', r);
 
       const data = await parseJsonSafe(r);
       if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
@@ -144,7 +149,7 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      const r = await fetch(`${API_BASE}/admin/users/${userId}/roles`, {
+      const r = await fetch(`${API_BASE}/adminUser/users/${userId}/roles`, {
         method: 'POST',
         credentials: 'include',
         headers,
@@ -169,7 +174,7 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      const r = await fetch(`${API_BASE}/admin/users/${userId}/roles/${encodeURIComponent(role)}`, {
+      const r = await fetch(`${API_BASE}/adminUser/users/${userId}/roles/${encodeURIComponent(role)}`, {
         method: 'DELETE',
         credentials: 'include',
         headers,
@@ -192,10 +197,10 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     try {
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       const t = getAuthToken();
-      if (t) headers['Authorization'] = `bearer ${t}`;
+      if (t) headers['Authorization'] = `Bearer ${t}`;
 
       // Ajusta el endpoint si tu backend usa otro:
-      const r = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      const r = await fetch(`${API_BASE}/adminUser/users/${userId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers,
