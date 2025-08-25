@@ -2,22 +2,29 @@
 const { sequelize } = require("./db");
 
 // Modelos base
-const User           = require("./user")(sequelize);
-const Paciente       = require("./paciente")(sequelize);
-const Administrador  = require("./administrador")(sequelize);
+const User              = require("./user")(sequelize);
+const Paciente          = require("./paciente")(sequelize);
+const Administrador     = require("./administrador")(sequelize);
 
 // Perfil profesional unificado
 const ProfessionalProfile = require("./professional_profile")(sequelize);
 
 // Negocio
-const Examen          = require("./examen")(sequelize);
-const Muestra         = require("./muestra")(sequelize);
-const Resultado       = require("./resultado")(sequelize);
-const IndicadorRiesgo = require("./indicador_riesgo")(sequelize);
-const Alerta          = require("./alerta")(sequelize);
-const Minuta          = require("./minuta")(sequelize);
-const Descarga        = require("./descarga")(sequelize);
-const Registro        = require("./registro")(sequelize);
+const Examen            = require("./examen")(sequelize);
+const Muestra           = require("./muestra")(sequelize);
+const Resultado         = require("./lab_result_item")(sequelize);
+const IndicadorRiesgo   = require("./indicador_riesgo")(sequelize);
+const Alerta            = require("./alerta")(sequelize);
+const Minuta            = require("./minuta")(sequelize);
+const Descarga          = require("./descarga")(sequelize);
+const Registro          = require("./registro")(sequelize);
+const GenericReport     = require("./generic_report")(sequelize); // <— nombre consistente
+
+// ─── Relaciones entre modelos ───
+
+// Examen ↔ GenericReport (1:1) — informe para IMAGEN / AP
+Examen.hasOne(GenericReport, { foreignKey: "examen_id" });
+GenericReport.belongsTo(Examen, { foreignKey: "examen_id" });
 
 // ---- Users ↔ Paciente/Administrador (1:1)
 User.hasOne(Paciente,      { as: "paciente",      foreignKey: "user_id", onDelete: "CASCADE" });
@@ -26,7 +33,7 @@ Paciente.belongsTo(User,   { as: "user",          foreignKey: "user_id" });
 User.hasOne(Administrador, { as: "administrador", foreignKey: "user_id", onDelete: "CASCADE" });
 Administrador.belongsTo(User, { as: "user",      foreignKey: "user_id" });
 
-// ---- Users ↔ ProfessionalProfile (1:1)  <<< ALIAS CLAVE
+// ---- Users ↔ ProfessionalProfile (1:1)
 User.hasOne(ProfessionalProfile, { as: "professional_profile", foreignKey: "user_id", onDelete: "CASCADE" });
 ProfessionalProfile.belongsTo(User, { as: "user", foreignKey: "user_id" });
 
@@ -45,6 +52,11 @@ Muestra.belongsTo(ProfessionalProfile, { foreignKey: "profesional_id" });
 
 Muestra.hasMany(Resultado, { foreignKey: "muestra_id" });
 Resultado.belongsTo(Muestra, { foreignKey: "muestra_id" });
+
+// (Opcional pero recomendado) Examen ↔ Resultado (1:N)
+// Requiere columna examen_id en la tabla resultado (añádela por migración si no existe)
+Examen.hasMany(Resultado, { foreignKey: "examen_id" });
+Resultado.belongsTo(Examen, { foreignKey: "examen_id" });
 
 Resultado.hasMany(IndicadorRiesgo, { foreignKey: "resultado_id" });
 IndicadorRiesgo.belongsTo(Resultado, { foreignKey: "resultado_id" });
@@ -75,5 +87,5 @@ module.exports = {
   sequelize,
   User, Paciente, Administrador,
   ProfessionalProfile,
-  Examen, Muestra, Resultado, IndicadorRiesgo, Alerta, Minuta, Descarga, Registro,
+  Examen, Muestra, Resultado, IndicadorRiesgo, Alerta, Minuta, Descarga, Registro, GenericReport,
 };

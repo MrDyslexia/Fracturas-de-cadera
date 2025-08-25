@@ -1,0 +1,14 @@
+[
+  {
+    "id": "hbA1c",
+    "display": "Hemoglobina glicosilada (HbA1c)",
+    "synonyms": ["HbA1c","Hemoglobina glicosilada","A1c"],
+    "children": [
+      { "id": "hbA1c_ifcc", "display": "HbA1c (IFCC)" },
+      { "id": "eag", "display": "Promedio estimado de glucosa (eAG)" }
+    ]
+  },
+  { "id": "prolactina", "display": "Prolactina" },
+  { "id": "cortisol_am", "display": "Cortisol AM" },
+  { "id": "insulina_basal", "display": "Insulina basal" }
+]
