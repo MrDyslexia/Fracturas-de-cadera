@@ -5,12 +5,12 @@ import { useAdminUsers } from '../../contexts/AdminUsersContext';
 import { Check, Loader2, Plus, UserPlus } from 'lucide-react';
 import { normEmail, strongPwd, isValidRutCl } from '../../utils/rut';
 
-type Cargo = 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO';
+type CargoForm = 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO' | 'ADMINISTRADOR';
 
 type Status = { type: 'ok' | 'err' | ''; msg: string };
 
 export function CreateUserCard() {
-  const { createUser, loading } = useAdminUsers();
+  const { createUser, addRole, fetchUsers, loading } = useAdminUsers();
 
   // --- identidad ---
   const [rut, setRut] = useState('');
@@ -24,7 +24,7 @@ export function CreateUserCard() {
   const [password, setPassword] = useState('');
 
   // --- profesional ---
-  const [cargo, setCargo] = useState<Cargo>('TECNOLOGO');
+  const [cargo, setCargo] = useState<CargoForm>('TECNOLOGO');
   const [rutProfesional, setRutProfesional] = useState('');
   const [especialidad, setEspecialidad] = useState('');
   const [hospital, setHospital] = useState('');
@@ -46,7 +46,8 @@ export function CreateUserCard() {
       /^\S+@\S+\.\S+$/.test(normEmail(correo)) &&
       strongPwd(password);
 
-    const requiereRP = cargo !== 'FUNCIONARIO';
+    // No se requiere RUT profesional para FUNCIONARIO ni ADMINISTRADOR
+    const requiereRP = !(cargo === 'FUNCIONARIO' || cargo === 'ADMINISTRADOR');
     const okProf = requiereRP ? isValidRutCl(rutProfesional) : true;
 
     return okBase && okProf;
@@ -70,11 +71,10 @@ export function CreateUserCard() {
     setRut(inputRut);
 
     if (validarRut(inputRut)) {
-      // Contraseña temporal: PREFIJO + últimos 4 del cuerpo del RUT (sin DV)
-      const clean = inputRut.replace(/\./g, '').replace(/-/g, '').toUpperCase(); // "12345678K"
-      const cuerpo = clean.slice(0, -1); // "12345678"
-      const last4 = cuerpo.slice(-4).padStart(4, '0'); // "5678"
-      const pwd = `${PWD_PREFIX}${last4}`; // "ABCD5678"
+      const clean = inputRut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+      const cuerpo = clean.slice(0, -1);
+      const last4 = cuerpo.slice(-4).padStart(4, '0');
+      const pwd = `${PWD_PREFIX}${last4}`;
       setPassword(pwd);
     } else {
       setPassword('');
@@ -82,66 +82,90 @@ export function CreateUserCard() {
   }
 
   async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!puedeCrear) return;
+  e.preventDefault();
+  if (!puedeCrear) return;
 
-    setStatus({ type: '', msg: '' });
+  setStatus({ type: '', msg: '' });
 
-    try {
-      // OJO: esta forma respeta tu payload actual ({ user, profile })
-      const resp = await createUser({
-        user: {
-          rut,
-          nombres,
-          apellido_paterno: apellidoPaterno,
-          apellido_materno: apellidoMaterno,
-          correo,
-          password,
-          telefono,
-          sexo,
-          fecha_nacimiento: fechaNac || undefined,
-        },
-        profile: {
-          rut_profesional: rutProfesional,
-          cargo,
-          especialidad: especialidad || null,
-          hospital: hospital || null,
-          departamento: departamento || null,
-        },
-      });
+  try {
+    const isAdminNew = cargo === 'ADMINISTRADOR';
 
-      if ((resp as any)?.error) {
-        throw new Error((resp as any).error);
-      }
+    // 👇 Si es ADMIN: mandamos role='ADMIN' y NO enviamos profile
+    const payload = isAdminNew
+      ? {
+          user: {
+            rut,
+            nombres,
+            apellido_paterno: apellidoPaterno,
+            apellido_materno: apellidoMaterno,
+            correo,
+            password,
+            telefono,
+            sexo,
+            fecha_nacimiento: fechaNac || undefined,
+          },
+          role: 'ADMIN' as const,
+        }
+      : {
+          user: {
+            rut,
+            nombres,
+            apellido_paterno: apellidoPaterno,
+            apellido_materno: apellidoMaterno,
+            correo,
+            password,
+            telefono,
+            sexo,
+            fecha_nacimiento: fechaNac || undefined,
+          },
+          profile: {
+            cargo: cargo as 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO',
+            rut_profesional: cargo === 'FUNCIONARIO' ? undefined : rutProfesional,
+            especialidad: especialidad || null,
+            hospital: hospital || null,
+            departamento: departamento || null,
+          },
+        };
 
-      setStatus({
-        type: 'ok',
-        msg: `Usuario "${nombres} ${apellidoPaterno}" creado correctamente. Contraseña temporal: ${password}`,
-      });
+    const resp = await createUser(payload as any);
 
-      // limpiar formulario
-      setRut('');
-      setNombres('');
-      setApellidoPaterno('');
-      setApellidoMaterno('');
-      setCorreo('');
-      setTelefono('');
-      setSexo('');
-      setFechaNac('');
-      setPassword('');
-      setCargo('TECNOLOGO');
-      setRutProfesional('');
-      setEspecialidad('');
-      setHospital('');
-      setDepartamento('');
-    } catch (err: any) {
-      setStatus({
-        type: 'err',
-        msg: err?.message || 'No se pudo crear el usuario',
-      });
+    const newId: number | undefined = resp?.user?.id ?? resp?.id;
+    // (idempotente) por si el backend aún no crea admin al vuelo:
+    if (isAdminNew && newId) {
+      await addRole(newId, 'ADMIN');
     }
-  }
 
+    await fetchUsers();
+
+    setStatus({
+      type: 'ok',
+      msg: `Usuario "${nombres} ${apellidoPaterno}" creado correctamente.${isAdminNew ? ' (Rol ADMIN asignado)' : ''} Contraseña temporal: ${password}`,
+    });
+
+    // limpiar formulario
+    setRut('');
+    setNombres('');
+    setApellidoPaterno('');
+    setApellidoMaterno('');
+    setCorreo('');
+    setTelefono('');
+    setSexo('');
+    setFechaNac('');
+    setPassword('');
+    setCargo('TECNOLOGO');
+    setRutProfesional('');
+    setEspecialidad('');
+    setHospital('');
+    setDepartamento('');
+  } catch (err: any) {
+    setStatus({
+      type: 'err',
+      msg: err?.message || 'No se pudo crear el usuario',
+    });
+  }
+}
+
+ 
   return (
     <section className="create-user-card bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
       {/* Header */}
@@ -239,11 +263,12 @@ export function CreateUserCard() {
         <select
           className="fc-input"
           value={cargo}
-          onChange={(e) => setCargo(e.target.value as Cargo)}
+          onChange={(e) => setCargo(e.target.value as CargoForm)}
         >
           <option value="TECNOLOGO">Tecnólogo(a) Médico</option>
           <option value="INVESTIGADOR">Investigador(a)</option>
           <option value="FUNCIONARIO">Funcionario(a)</option>
+          <option value="ADMINISTRADOR">Administrador(a)</option>
         </select>
 
         <input
@@ -251,6 +276,7 @@ export function CreateUserCard() {
           placeholder="RUT profesional (12.345.678-9)"
           value={rutProfesional}
           onChange={(e) => setRutProfesional(e.target.value)}
+          // disabled={cargo === 'FUNCIONARIO' || cargo === 'ADMINISTRADOR'}
         />
 
         <input
@@ -292,5 +318,4 @@ export function CreateUserCard() {
   );
 }
 
-// Si en tu proyecto prefieres import por defecto:
 export default CreateUserCard;

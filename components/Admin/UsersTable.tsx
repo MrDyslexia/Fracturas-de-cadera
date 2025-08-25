@@ -18,9 +18,9 @@ const CARGO_LABEL: Record<string, string> = {
   TECNOLOGO: 'Tecnólogo(a) Médico',
   INVESTIGADOR: 'Investigador(a)',
   FUNCIONARIO: 'Funcionario(a)',
+  ADMINISTRADOR: 'Administrador(a)',
 };
 
-// ——— helpers para no depender del nombre exacto que venga del backend
 function getProfile(u: any) {
   return (
     u?.profile ??
@@ -31,7 +31,14 @@ function getProfile(u: any) {
   );
 }
 
+function hasAdminRole(u: any) {
+  const roles: unknown[] = Array.isArray(u?.roles) ? (u.roles as unknown[]) : [];
+  const norm = roles.map((r: unknown) => String(r ?? '').toUpperCase());
+  return norm.includes('ADMIN');
+}
+
 function isPaciente(u: any) {
+  if (hasAdminRole(u)) return false;
   const p = getProfile(u);
   if (!p) return true;
   const hasCargo = !!p.cargo;
@@ -45,10 +52,10 @@ function roleClass(cargo?: string) {
     case 'FUNCIONARIO':  return 'badge badge--funcionario';
     case 'TECNOLOGO':    return 'badge badge--tecnologo';
     case 'INVESTIGADOR': return 'badge badge--investigador';
+    case 'ADMINISTRADOR':return 'badge badge--admin';
     default:             return 'badge';
   }
 }
-
 
 export function UsersTable() {
   const { users, fetchUsers, addRole, removeRole, updateProfile, loading } = useAdminUsers();
@@ -61,18 +68,19 @@ export function UsersTable() {
       const p = getProfile(u);
       const cargoKey = (p?.cargo ?? '').toLowerCase();
       const cargoLabel = (p?.cargo ? (CARGO_LABEL[p.cargo] ?? p.cargo) : '').toLowerCase();
+      const roles = (u?.roles || []).join(' ').toLowerCase();
       return (
         u.rut?.toLowerCase().includes(K) ||
         u.correo?.toLowerCase().includes(K) ||
         `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`.toLowerCase().includes(K) ||
         p?.rut_profesional?.toLowerCase().includes(K) ||
         cargoKey.includes(K) ||
-        cargoLabel.includes(K)
+        cargoLabel.includes(K) ||
+        roles.includes(K)
       );
     });
   }, [q, users]);
 
-  // ===== acciones rápidas =====
   function askCargo(defaultValue: string) {
     return (prompt(
       'Asignar cargo (TECNOLOGO | INVESTIGADOR | FUNCIONARIO):',
@@ -104,7 +112,6 @@ export function UsersTable() {
 
   return (
     <section className="users-card users-card--brand">
-      {/* Header */}
       <div className="users-card__header">
         <div className="flex items-center gap-2 font-semibold">
           <RefreshCw className="h-4 w-4 text-white/95" />
@@ -127,7 +134,6 @@ export function UsersTable() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="users-table__wrap">
         <table className="users-table">
           <thead>
@@ -145,9 +151,10 @@ export function UsersTable() {
           <tbody>
             {filtered.map((u) => {
               const p = getProfile(u);
+              const isAdmin = hasAdminRole(u);
+
               return (
                 <tr key={u.id} className="users-row">
-                  {/* Nombre + teléfono (teléfono solo si existe) */}
                   <td className="td">
                     <div className="font-medium text-heading">
                       {u.nombres} {u.apellido_paterno} {u.apellido_materno}
@@ -158,22 +165,27 @@ export function UsersTable() {
                   <td className="td text-body">{u.rut || <span className="placeholder-dash">—</span>}</td>
                   <td className="td text-body">{u.correo || <span className="placeholder-dash">—</span>}</td>
 
-                  {/* CARGO con badge */}
                   <td className="td">
-                    {p?.cargo ? (
-                      <span className={roleClass(p.cargo)}>
-                        {CARGO_LABEL[p.cargo] ?? p.cargo}
-                      </span>
-                    ) : isPaciente(u) ? (
-                      <span className="badge badge--paciente">Paciente</span>
-                    ) : (
-                      <button className="btn-link" onClick={() => quickSetCargo(u)}>Asignar cargo</button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isAdmin ? (
+                        <span className="badge badge--admin">Administrador(a)</span>
+                      ) : p?.cargo ? (
+                        <span className={roleClass(p.cargo)}>
+                          {CARGO_LABEL[p.cargo] ?? p.cargo}
+                        </span>
+                      ) : isPaciente(u) ? (
+                        <span className="badge badge--paciente">Paciente</span>
+                      ) : (
+                        <button className="btn-link" onClick={() => quickSetCargo(u)}>Asignar cargo</button>
+                      )}
+                    </div>
                   </td>
 
-                  {/* RUT PROFESIONAL */}
+
                   <td className="td text-body">
-                    {p?.rut_profesional ? (
+                    {isAdmin ? (
+                      <span className="placeholder-dash">—</span>
+                    ) : p?.rut_profesional ? (
                       p.rut_profesional
                     ) : isPaciente(u) ? (
                       <span className="placeholder-dash">—</span>
@@ -182,7 +194,7 @@ export function UsersTable() {
                     )}
                   </td>
 
-                  {/* ESTADO */}
+
                   <td className="td">
                     {p?.activo ? (
                       <span className="inline-flex items-center gap-1 font-medium text-success">
@@ -195,7 +207,6 @@ export function UsersTable() {
                     )}
                   </td>
 
-                  {/* ACCIONES */}
                   <td className="td">
                     <div className="flex flex-wrap items-center gap-2">
                       <button
@@ -226,17 +237,17 @@ export function UsersTable() {
                       </button>
 
                       <button
-                        onClick={() => addRole(u.id, p?.cargo || 'FUNCIONARIO')}
+                        onClick={() => addRole(u.id, 'ADMIN')}
                         className="btn-secondary"
-                        title="Asignar rol igual a cargo"
+                        title="Asignar rol ADMIN"
                       >
                         <ShieldPlus className="h-4 w-4" /><span>Rol</span>
                       </button>
 
                       <button
-                        onClick={() => removeRole(u.id, p?.cargo || 'FUNCIONARIO')}
+                        onClick={() => removeRole(u.id, 'ADMIN')}
                         className="btn-danger"
-                        title="Quitar rol"
+                        title="Quitar rol ADMIN"
                       >
                         <ShieldMinus className="h-4 w-4" /><span>Quitar</span>
                       </button>

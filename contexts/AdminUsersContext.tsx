@@ -16,6 +16,7 @@ export type User = {
   sexo?: 'M'|'F'|'O';
   fecha_nacimiento?: string;
   email_verified?: boolean;
+  roles?: string[]; // para detectar ADMIN
 
   profile?: {
     id?: number;
@@ -27,11 +28,11 @@ export type User = {
     activo?: boolean;
   } | null;
 
-
   professional_profile?: User['profile'] | null;
   professionalProfile?: User['profile'] | null;
 };
 
+// ===== REEMPLAZA ESTE TIPO =====
 type CreateUserPayload = {
   user: {
     rut: string;
@@ -44,14 +45,16 @@ type CreateUserPayload = {
     sexo?: 'M'|'F'|'O'|'';
     fecha_nacimiento?: string;
   };
-  profile: {
-    rut_profesional: string;
+  role?: 'ADMIN'; // 👈 para altas de administradores SIN profile
+  profile?: {     // 👈 ahora opcional
     cargo: 'TECNOLOGO'|'INVESTIGADOR'|'FUNCIONARIO';
+    rut_profesional?: string;
     especialidad?: string | null;
     hospital?: string | null;
     departamento?: string | null;
   };
 };
+
 
 type Ctx = {
   users: User[];
@@ -78,7 +81,6 @@ function getAuthToken(): string | null {
 async function parseJsonSafe(res: Response) {
   try { return await res.json(); } catch { return null; }
 }
-
 
 function pickProfile(u: any): User['profile'] | null {
   return (
@@ -107,7 +109,6 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       const t = getAuthToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
-
       const r = await fetch(`${API_BASE}/adminUser/users`, {
         credentials: 'include',
         headers,
@@ -117,14 +118,17 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
 
       const raw: any[] = (data?.users ?? data) ?? [];
 
-
+      // 1) normalizamos profile del listado
       let normalized: User[] = raw.map((u) => ({ ...u, profile: pickProfile(u) }));
 
+      // 2) pedir detalle si FALTA profile o FALTAN roles
+      const needDetailIds = normalized
+        .filter(u => !u.profile || !Array.isArray(u.roles))
+        .map(u => u.id);
 
-      const missingIds = normalized.filter(u => !u.profile).map(u => u.id);
-      if (missingIds.length) {
+      if (needDetailIds.length) {
         const detailPairs = await Promise.all(
-          missingIds.map(async (id) => {
+          needDetailIds.map(async (id) => {
             try {
               const rr = await fetch(`${API_BASE}/adminUser/users/${id}`, {
                 credentials: 'include',
@@ -132,17 +136,26 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
               });
               const dd = await parseJsonSafe(rr);
               const prof = pickProfile(dd);
-              return [id, prof] as const;
+              const roles = Array.isArray(dd?.roles)
+                ? dd.roles
+                : (Array.isArray(dd?.user?.roles) ? dd.user.roles : undefined);
+              return [id, { profile: prof, roles }] as const;
             } catch {
-              return [id, null] as const;
+              return [id, { profile: null, roles: undefined }] as const;
             }
           })
         );
-        const detailMap = Object.fromEntries(detailPairs); 
+        const detailMap = Object.fromEntries(detailPairs);
 
-        normalized = normalized.map(u => (
-          u.profile ? u : { ...u, profile: detailMap[u.id] ?? null }
-        ));
+        normalized = normalized.map(u => {
+          const extra = detailMap[u.id];
+          if (!extra) return u;
+          return {
+            ...u,
+            profile: u.profile ?? extra.profile ?? null,
+            roles: Array.isArray(u.roles) ? u.roles : extra.roles,
+          };
+        });
       }
 
       setUsers(normalized);
@@ -153,36 +166,41 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  const createUser = useCallback(async (p: CreateUserPayload) => {
-    if (!isValidRutCl(p.user.rut)) throw new Error('RUT nacional inválido');
-    if (p.profile.cargo !== 'FUNCIONARIO' && !isValidRutCl(p.profile.rut_profesional || '')) {
+ // ===== REEMPLAZA ESTA FUNCIÓN COMPLETA =====
+const createUser = useCallback(async (p: CreateUserPayload) => {
+  if (!isValidRutCl(p.user.rut)) throw new Error('RUT nacional inválido');
+
+  // Valida RUT profesional solo si hay profile y el cargo lo requiere
+  if (p.profile && p.profile.cargo !== 'FUNCIONARIO') {
+    if (!isValidRutCl(p.profile.rut_profesional || '')) {
       throw new Error('RUT profesional inválido');
     }
+  }
 
-    setLoading(true); setErr(null);
-    try {
-      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-      const t = getAuthToken();
-      if (t) headers['Authorization'] = `Bearer ${t}`;
+  setLoading(true); setErr(null);
+  try {
+    const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+    const t = getAuthToken();
+    if (t) headers['Authorization'] = `Bearer ${t}`;
 
-      const r = await fetch(`${API_BASE}/adminUser/users`, {
-        method: 'POST',
-        credentials: 'include',
-        headers,
-        body: JSON.stringify(p),
-      });
-      const data = await parseJsonSafe(r);
-      if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+    const r = await fetch(`${API_BASE}/adminUser/users`, {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+      body: JSON.stringify(p),
+    });
+    const data = await parseJsonSafe(r);
+    if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
 
-      await fetchUsers();
-      return data;
-    } catch (e: any) {
-      setErr(e?.message || 'No se pudo crear el usuario (revisa duplicados de correo/RUT).');
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchUsers]);
+    await fetchUsers();
+    return data;
+  } catch (e: any) {
+    setErr(e?.message || 'No se pudo crear el usuario (revisa duplicados de correo/RUT).');
+    throw e;
+  } finally {
+    setLoading(false);
+  }
+}, [fetchUsers]);
 
   const addRole = useCallback(async (userId: number, role: string) => {
     setLoading(true); setErr(null);
