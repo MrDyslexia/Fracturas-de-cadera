@@ -2,9 +2,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 
 const { connectDB, sequelize } = require('./model/db');
-require('./model/initModels');
+const modelos = require('./model/initModels');
 
 const { initRoutes } = require('./routes/initRoutes');
 const { verifyMailTransport } = require('./utils/mailer'); // 👈 AÑADIDO
@@ -67,7 +68,38 @@ app.use((err, _req, res, _next) => {
   try {
     const ALTER = String(process.env.DB_ALTER || '').toLowerCase() === 'true';
     await connectDB({ alter: ALTER });
+    const Usuario = modelos.User; // <-- Usa el modelo correcto según tu initModels.js
+    const adminEmail = process.env.ADMIN_EMAIL || 'sofia@a.com';
+    const pass=await bcrypt.hash('123', 10)
+    const [admin, created] = await Usuario.findOrCreate({
+      where: { correo: adminEmail }, // <-- Asegúrate de que el campo coincida con tu modelo
+      defaults: {
+        nombres: "Admin",
+        apellido_paterno: "Admin",
+        apellido_materno: "Admin",
+        correo: adminEmail,
+        rut: "111111111",
+        password_hash: pass,
+        telefono: 12341234,
+        sexo: "M",
+        fecha_nacimiento: "2001-01-01",
+      },
+    });
 
+    if (created) {
+      console.log(`✅ Usuario administrador creado: ${adminEmail}`);
+    } else {
+      console.log(`ℹ️ Usuario administrador ya existe: ${adminEmail}`);
+    }
+
+    const AdminModel = modelos.Administrador; // <-- Usa el modelo correcto según tu initModels.js
+    const [adminProfile, profCreated] = await AdminModel.findOrCreate({
+      where: { user_id: admin.id },
+      defaults: {
+        user_id: admin.id,
+        nivel_acceso: null,
+      },
+    });
     // 👇 inicializa el mailer (imprime las credenciales de Ethereal en consola)
     await verifyMailTransport();
 
