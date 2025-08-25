@@ -2,6 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser'); // 👈 AÑADIR AQUÍ
 const bcrypt = require('bcryptjs');
 
 const { connectDB, sequelize } = require('./model/db');
@@ -18,6 +19,8 @@ const BASE_PATH = process.env.API_BASE || '/api/v1';
 const FRONT_ORIGIN = process.env.FRONT_ORIGIN || 'http://localhost:3000';
 
 // Body parsing
+// parsers
+app.use(cookieParser());    
 app.use(express.json({ limit: '1mb' }));
 
 // CORS (Next.js en 3000)

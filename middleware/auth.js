@@ -2,14 +2,16 @@
 const jwt = require('jsonwebtoken');
 
 function auth(requiredRoles = []) {
-  // normaliza requiredRoles a UPPERCASE una sola vez
   const requiredUpper = (requiredRoles || []).map(r => String(r).toUpperCase());
 
   return (req, res, next) => {
+    // 1) token por cookie httpOnly o por Authorization: Bearer
     const header = (req.headers.authorization || '').trim();
-    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
+    const bearer = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
+    const cookieToken = req.cookies?.auth || null; // 👈 ahora también desde cookie
+    const token = cookieToken || bearer;
+
     if (!token) {
-      // opcional: WWW-Authenticate ayuda a clientes
       res.set('WWW-Authenticate', 'Bearer');
       return res.status(401).json({ error: 'Token requerido' });
     }
@@ -17,20 +19,18 @@ function auth(requiredRoles = []) {
     try {
       const secret = process.env.JWT_SECRET || 'dev_secret_change_me';
       const payload = jwt.verify(token, secret);
-      // payload esperado: { id, correo, roles: [...] }
-      req.user = payload;
+      req.user = payload; // { id, rut, roles: [...] }
 
       if (requiredUpper.length) {
         const userRolesUpper = (payload.roles || []).map(r => String(r).toUpperCase());
         const has = userRolesUpper.some(r => requiredUpper.includes(r));
         if (!has) return res.status(403).json({ error: 'Permisos insuficientes' });
       }
-
-      return next();
-    } catch (err) {
+      next();
+    } catch {
       return res.status(401).json({ error: 'Token inválido o expirado' });
     }
   };
 }
 
-module.exports = { auth }; 
+module.exports = { auth };
