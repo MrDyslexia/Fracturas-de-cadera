@@ -4,11 +4,21 @@ import { useEffect } from 'react';
 import { AdminUsersProvider, useAdminUsers } from '../../contexts/AdminUsersContext';
 import { UsersTable } from '../../components/Admin/UsersTable';
 import { CreateUserCard } from '../../components/Admin/CreateUserCard';
+import { useConfirmBackToLogin } from '@/hooks/useConfirmBackToLogin';
+import { useAuth } from '@/contexts/AuthContext';
+
 
 function AdminUsersScreen() {
   const { fetchUsers, loading, error } = useAdminUsers();
+  const { user, logout } = useAuth();
+  
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+    // Maneja la flecha atrás del navegador
+    useConfirmBackToLogin(() => {
+      logout(); // cerrar sesión si confirma
+    });
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-blue-50 to-blue-100">

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* ===== base ===== */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -8,10 +9,33 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Paleta BRAND (azules) */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  /* Paleta NEUTRAL (Slate) para texto y bordes */
+  --color-neutral-50:  #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #0f172a;
 }
 
+/* dark base */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -24,93 +48,112 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-/* Animaciones CSS personalizadas */
 
-/* Animación de desvanecimiento y deslizamiento ligero */
-@keyframes fadeInSlide {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ===== utilidades de texto (NEUTRAL) ===== */
+@utility text-heading { color: var(--color-neutral-900); }
+@utility text-title   { color: var(--color-neutral-800); }
+@utility text-body    { color: var(--color-neutral-700); }
+@utility text-muted   { color: var(--color-neutral-500); }
+@utility text-subtle  { color: var(--color-neutral-400); }
+@utility text-on-brand { color: #fff; }
+
+/* enlaces (BRAND) */
+@utility link {
+  color: var(--color-brand-700);
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
 }
 
-/* Animación de deslizamiento desde la izquierda */
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
+/* iconos (NEUTRAL) */
+@utility icon       { color: var(--color-neutral-500); }
+@utility icon-muted { color: var(--color-neutral-400); }
 
-/* Zoom sutil para imágenes */
-@keyframes subtleZoom {
-  0% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(1.03); /* Un zoom muy ligero */
-  }
-}
+/* estados */
+@utility text-danger  { color: rgb(185 28 28); }
+@utility text-success { color: rgb(21 128 61); }
+@utility text-warning { color: rgb(180 83 9); }
+@utility text-info    { color: rgb(3 105 161); }
 
-/* Animación de fondo degradado para el panel de login */
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Aplicar animaciones */
-.animate-fade-in-slide {
-  animation: fadeInSlide 0.7s ease-out forwards;
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.8s ease-out forwards;
-}
-
-.animate-subtle-zoom {
-  animation: subtleZoom 15s ease-in-out infinite alternate; /* Animación de zoom lenta y continua */
-}
-
-.animate-gradient-shift {
-  background-size: 200% 200%; /* Hace que el degradado sea más grande que el contenedor */
-  animation: gradientShift 15s ease infinite; /* Desplazamiento lento y continuo */
-}
-
-/* Estilo personalizado para el enfoque de los inputs */
+/* inputs y botones */
 .input-focus-ring:focus {
   outline: none;
-  border-color: var(--blue-500); /* Usa el azul principal */
-  box-shadow: 0 0 0 3px oklch(50% 0.25 240 / 0.3); /* Un anillo de enfoque más suave */
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px oklch(50% 0.25 240 / 0.3);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-
-/* Efecto hover/active para botones */
-.button-hover-effect {
-  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-}
-
+.button-hover-effect { transition: background-color .2s, transform .15s, box-shadow .2s; }
 .button-hover-effect:hover {
-  transform: translateY(-2px); /* Ligeramente hacia arriba */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); /* Sombra más pronunciada */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.25);
+}
+.button-hover-effect:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  background-color: var(--color-brand-700);
 }
 
-.button-hover-effect:active {
-  transform: translateY(0); /* Vuelve a la posición original al hacer click */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Sombra de presionado */
-  background-color: var(--blue-700); /* Un poco más oscuro al presionar */
+/* ===== animaciones ===== */
+@keyframes fadeInSlide { from {opacity:0; transform:translateY(10px)} to {opacity:1; transform:translateY(0)} }
+@keyframes slideInLeft { from {opacity:0; transform:translateX(-20px)} to {opacity:1; transform:translateX(0)} }
+@keyframes subtleZoom  { 0% {transform:scale(1)} 100% {transform:scale(1.03)} }
+@keyframes gradientShift { 0% {background-position:0% 50%} 50% {background-position:100% 50%} 100% {background-position:0% 50%} }
+
+.animate-fade-in-slide { animation: fadeInSlide .7s ease-out forwards; }
+.animate-slide-in-left { animation: slideInLeft .8s ease-out forwards; }
+.animate-subtle-zoom   { animation: subtleZoom 15s ease-in-out infinite alternate; }
+.animate-gradient-shift { background-size:200% 200%; animation: gradientShift 15s ease infinite; }
+
+/* dark tweaks opcionales */
+@media (prefers-color-scheme: dark) {
+  .text-heading { color: var(--color-neutral-100); }
+  .text-body    { color: var(--color-neutral-200); }
+  .text-muted   { color: var(--color-neutral-300); }
+  .icon         { color: var(--color-neutral-300); }
+}
+
+/* ====== Crear Usuario: campos visibles y coherentes con brand ====== */
+.create-user-card {
+  --brand-500: var(--color-brand-500, #2563eb); /* fallback azul */
+  --brand-600: var(--color-brand-600, #2563eb);
+  --brand-700: var(--color-brand-700, #1d4ed8);
+  --neu-300: var(--color-neutral-300, #cbd5e1);
+  --neu-400: var(--color-neutral-400, #94a3b8);
+  --neu-800: var(--color-neutral-800, #1f2937);
+}
+
+/* Inputs / selects / textarea con marco y buen contraste */
+.create-user-card .fc-input {
+  width: 100%;
+  background-color: #fff;
+  color: var(--neu-800);
+  border: 1px solid var(--neu-300);
+  border-radius: 0.5rem;            /* 8px */
+  padding: 0.625rem 0.75rem;        /* 10/12px */
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.create-user-card .fc-input::placeholder { color: var(--neu-400); }
+.create-user-card .fc-input:hover  { border-color: var(--neu-400); }
+.create-user-card .fc-input:focus  {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500) 25%, transparent);
+}
+
+/* Botón primario consistente */
+.create-user-card .fc-btn-primary {
+  background: var(--brand-600);
+  color: #fff;
+  border-radius: 0.75rem;           /* 12px */
+  padding: 0.5rem 1rem;             /* 8/16px */
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  transition: transform .15s ease, box-shadow .2s ease, background-color .15s ease;
+}
+.create-user-card .fc-btn-primary:hover {
+  background: var(--brand-700);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.12);
+}
+.create-user-card .fc-btn-primary:active {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }

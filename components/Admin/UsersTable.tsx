@@ -23,7 +23,7 @@ export function UsersTable() {
 
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-blue-100">
-      <div className="px-5 py-4 border-b flex items-center justify-between gap-3">
+      <div className="px-5 py-4 border-b flex items-center justify-between gap-3 ">
         <div className="flex items-center gap-2 text-blue-800 font-semibold">
           <RefreshCw className="h-4 w-4" />
           Usuarios
