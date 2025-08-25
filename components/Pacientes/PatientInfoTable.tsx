@@ -42,15 +42,13 @@ export default function PatientInfoTable() {
 
   return (
     <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
-      <div className="px-4 py-3 text-sm font-medium bg-gradient-to-r from-indigo-50 via-sky-50 to-emerald-50">
-        Ficha del paciente
-      </div>
+      {/* ✅ Sin título dentro de la tarjeta; el degradado pasa al thead */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50 text-slate-600">
-              <th className="text-left px-4 py-2 font-semibold w-56">Campo</th>
-              <th className="text-left px-4 py-2 font-semibold">Valor</th>
+            <tr className="bg-gradient-to-r from-indigo-50 via-sky-50 to-emerald-50 text-slate-700">
+              <th scope="col" className="text-left px-4 py-3 font-semibold w-56">Campo</th>
+              <th scope="col" className="text-left px-4 py-3 font-semibold">Valor</th>
             </tr>
           </thead>
           <tbody>

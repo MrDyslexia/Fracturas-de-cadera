@@ -4,7 +4,6 @@ import RoleGuard from '@/components/RoleGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirmBackToLogin } from '@/hooks/useConfirmBackToLogin';
 import React from 'react';
-import PatientHeader from '@/components/Pacientes/PatientHeader';
 import PatientInfoTable from '@/components/Pacientes/PatientInfoTable';
 import { usePatient } from '@/contexts/PatientContext';
 import { RefreshCcw } from 'lucide-react';
@@ -12,13 +11,17 @@ import { RefreshCcw } from 'lucide-react';
 function FichaScreen() {
   const { logout } = useAuth();
   const { refresh, loading } = usePatient();
+
+  // Si el usuario navega hacia atrás, confirmar y cerrar sesión
   useConfirmBackToLogin(() => { logout(); });
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      {/* Puedes mantener el header arriba si te gusta el título/identificación */}
+      {/* Título + botón actualizar (sin el rectángulo de nombre) */}
       <div className="flex items-center justify-between">
-        <PatientHeader />
+        <h1 className="text-xl md:text-2xl font-semibold text-slate-900">
+          Ficha del paciente
+        </h1>
         <button
           onClick={refresh}
           disabled={loading}
@@ -30,7 +33,8 @@ function FichaScreen() {
         </button>
       </div>
 
-      <div className="mt-6">
+      {/* Solo la tabla detallada */}
+      <div className="mt-4">
         <PatientInfoTable />
       </div>
     </div>
