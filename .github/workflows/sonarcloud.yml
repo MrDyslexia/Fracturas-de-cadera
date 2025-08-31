@@ -1,0 +1,35 @@
+name: SonarCloud Analysis
+on:
+  push:
+    branches:
+      - main
+      - Backend
+      - Frond
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Bun (instead of Node.js if Bun is your primary runtime)
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest  # or specify a version like "1.0.0"
+
+      # Install dependencies (Bun equivalent of `npm ci`)
+      - run: bun install --frozen-lockfile
+
+      # Run SonarCloud Scan
+      - name: Run SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORG_KEY }}
+            -Dsonar.host.url=https://sonarcloud.io
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
