@@ -1,8 +1,8 @@
 name: SonarCloud Analysis
 on:
   push:
-    branches:
-      - '**'
+    branches: 
+      - '**' 
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -12,17 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Esto SÍ puede llevar comentario porque es YAML
+          fetch-depth: 0
 
-      # Install Bun
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
-      # Install dependencies
       - run: bun install --frozen-lockfile
 
-      # Run SonarCloud Scan
       - name: Run SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
@@ -34,3 +31,4 @@ jobs:
             -Dsonar.organization=${{ secrets.SONAR_ORG_KEY }}
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.ci.autoscan.disabled=true
+            -Dsonar.branch.name=${{ github.ref_name }}
