@@ -30,7 +30,6 @@ export default function LoginPage() {
     const target = next && next.startsWith("/") ? next : portalFor(u.roles);
     router.replace(target);
   };
-
   return (
     <div className="flex min-h-screen overflow-hidden relative">
       {/* Fondo de imagen fijo */}
