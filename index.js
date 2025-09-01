@@ -43,7 +43,7 @@ app.use((req, res, next) => {
   next();
 });
 // ---------- Healthcheck ----------
-app.get('/health', async (_req, res) => {
+app.get('/', async (_req, res) => {
   try {
     await sequelize.authenticate();
     return res.json({ ok: true, db: 'up' });
@@ -74,7 +74,7 @@ app.use((err, _req, res, _next) => {
     const Usuario = modelos.User; // <-- Usa el modelo correcto según tu initModels.js
     const adminEmail = process.env.ADMIN_EMAIL || 'Admin@admin.com';
     const pass=await bcrypt.hash('Clave123', 10)
-    const [admin, created] = await Usuario.findOrCreate({
+    const created = await Usuario.findOrCreate({
       where: { correo: adminEmail }, // <-- Asegúrate de que el campo coincida con tu modelo
       defaults: {
         nombres: "Admin",
@@ -88,21 +88,12 @@ app.use((err, _req, res, _next) => {
         fecha_nacimiento: "2001-01-01",
       },
     });
-
+    
     if (created) {
       console.log(`✅ Usuario administrador creado: ${adminEmail}`);
     } else {
       console.log(`ℹ️ Usuario administrador ya existe: ${adminEmail}`);
     }
-
-    const AdminModel = modelos.Administrador; // <-- Usa el modelo correcto según tu initModels.js
-    const [adminProfile, profCreated] = await AdminModel.findOrCreate({
-      where: { user_id: admin.id },
-      defaults: {
-        user_id: admin.id,
-        nivel_acceso: null,
-      },
-    }); 
     await verifyMailTransport();
 
     app.listen(PORT, () => {
