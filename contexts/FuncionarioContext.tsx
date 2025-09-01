@@ -25,7 +25,7 @@ const MOCK: Paciente[] = [
   { rut: '6.345.678-9',  nombre: 'Maria Angelica C.' },
 ];
 
-export function FuncionarioProvider({ children }: { children: React.ReactNode }) {
+export function FuncionarioProvider({ children }: { readonly children: React.ReactNode }) {
   const [pacientes] = useState<Paciente[]>(MOCK);
   const [query, setQuery] = useState('');
   const [seleccionado, setSeleccionado] = useState<Paciente | undefined>();
@@ -38,8 +38,20 @@ export function FuncionarioProvider({ children }: { children: React.ReactNode })
     );
   }, [query, pacientes]);
 
+  const value = useMemo(
+    () => ({
+      pacientes,
+      query,
+      setQuery,
+      filtrados,
+      seleccionado,
+      setSeleccionado,
+    }),
+    [pacientes, query, setQuery, filtrados, seleccionado, setSeleccionado]
+  );
+
   return (
-    <FuncionarioCtx.Provider value={{ pacientes, query, setQuery, filtrados, seleccionado, setSeleccionado }}>
+    <FuncionarioCtx.Provider value={value}>
       {children}
     </FuncionarioCtx.Provider>
   );
