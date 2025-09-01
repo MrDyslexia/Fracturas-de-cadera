@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const portalFor = (roles: UserRole[]) => {
     const set = new Set((roles ?? []).map((r) => r.toLowerCase()));
-    if (set.has('admin')) return '/admin';
+    if (set.has('admin')) return '/adm';
     if (set.has('investigador')) return '/investigador';
     if (set.has('tecnologo')) return '/tech';
     if (set.has('paciente')) return '/paciente';

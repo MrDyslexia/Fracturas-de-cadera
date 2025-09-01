@@ -21,13 +21,13 @@ export default function LoginPage() {
   // Si ya hay sesión y abren /login, redirige a su portal o al "next"
   useEffect(() => {
     if (!user) return;
-    const target = next && next.startsWith("/") ? next : portalFor(user.roles);
+    const target = next?.startsWith("/") ? next : portalFor(user.roles);
     router.replace(target);
   }, [user, next, router, portalFor]);
 
   const onSubmit = async (correoORut: string, password: string) => {
     const u = await login(correoORut, password);
-    const target = next && next.startsWith("/") ? next : portalFor(u.roles);
+    const target = next?.startsWith("/") ? next : portalFor(u.roles);
     router.replace(target);
   };
   return (
