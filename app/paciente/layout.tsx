@@ -13,7 +13,7 @@ const navItems = [
   { href: '/paciente/examenes', icon: FlaskConical,  label: 'Exámenes' },
 ];
 
-export default function PacienteLayout({ children }: { children: React.ReactNode }) {
+export default function PacienteLayout({ children }: { readonly children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();

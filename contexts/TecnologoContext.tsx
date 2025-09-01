@@ -1,9 +1,16 @@
 // contexts/TecnologoContext.tsx
-'use client';
+"use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001/api/v1";
 
 export type PacienteLite = {
   user_id: number;
@@ -12,7 +19,7 @@ export type PacienteLite = {
   apellido_paterno?: string;
   apellido_materno?: string;
   nombre_completo?: string;
-  sexo?: 'M' | 'F' | 'O';
+  sexo?: "M" | "F" | "O";
   fecha_nacimiento?: string | null;
 };
 
@@ -52,11 +59,15 @@ export const useTecnologo = () => useContext(TecnologoContext);
 
 function nombreCompleto(u: any) {
   if (u?.nombre_completo) return u.nombre_completo;
-  const parts = [u?.nombres, u?.apellido_paterno, u?.apellido_materno].filter(Boolean);
-  return parts.length ? parts.join(' ') : 'Paciente';
+  const parts = [u?.nombres, u?.apellido_paterno, u?.apellido_materno].filter(
+    Boolean
+  );
+  return parts.length ? parts.join(" ") : "Paciente";
 }
 
-export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,19 +75,23 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [paciente, setPaciente] = useState<PacienteLite | null>(null);
 
   const searchPacientes = useCallback(async (q: string) => {
-    if (!q || !q.trim()) {
+    if (!q?.trim()) {
       setResults([]);
       return;
     }
     setSearching(true);
     setError(null);
     try {
-      const r = await fetch(`${API_BASE}/pacientes/search?q=${encodeURIComponent(q)}&limit=6`, { credentials: 'include' });
+      const r = await fetch(
+        `${API_BASE}/pacientes/search?q=${encodeURIComponent(q)}&limit=6`,
+        { credentials: "include" }
+      );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       setResults(Array.isArray(j?.items) ? j.items : []);
     } catch (err: any) {
-      setError('Error al buscar pacientes');
+      console.error("Error al buscar pacientes:", err);
+      setError("Error al buscar pacientes");
     } finally {
       setSearching(false);
     }
@@ -88,18 +103,20 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setLoading(true);
     setError(null);
     try {
-      const ru = await fetch(`${API_BASE}/users/${user_id}`, { credentials: 'include' });
+      const ru = await fetch(`${API_BASE}/users/${user_id}`, {
+        credentials: "include",
+      });
       if (!ru.ok) throw new Error(`Usuario HTTP ${ru.status}`);
       const u = await ru.json();
 
-      const rp = await fetch(`${API_BASE}/pacientes/${user_id}`, { credentials: 'include' });
-      let p: any = null;
-      if (rp.status === 200) p = await rp.json();
-      else if (rp.status !== 404) throw new Error(`Paciente HTTP ${rp.status}`);
+      const rp = await fetch(`${API_BASE}/pacientes/${user_id}`, {
+        credentials: "include",
+      });
+      if (rp.status !== 200 && rp.status !== 404) throw new Error(`Paciente HTTP ${rp.status}`);
 
       const pac: PacienteLite = {
         user_id,
-        rut: String(u?.rut ?? ''),
+        rut: String(u?.rut ?? ""),
         nombres: u?.nombres,
         apellido_paterno: u?.apellido_paterno,
         apellido_materno: u?.apellido_materno,
@@ -109,7 +126,8 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
       setPaciente(pac);
     } catch (err: any) {
-      setError('Error al cargar paciente');
+      console.error("Error al cargar paciente:", err);
+      setError("Error al cargar paciente");
       setPaciente(null);
     } finally {
       setLoading(false);
@@ -117,9 +135,31 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   const value: TecnologoContextType = useMemo(
-    () => ({ loading, error, searching, results, searchPacientes, clearResults, paciente, loadPaciente }),
-    [loading, error, searching, results, searchPacientes, clearResults, paciente, loadPaciente]
+    () => ({
+      loading,
+      error,
+      searching,
+      results,
+      searchPacientes,
+      clearResults,
+      paciente,
+      loadPaciente,
+    }),
+    [
+      loading,
+      error,
+      searching,
+      results,
+      searchPacientes,
+      clearResults,
+      paciente,
+      loadPaciente,
+    ]
   );
 
-  return <TecnologoContext.Provider value={value}>{children}</TecnologoContext.Provider>;
+  return (
+    <TecnologoContext.Provider value={value}>
+      {children}
+    </TecnologoContext.Provider>
+  );
 };

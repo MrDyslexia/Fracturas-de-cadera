@@ -6,14 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { TecnologoProvider } from '@/contexts/TecnologoContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConfirmBackToLogin } from '@/hooks/useConfirmBackToLogin';
-import { House, ClipboardList, Settings, LogOut } from 'lucide-react';
+import { House, Settings, LogOut } from 'lucide-react';
 import React from 'react';
 
 const navItems = [
   { href: '/tecnologo', icon: House, label: 'Panel del tecnólogo' },
 ];
 
-export default function TecnologoLayout({ children }: { children: React.ReactNode }) {
+export default function TecnologoLayout({ children }: { readonly children: React.ReactNode }) {
   return (
     <TecnologoProvider>
       <Shell>{children}</Shell>
@@ -21,7 +21,7 @@ export default function TecnologoLayout({ children }: { children: React.ReactNod
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { readonly children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();

@@ -194,9 +194,9 @@ export default function Root() {
                     outerRadius={90}
                     label={(p) => `${Math.round((p.percent ?? 0) * 100)}%`}
                   >
-                    {PIE.map((_, idx) => (
+                    {PIE.map((pieItem, idx) => (
                       <Cell
-                        key={idx}
+                        key={pieItem.name}
                         fill={PIE_COLORS[idx % PIE_COLORS.length]}
                       />
                     ))}
