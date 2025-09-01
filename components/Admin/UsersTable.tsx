@@ -33,7 +33,17 @@ function getProfile(u: any) {
 
 function hasAdminRole(u: any) {
   const roles: unknown[] = Array.isArray(u?.roles) ? (u.roles as unknown[]) : [];
-  const norm = roles.map((r: unknown) => String(r ?? '').toUpperCase());
+  const norm = roles.map((r: unknown) => {
+    let str: string;
+    if (typeof r === 'string') {
+      str = r;
+    } else if (typeof r === 'undefined' || r === null) {
+      str = '';
+    } else {
+      str = '';
+    }
+    return str.toUpperCase();
+  });
   return norm.includes('ADMIN');
 }
 
@@ -128,9 +138,14 @@ export function UsersTable() {
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
-          <button onClick={() => fetchUsers()} className="btn-primary" disabled={loading}>
-            {loading ? 'Actualizando…' : 'Actualizar'}
-          </button>
+            <button
+              onClick={() => fetchUsers()}
+              className="rounded-xl px-4 py-2 font-medium text-white transition bg-blue-600 hover:bg-blue-700 active:bg-blue-600 shadow-sm hover:shadow-lg active:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={loading}
+              type="button"
+            >
+              {loading ? 'Actualizando…' : 'Actualizar'}
+            </button>
         </div>
       </div>
 
@@ -167,31 +182,47 @@ export function UsersTable() {
 
                   <td className="td">
                     <div className="flex flex-wrap items-center gap-2">
-                      {isAdmin ? (
-                        <span className="badge badge--admin">Administrador(a)</span>
-                      ) : p?.cargo ? (
-                        <span className={roleClass(p.cargo)}>
-                          {CARGO_LABEL[p.cargo] ?? p.cargo}
-                        </span>
-                      ) : isPaciente(u) ? (
-                        <span className="badge badge--paciente">Paciente</span>
-                      ) : (
-                        <button className="btn-link" onClick={() => quickSetCargo(u)}>Asignar cargo</button>
-                      )}
+                      {(() => {
+                        if (isAdmin) {
+                          return <span className="badge badge--admin">Administrador(a)</span>;
+                        } else if (p?.cargo) {
+                          return (
+                            <span className={roleClass(p.cargo)}>
+                              {CARGO_LABEL[p.cargo] ?? p.cargo}
+                            </span>
+                          );
+                        } else if (isPaciente(u)) {
+                          return <span className="badge badge--paciente">Paciente</span>;
+                        } else {
+                          return (
+                            <button className="btn-link" onClick={() => quickSetCargo(u)}>
+                              Asignar cargo
+                            </button>
+                          );
+                        }
+                      })()}
                     </div>
                   </td>
 
 
                   <td className="td text-body">
-                    {isAdmin ? (
-                      <span className="placeholder-dash">—</span>
-                    ) : p?.rut_profesional ? (
-                      p.rut_profesional
-                    ) : isPaciente(u) ? (
-                      <span className="placeholder-dash">—</span>
-                    ) : (
-                      <button className="btn-link" onClick={() => quickSetRutProfesional(u)}>Agregar RUT</button>
-                    )}
+                    {(() => {
+                      let rutContent;
+                      if (isAdmin) {
+                        rutContent = <span className="placeholder-dash">—</span>;
+                      } else if (p?.rut_profesional) {
+                        rutContent = p.rut_profesional;
+                      } else if (isPaciente(u)) {
+                        rutContent = <span className="placeholder-dash">—</span>;
+                      } else {
+                        rutContent = (
+                          <button className="btn-link" onClick={() => quickSetRutProfesional(u)}>
+                            Agregar RUT
+                          </button>
+                        );
+                      }
+                      return rutContent;
+                    })()}
                   </td>
 
 
@@ -208,7 +239,7 @@ export function UsersTable() {
                   </td>
 
                   <td className="td">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex justify-between items-center gap-2">
                       <button
                         onClick={() => {
                           const cargo = (prompt(
@@ -230,27 +261,29 @@ export function UsersTable() {
                             activo: true,
                           }).then(fetchUsers);
                         }}
-                        className="btn-secondary"
-                        title="Editar perfil/cargo"
+                        className="flex rounded-2xl justify-between gap-2 border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1 text-sm text-blue-700 hover:text-blue-900 transition"
+                        title="Editar perfil o cargo del usuario"
                       >
                         <Edit3 className="h-4 w-4" /><span>Editar</span>
                       </button>
 
-                      <button
-                        onClick={() => addRole(u.id, 'ADMIN')}
-                        className="btn-secondary"
-                        title="Asignar rol ADMIN"
-                      >
-                        <ShieldPlus className="h-4 w-4" /><span>Rol</span>
-                      </button>
-
-                      <button
-                        onClick={() => removeRole(u.id, 'ADMIN')}
-                        className="btn-danger"
-                        title="Quitar rol ADMIN"
-                      >
-                        <ShieldMinus className="h-4 w-4" /><span>Quitar</span>
-                      </button>
+                      {isAdmin ? (
+                        <button
+                          onClick={() => removeRole(u.id, 'ADMIN')}
+                          className="flex rounded-2xl justify-between border-2 border-red-200 bg-red-50 hover:bg-red-100 px-3 py-1 text-sm text-red-700 hover:text-red-900 transition"
+                          title="Quitar rol Administrador"
+                        >
+                          <ShieldMinus className="h-4 w-4" /><span>Quitar</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => addRole(u.id, 'ADMIN')}
+                          className="flex rounded-2xl justify-between gap-2 border-2 border-green-700 bg-blue-50 hover:bg-green-100 px-3 py-1 text-sm text-green-700 hover:text-green-900 transition"
+                          title="Asignar rol Administrador"
+                        >
+                          <ShieldPlus className="h-4 w-4" /><span>Asignar</span>
+                        </button>
+                      )}
 
                       {u.email_verified && (
                         <span className="inline-flex items-center gap-1 text-success">

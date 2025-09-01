@@ -119,7 +119,7 @@ export function CreateUserCard() {
             fecha_nacimiento: fechaNac || undefined,
           },
           profile: {
-            cargo: cargo as 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO',
+            cargo: cargo,
             rut_profesional: cargo === 'FUNCIONARIO' ? undefined : rutProfesional,
             especialidad: especialidad || null,
             hospital: hospital || null,
@@ -130,7 +130,6 @@ export function CreateUserCard() {
     const resp = await createUser(payload as any);
 
     const newId: number | undefined = resp?.user?.id ?? resp?.id;
-    // (idempotente) por si el backend aún no crea admin al vuelo:
     if (isAdminNew && newId) {
       await addRole(newId, 'ADMIN');
     }

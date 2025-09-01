@@ -97,7 +97,7 @@ function pickProfile(u: any): User['profile'] | null {
   );
 }
 
-export function AdminUsersProvider({ children }: { children: React.ReactNode }) {
+export function AdminUsersProvider({ children }: { readonly children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setErr] = useState<string | null>(null);
@@ -136,9 +136,14 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
               });
               const dd = await parseJsonSafe(rr);
               const prof = pickProfile(dd);
-              const roles = Array.isArray(dd?.roles)
-                ? dd.roles
-                : (Array.isArray(dd?.user?.roles) ? dd.user.roles : undefined);
+              let roles;
+              if (Array.isArray(dd?.roles)) {
+                roles = dd.roles;
+              } else if (Array.isArray(dd?.user?.roles)) {
+                roles = dd.user.roles;
+              } else {
+                roles = undefined;
+              }
               return [id, { profile: prof, roles }] as const;
             } catch {
               return [id, { profile: null, roles: undefined }] as const;
@@ -191,7 +196,6 @@ const createUser = useCallback(async (p: CreateUserPayload) => {
     });
     const data = await parseJsonSafe(r);
     if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
-
     await fetchUsers();
     return data;
   } catch (e: any) {

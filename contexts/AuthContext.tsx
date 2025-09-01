@@ -36,13 +36,13 @@ const STORAGE_KEY = 'session_v1';
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 // --- helpers ---
-const S = (x: unknown) => String(x ?? '').trim();
+const S = (x: unknown) => typeof x === 'string' ? x.trim() : '';
 const U = (x: unknown) => S(x).toUpperCase();
 function normRut(r: string) {
   return (r || '').replace(/\./g, '').replace(/-/g, '').toUpperCase();
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { readonly children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null); 
   const [loading, setLoading] = useState(true);
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const set = new Set((roles ?? []).map((r) => r.toLowerCase()));
     if (set.has('admin')) return '/adm';
     if (set.has('investigador')) return '/investigador';
-    if (set.has('tecnologo')) return '/tech';
+    if (set.has('tecnologo')) return '/tecnologo';
     if (set.has('paciente')) return '/paciente';
     if (set.has('funcionario')) return '/funcionario';
     return '/login';
