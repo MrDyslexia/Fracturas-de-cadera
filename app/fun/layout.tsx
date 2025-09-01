@@ -10,13 +10,13 @@ import { useConfirmBackToLogin } from '@/hooks/useConfirmBackToLogin';
 import React from 'react';
 
 const navItems = [
-  { href: '/funcionario',             icon: House,        label: 'Panel del funcionario' },
-  { href: '/funcionario/examenes',    icon: FlaskConical, label: 'Exámenes' },
-  { href: '/funcionario/indicadores', icon: HeartPulse,   label: 'Indicadores' },
-  { href: '/funcionario/alertas',     icon: OctagonAlert, label: 'Alertas' },
+  { href: '/fun',             icon: House,        label: 'Panel del funcionario' },
+  { href: '/fun/examenes',    icon: FlaskConical, label: 'Exámenes' },
+  { href: '/fun/indicadores', icon: HeartPulse,   label: 'Indicadores' },
+  { href: '/fun/alertas',     icon: OctagonAlert, label: 'Alertas' },
 ];
 
-export default function FuncionarioLayout({ children }: { children: React.ReactNode }) {
+export default function FuncionarioLayout({ children }: { readonly children: React.ReactNode }) {
   return (
     <FuncionarioProvider>
       <Shell>{children}</Shell>
@@ -24,7 +24,7 @@ export default function FuncionarioLayout({ children }: { children: React.ReactN
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { readonly children: React.ReactNode }) {
   const pathname = usePathname();
   const router   = useRouter();
   const { logout } = useAuth();
@@ -34,7 +34,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 
   const isActive = (href: string) => {
-    if (href === '/funcionario') return pathname === '/funcionario';
+    if (href === '/fun') return pathname === '/fun';
     return pathname === href || pathname.startsWith(href + '/');
   };
 
@@ -65,10 +65,10 @@ function Shell({ children }: { children: React.ReactNode }) {
 
           {/* Configuración */}
           <button
-            onClick={() => router.push('/funcionario/configuracion')}
+            onClick={() => router.push('/fun/configuracion')}
             title="Configuración"
             className={`mt-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white hover:bg-slate-100 transition
-              ${isActive('/funcionario/configuracion') ? 'ring-2 ring-slate-900' : ''}`}
+              ${isActive('/fun/configuracion') ? 'ring-2 ring-slate-900' : ''}`}
           >
             <Settings className="h-5 w-5" />
           </button>

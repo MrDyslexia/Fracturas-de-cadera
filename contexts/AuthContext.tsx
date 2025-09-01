@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
     if (set.has('investigador')) return '/investigador';
     if (set.has('tecnologo')) return '/tecnologo';
     if (set.has('paciente')) return '/paciente';
-    if (set.has('funcionario')) return '/funcionario';
+    if (set.has('funcionario')) return '/fun';
     return '/login';
   };
 

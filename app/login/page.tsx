@@ -22,7 +22,6 @@ export default function LoginPage() {
   useEffect(() => {
     if (!user) return;
     const target = next?.startsWith("/") ? next : portalFor(user.roles);
-    console.log(target);
     router.replace(target);
   }, [user, next, router, portalFor]);
 
