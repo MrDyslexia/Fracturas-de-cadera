@@ -39,7 +39,7 @@ function Shell({ children }: { readonly children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-[#1c398e]">
       
       <aside className="fixed left-0 top-0 h-screen w-[72px] border-r border-slate-200 bg-white/70 backdrop-blur">
         <div className="flex h-full flex-col items-center py-4 gap-3">
@@ -54,7 +54,7 @@ function Shell({ children }: { readonly children: React.ReactNode }) {
                 aria-current={isActive(href) ? 'page' : undefined}
                 className={`group inline-flex h-12 w-12 items-center justify-center rounded-2xl transition
                   ${isActive(href)
-                    ? 'bg-slate-900 text-white shadow-lg'
+                    ? 'bg-[#1c398e] text-white shadow-lg'
                     : 'bg-white hover:bg-slate-100 border border-slate-200'}
                 `}
               >

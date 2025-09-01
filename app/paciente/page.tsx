@@ -32,8 +32,6 @@ function PacienteScreen() {
           Actualizar
         </button>
       </div>
-
-      {/* Tabla de exámenes */}
       <div className="mt-6">
         <ExamsTable />
       </div>

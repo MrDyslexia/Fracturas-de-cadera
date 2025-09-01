@@ -5,10 +5,10 @@ import { Search, Users } from 'lucide-react';
 import type { Paciente } from '../../data/pacientes';
 
 type Props = {
-  pacientes: Paciente[];
-  q: string;
-  onQChange: (v: string) => void;
-  onVerPerfil: (rut: string) => void;
+  readonly pacientes: readonly Paciente[];
+  readonly q: string;
+  readonly onQChange: (v: string) => void;
+  readonly onVerPerfil: (rut: string) => void;
 };
 
 export default function PacienteTable({
@@ -28,7 +28,7 @@ export default function PacienteTable({
             value={q}
             onChange={(e) => onQChange(e.target.value)}
             placeholder="Buscar por RUT, nombre o apellidos…"
-            className="text-blue-700 w-[320px] pl-9 pr-3 py-2 rounded-md border border-blue-300 focus:ring-2 focus:ring-blue-500 placeholder-blue-500"
+            className="bg-blue-100 text-blue-700 w-[320px] pl-9 pr-3 py-2 rounded-md border border-blue-300 focus:ring-2 focus:ring-blue-500 placeholder-blue-500"
           />
         </div>
       </div>
