@@ -1,10 +1,7 @@
 name: SonarCloud Analysis
 on:
   push:
-    branches: 
-      - 'main'
-      - 'Backend'
-      - 'Frond'
+    branches: [ "main", "Backend", "Frond", "Front" ] # Analiza estas ramas específicas
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -14,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 🔥 Crítico: Obtén el historial completo de Git
+          fetch-depth: 0  # Crítico: obtén el historial completo de commits
 
       - uses: oven-sh/setup-bun@v1
         with:
@@ -22,18 +19,14 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - name: Extract branch name
-        id: extract_branch
+      - name: Extraer nombre de la rama
         shell: bash
         run: |
-          # Para eventos de Push
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            BRANCH_NAME=${GITHUB_REF#refs/heads/}
-            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          fi
-          # Para eventos de Pull Request
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            echo "branch_name=$GITHUB_HEAD_REF" >> $GITHUB_OUTPUT
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+            echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            echo "BRANCH_NAME=$GITHUB_HEAD_REF" >> $GITHUB_ENV
           fi
 
       - name: Run SonarCloud Scan
@@ -46,5 +39,5 @@ jobs:
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ secrets.SONAR_ORG_KEY }}
             -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.branch.name=${{ steps.extract_branch.outputs.branch_name }}
-            -Dsonar.branch.target=main
+            -Dsonar.branch.name=${{ env.BRANCH_NAME }}
+            ${{ env.BRANCH_NAME == 'main' && '' || '-Dsonar.branch.target=main' }} # Target solo para no-main
