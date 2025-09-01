@@ -1,30 +1,33 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; 
-import { useAuth } from '@/contexts/AuthContext';
-import { LoginForm, ForgotPassword, ContactSupport, PatientRegister } from '@/components/Login';
-
-type Mode = 'login' | 'forgot' | 'support' | 'register';
-
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  LoginForm,
+  ForgotPassword,
+  ContactSupport,
+  PatientRegister,
+} from "@/components/Login";
+type Mode = "login" | "forgot" | "support" | "register";
 export default function LoginPage() {
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>("login");
   const router = useRouter();
-  const search = useSearchParams();                        
-  const next = search.get('next');                          
-  const { login, portalFor, user } = useAuth();            
-  
+  const search = useSearchParams();
+  const next = search.get("next");
+  const { login, portalFor, user } = useAuth();
+
   // Si ya hay sesión y abren /login, redirige a su portal o al "next"
   useEffect(() => {
     if (!user) return;
-    const target = (next && next.startsWith('/')) ? next : portalFor(user.roles);
+    const target = next && next.startsWith("/") ? next : portalFor(user.roles);
     router.replace(target);
   }, [user, next, router, portalFor]);
 
   const onSubmit = async (correoORut: string, password: string) => {
     const u = await login(correoORut, password);
-    const target = (next && next.startsWith('/')) ? next : portalFor(u.roles); 
+    const target = next && next.startsWith("/") ? next : portalFor(u.roles);
     router.replace(target);
   };
 
@@ -42,9 +45,12 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/70 via-blue-700/0 to-transparent flex items-start justify-start pt-32">
           <div className="text-start text-white px-8 drop-shadow-xl ml-10 animate-fade-in-slide animation-delay-[0.4s]">
-            <h1 className="text-5xl font-bold mb-4">PORTAL FRACTURA DE CADERA</h1>
+            <h1 className="text-5xl font-bold mb-4">
+              PORTAL FRACTURA DE CADERA
+            </h1>
             <p className="text-2xl opacity-90">
-              Acceso a módulos clínicos y de gestión para el monitoreo de fracturas de caderas
+              Acceso a módulos clínicos y de gestión para el monitoreo de
+              fracturas de caderas
             </p>
           </div>
         </div>
@@ -59,22 +65,30 @@ export default function LoginPage() {
 
         {/* Contenido según modo */}
         <div className="max-w-md mx-auto w-full z-10">
-          {mode === 'login' && (
+          {mode === "login" && (
             <LoginForm
-              onForgot={() => setMode('forgot')}
-              onSupport={() => setMode('support')}
-              onRegisterPatient={() => setMode('register')}
+              onForgot={() => setMode("forgot")}
+              onSupport={() => setMode("support")}
+              onRegisterPatient={() => setMode("register")}
               onSubmit={onSubmit}
             />
           )}
 
-          {mode === 'forgot' && <ForgotPassword onBack={() => setMode('login')} />}
-          {mode === 'support' && <ContactSupport onBack={() => setMode('login')} />}
-          {mode === 'register' && <PatientRegister onBack={() => setMode('login')} />}
+          {mode === "forgot" && (
+            <ForgotPassword onBack={() => setMode("login")} />
+          )}
+          {mode === "support" && (
+            <ContactSupport onBack={() => setMode("login")} />
+          )}
+          {mode === "register" && (
+            <PatientRegister onBack={() => setMode("login")} />
+          )}
 
-          {mode === 'login' && (
+          {mode === "login" && (
             <div className="mt-8 text-center animate-fade-in-slide animation-delay-[1.8s]">
-              <p className="text-sm text-blue-600">Inicia sesión para acceder a tu perfil.</p>
+              <p className="text-sm text-blue-600">
+                Inicia sesión para acceder a tu perfil.
+              </p>
             </div>
           )}
         </div>
