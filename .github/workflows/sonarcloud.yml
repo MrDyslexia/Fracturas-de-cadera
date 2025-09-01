@@ -3,7 +3,7 @@ on:
   push:
     branches: 
       - 'main'
-      - 'branch-*'
+      - 'Backend-*'
   pull_request:
     types: [opened, synchronize, reopened]
 
