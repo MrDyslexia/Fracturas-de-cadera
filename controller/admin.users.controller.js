@@ -73,7 +73,7 @@ async function createUserWithRole(req, res) {
           ? cargoProfesional : 'FUNCIONARIO';
 
         await models.ProfessionalProfile.create({
-          user_id: user.id,
+          rut: user.rut,
           rut_profesional: profileIn.rut_profesional ? normRut(profileIn.rut_profesional) : null,
           especialidad: profileIn.especialidad || null,
           cargo: cargoValido,
@@ -83,15 +83,15 @@ async function createUserWithRole(req, res) {
       }
 
       if (role === 'ADMIN') {
-        const exists = await models.Administrador.findByPk(user.id, { transaction: t });
+        const exists = await models.Administrador.findByPk(user.rut, { transaction: t });
         if (!exists) {
-          await models.Administrador.create({ user_id: user.id }, { transaction: t });
+          await models.Administrador.create({ rut: user.rut }, { transaction: t });
         }
       }
 
       await t.commit();
 
-      const out = await models.User.findByPk(user.id, {
+      const out = await models.User.findByPk(user.rut, {
         include: [
           { model: models.ProfessionalProfile, as: 'professional_profile', required: false },
           { model: models.Administrador,      as: 'administrador',         required: false, attributes: ['nivel_acceso'] },
@@ -100,7 +100,7 @@ async function createUserWithRole(req, res) {
       const j = out.toJSON();
       return res.status(201).json({
         message: 'Usuario creado',
-        user: { id: j.id, nombres: j.nombres, correo: j.correo, rut: j.rut },
+        user: { rut: j.rut, nombres: j.nombres, correo: j.correo },
         professional_profile: j.professional_profile || null,
         roles: rolesFromDbRow(j),
       });
@@ -116,14 +116,14 @@ async function createUserWithRole(req, res) {
 
 async function addRoleToUser(req, res) {
   try {
-    const userId = Number(req.params.id);
+    const userRut = normRut(req.params.rut);
     let { role, rut_profesional, especialidad, hospital, departamento } = req.body || {};
     role = String(role || '').toUpperCase();
 
-    if (!Number.isInteger(userId)) return res.status(400).json({ error: 'id inválido' });
+    if (!userRut) return res.status(400).json({ error: 'rut inválido' });
     if (!VALID_ROLES.has(role)) return res.status(400).json({ error: 'role inválido' });
 
-    const user = await models.User.findByPk(userId);
+    const user = await models.User.findByPk(userRut);
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
     if (role === 'ADMIN') {
@@ -140,7 +140,7 @@ async function addRoleToUser(req, res) {
         await existing.save();
       } else {
         await models.ProfessionalProfile.create({
-          user_id: userId,
+          rut: userRut,
           cargo: role, 
           rut_profesional: rut_profesional ? normRut(rut_profesional) : null,
           especialidad: especialidad ?? null,
@@ -150,7 +150,7 @@ async function addRoleToUser(req, res) {
       }
     }
 
-    const u = await models.User.findByPk(userId, {
+    const u = await models.User.findByPk(userRut, {
       include: [
         { model: models.Administrador, as: 'administrador', required: false, attributes: ['nivel_acceso'] },
         { model: models.ProfessionalProfile, as: 'professional_profile', required: false },
@@ -159,7 +159,7 @@ async function addRoleToUser(req, res) {
     const j = u.toJSON();
     return res.status(201).json({
       message: 'Rol asignado',
-      userId,
+      rut: userRut,
       roles: rolesFromDbRow(j),
       professional_profile: j.professional_profile || null,
     });
@@ -171,23 +171,23 @@ async function addRoleToUser(req, res) {
 
 async function removeRoleFromUser(req, res) {
   try {
-    const userId = Number(req.params.id);
+    const userRut = normRut(req.params.rut);
     const role = String(req.params.role || '').toUpperCase();
 
-    if (!Number.isInteger(userId)) return res.status(400).json({ error: 'id inválido' });
+    if (!userRut) return res.status(400).json({ error: 'rut inválido' });
     if (!VALID_ROLES.has(role)) return res.status(400).json({ error: 'role inválido' });
 
     if (role === 'ADMIN') {
-      const r = await models.Administrador.findByPk(userId);
+      const r = await models.Administrador.findByPk(userRut);
       if (r) await r.destroy();
     } else {
-      const prof = await models.ProfessionalProfile.findOne({ where: { user_id: userId } });
+      const prof = await models.ProfessionalProfile.findOne({ where: { rut: userRut } });
       if (prof && prof.cargo === role) {
         prof.cargo = 'FUNCIONARIO';
         await prof.save();
       }
     }
-    const u = await models.User.findByPk(userId, {
+    const u = await models.User.findByPk(userRut, {
       include: [
         { model: models.Administrador, as: 'administrador', required: false, attributes: ['nivel_acceso'] },
         { model: models.ProfessionalProfile, as: 'professional_profile', required: false },
@@ -196,7 +196,7 @@ async function removeRoleFromUser(req, res) {
     const j = u?.toJSON() || {};
     return res.status(200).json({
       message: 'Rol quitado',
-      userId,
+      rut: userRut,
       roles: rolesFromDbRow(j),
       professional_profile: j.professional_profile || null,
     });
@@ -210,11 +210,11 @@ async function removeRoleFromUser(req, res) {
 async function listUsers(_req, res) {
   try {
     const users = await models.User.findAll({
-      order: [['id', 'DESC']],
+      order: [['rut', 'DESC']],
       include: [
         { model: models.ProfessionalProfile, as: 'professional_profile', required: false,
-          attributes: ['id','rut_profesional','cargo','especialidad','hospital','departamento','activo'] },
-        { model: models.Administrador, as: 'administrador', required: false, attributes: ['nivel_acceso']},
+          attributes: ['rut','rut_profesional','cargo','especialidad','hospital','departamento','activo'] },
+        { model: models.Administrador, as: 'administrador', required: false, attributes: ['rut','nivel_acceso']},
       ],
     });
 
@@ -232,14 +232,14 @@ async function listUsers(_req, res) {
 
 async function getUser(req, res) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(400).json({ error: 'id inválido' });
+    const rut = normRut(req.params.id || req.params.rut);
+    if (!rut) return res.status(400).json({ error: 'rut inválido' });
 
-    const user = await models.User.findByPk(id, {
+    const user = await models.User.findByPk(rut, {
       include: [
         { model: models.ProfessionalProfile, as: 'professional_profile', required: false,
-          attributes: ['id','rut_profesional','cargo','especialidad','hospital','departamento','activo'] },
-        { model: models.Administrador, as: 'administrador', required: false, attributes: ['nivel_acceso'] },
+          attributes: ['rut','rut_profesional','cargo','especialidad','hospital','departamento','activo'] },
+        { model: models.Administrador, as: 'administrador', required: false, attributes: ['rut','nivel_acceso'] },
       ],
     });
     if (!user) return res.status(404).json({ error: 'No encontrado' });

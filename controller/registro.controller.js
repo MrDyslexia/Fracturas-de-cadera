@@ -49,8 +49,8 @@ async function getOne(req, res) {
 }
 
 // POST /registros
-// body: { accion, fecha_registro }
-// actor_user_id se toma del token (req.user.id)
+// body: { accion, fecha_registro, administrador_rut? }
+// actor_user_rut se toma del token (req.user.rut)
 async function create(req, res) {
   try {
     const { accion, fecha_registro } = req.body || {};
@@ -59,20 +59,20 @@ async function create(req, res) {
     const fecha = parseDateOrNull(fecha_registro) || new Date(); // default: ahora
     if (!fecha) return res.status(400).json({ error: 'fecha_registro inválida (ISO recomendado)' });
 
-    const actorId = req.user?.id || null;
-    
-    let administrador_id = null;
-    if (req.body?.administrador_id != null) {
-      const adm = await models.Administrador.findByPk(req.body.administrador_id);
-      if (!adm) return res.status(400).json({ error: 'administrador_id no existe' });
-      administrador_id = adm.id;
+    const actorRut = req.user?.rut || null;
+
+    let administrador_rut = null;
+    if (req.body?.administrador_rut != null) {
+      const adm = await models.Administrador.findByPk(String(req.body.administrador_rut));
+      if (!adm) return res.status(400).json({ error: 'administrador_rut no existe' });
+      administrador_rut = adm.rut;
     }
 
     const created = await models.Registro.create({
       accion: String(accion).trim(),
       fecha_registro: fecha,
-      administrador_id,
-      actor_user_id: actorId,
+      administrador_rut,
+      actor_user_rut: actorRut,
     });
 
     res
@@ -93,7 +93,7 @@ async function update(req, res) {
     const row = await models.Registro.findByPk(id);
     if (!row) return res.status(404).json({ error: 'No encontrado' });
 
-    const { accion, fecha_registro, administrador_id } = req.body || {};
+    const { accion, fecha_registro, administrador_rut } = req.body || {};
 
     if (accion !== undefined) row.accion = String(accion).trim();
 
@@ -103,13 +103,13 @@ async function update(req, res) {
       row.fecha_registro = fecha;
     }
 
-    if (administrador_id !== undefined) {
-      if (administrador_id) {
-        const adm = await models.Administrador.findByPk(administrador_id);
-        if (!adm) return res.status(400).json({ error: 'administrador_id no existe' });
-        row.administrador_id = adm.id;
+    if (administrador_rut !== undefined) {
+      if (administrador_rut) {
+        const adm = await models.Administrador.findByPk(String(administrador_rut));
+        if (!adm) return res.status(400).json({ error: 'administrador_rut no existe' });
+        row.administrador_rut = adm.rut;
       } else {
-        row.administrador_id = null;
+        row.administrador_rut = null;
       }
     }
 
@@ -139,13 +139,13 @@ async function remove(req, res) {
 }
 
 // helper rápido para registrar acciones desde otros controladores
-async function logRegistro(req, accion, administrador_id = null) {
+async function logRegistro(req, accion, administrador_rut = null) {
   try {
     await models.Registro.create({
       accion: String(accion).trim(),
       fecha_registro: new Date(),
-      administrador_id: administrador_id ?? null,
-      actor_user_id: req.user?.id ?? null, // si existe token
+      administrador_rut: administrador_rut ?? null,
+      actor_user_rut: req.user?.rut ?? null, // si existe token
     });
   } catch (e) {
     console.error('logRegistro error:', e);

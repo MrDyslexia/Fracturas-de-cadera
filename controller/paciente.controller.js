@@ -194,4 +194,80 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { search, list, getOne, create, update, remove };
+
+async function getDetalles(req, res) {
+  try {
+    const id = parseUserIdParam(req);
+    if (!id) return res.status(400).json({ error: 'user_id inválido' });
+
+    const roles = (req.user?.roles || []).map(r => String(r).toUpperCase());
+    const puedeVerMinutas = roles.some(r => ['FUNCIONARIO', 'INVESTIGADOR', 'ADMIN', 'ADMINISTRADOR'].includes(r));
+    const esProfesional = roles.some(r => ['FUNCIONARIO', 'INVESTIGADOR', 'TECNOLOGO'].includes(r));
+
+    const include = [
+      {
+        model: models.User,
+        as: 'user',
+        attributes: ['rut', 'nombres', 'apellido_paterno', 'apellido_materno', 'correo', 'telefono', 'sexo', 'fecha_nacimiento'],
+        required: false,
+      },
+      {
+        model: models.Examen,
+        include: [
+          {
+            model: models.Muestra,
+            include: [
+              {
+                model: models.Resultado,
+                include: [
+                  {
+                    model: models.IndicadorRiesgo,
+                    include: [ models.Alerta ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    if (puedeVerMinutas) {
+      include.push({
+        model: models.Minuta,
+      });
+    }
+
+    const row = await models.Paciente.findByPk(id, { include });
+    if (!row) return res.status(404).json({ error: 'No encontrado' });
+
+    if (!puedeVerMinutas && row?.dataValues?.Minuta) {
+      delete row.dataValues.Minuta;
+    }
+
+    res.json(row);
+
+    // Registro de historial: si es profesional, guarda a quién vio y cuándo
+    if (esProfesional && req.user?.rut) {
+      try {
+        const viewerUser = await models.User.findOne({ where: { rut: req.user.rut } });
+        if (viewerUser) {
+          const prof = await models.ProfessionalProfile.findOne({ where: { user_id: viewerUser.id } });
+          if (prof) {
+            const arr = Array.isArray(prof.historial_pacientes) ? prof.historial_pacientes : [];
+            arr.push({ idPaciente: id, timestamp: new Date().toISOString() });
+            await prof.update({ historial_pacientes: arr });
+          }
+        }
+      } catch (e) {
+        console.warn('No se pudo registrar historial de profesional:', e?.message || e);
+      }
+    }
+  } catch (err) {
+    console.error('getDetalles paciente error:', err);
+    res.status(500).json({ error: 'Error al obtener detalles del paciente' });
+  }
+}
+
+
+module.exports = { search, list, getOne, create, update, remove, getDetalles };

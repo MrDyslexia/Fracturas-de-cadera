@@ -16,7 +16,6 @@ const resultadoRoutes    = require('./resultado.routes');
 const indicadorRoutes    = require('./indicador.routes');
 const alertaRoutes       = require('./alerta.routes');
 const minutaRoutes       = require('./minuta.routes');
-const descargaRoutes     = require('./descarga.routes');
 const registroRoutes     = require('./registro.routes');
 const adminUser          = require('./admin.users');
 const perfilRoutes       = require('./perfil');
@@ -40,7 +39,6 @@ function initRoutes(app, basePath = '/api') {
   api.use('/indicadores',     indicadorRoutes);
   api.use('/alertas',         alertaRoutes);
   api.use('/minutas',         minutaRoutes);
-  api.use('/descargas',       descargaRoutes);
   api.use('/registros',       registroRoutes);
   api.use('/adminUser',       adminUser);
   api.use('/perfil',          perfilRoutes);

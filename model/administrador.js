@@ -1,8 +1,8 @@
 module.exports = (sequelize) => {
   const { DataTypes } = require("sequelize");
   const Administrador = sequelize.define("Administrador", {
-    user_id: { type: DataTypes.INTEGER, primaryKey: true },
+    rut: { type: DataTypes.STRING, primaryKey: true }, // FK a users.rut
     nivel_acceso: DataTypes.STRING,
-  }, { tableName: "administradores", timestamps: false });
+  }, { tableName: "administradores", timestamps: false, id: false });
   return Administrador;
 };

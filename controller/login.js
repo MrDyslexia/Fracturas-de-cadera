@@ -18,21 +18,34 @@ const normRut = (r) => String(r || '').replace(/\./g, '').replace(/-/g, '').toUp
 const nombreCompleto = (u) =>
   [u.nombres, u.apellido_paterno, u.apellido_materno].filter(Boolean).join(' ').trim();
 
-async function getUserRoles(models, userId) {
+async function getUserRoles(models, rut) {
   const roles = new Set();
 
   // helper: toma el primer modelo que exista
   const pick = (...names) => names.map(n => models[n]).find(Boolean);
+  const hasAttr = (M, a) => Boolean(M?.rawAttributes && M.rawAttributes[a]);
+  const safeFind = async (M, where) => {
+    if (!M) return null;
+    try {
+      return await M.findOne({ where });
+    } catch {
+      return null;
+    }
+  };
 
   // ADMIN
   const Admin = pick('Administrador', 'Administradores', 'admin', 'Admin');
-  if (Admin && await Admin.findOne({ where: { user_id: userId } })) roles.add('ADMIN');
+  if (Admin) {
+    const where = hasAttr(Admin, 'rut') ? { rut } : null;
+    const row = where ? await safeFind(Admin, where) : null;
+    if (row) roles.add('ADMIN');
+  }
 
   // FUNCIONARIO (y derivados desde perfil profesional)
   const Func = pick('Funcionario', 'Funcionarios', 'funcionario', 'ProfessionalProfile', 'professional_profile', 'PerfilProfesional');
   if (Func) {
-    // si existe fila por user_id -> es funcionario
-    const row = await Func.findOne({ where: { user_id: userId } }).catch(() => null);
+    const where = hasAttr(Func, 'rut') ? { rut } : null;
+    const row = where ? await safeFind(Func, where) : null;
     if (row) roles.add('FUNCIONARIO');
 
     // además intenta deducir por cargo si el modelo tiene ese campo
@@ -45,15 +58,27 @@ async function getUserRoles(models, userId) {
 
   // TECNÓLOGO
   const Tec = pick('Tecnologo', 'Tecnologos', 'tec', 'Tech');
-  if (Tec && await Tec.findOne({ where: { user_id: userId } })) roles.add('TECNOLOGO');
+  if (Tec) {
+    const where = hasAttr(Tec, 'rut') ? { rut } : null;
+    const row = where ? await safeFind(Tec, where) : null;
+    if (row) roles.add('TECNOLOGO');
+  }
 
   // INVESTIGADOR
   const Inv = pick('Investigador', 'Investigadores');
-  if (Inv && await Inv.findOne({ where: { user_id: userId } })) roles.add('INVESTIGADOR');
+  if (Inv) {
+    const where = hasAttr(Inv, 'rut') ? { rut } : null;
+    const row = where ? await safeFind(Inv, where) : null;
+    if (row) roles.add('INVESTIGADOR');
+  }
 
   // PACIENTE
   const Pac = pick('Paciente', 'Pacientes', 'paciente');
-  if (Pac && await Pac.findOne({ where: { user_id: userId } })) roles.add('PACIENTE');
+  if (Pac) {
+    const where = hasAttr(Pac, 'rut') ? { rut } : null;
+    const row = where ? await safeFind(Pac, where) : null;
+    if (row) roles.add('PACIENTE');
+  }
 
   return Array.from(roles);
 }
@@ -77,15 +102,15 @@ exports.login = async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash || DUMMY_HASH);
     if (!ok) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    const roles = await getUserRoles(models, user.id);
+    const roles = await getUserRoles(models, user.rut);
 
     const token = jwt.sign(
-      { id: user.id, rut: user.rut, roles },
+      { rut: user.rut, roles },
       process.env.JWT_SECRET || 'dev_secret_change_me',
       { expiresIn: process.env.JWT_EXPIRES || '1d' }
     );
     
-    console.log('[login] roles calculados para', user.id, roles);
+    console.log('[login] roles calculados para', user.rut, roles);
 
 
     res.cookie('auth', token, cookieOpts);
@@ -93,7 +118,6 @@ exports.login = async (req, res) => {
     return res.json({
       message: 'Login exitoso',
       user: {
-        id: user.id,
         rut: user.rut,
         nombre: nombreCompleto(user),
         correo: user.correo,
