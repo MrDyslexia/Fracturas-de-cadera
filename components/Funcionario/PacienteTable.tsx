@@ -2,7 +2,7 @@
 'use client';
 
 import { Search, Users } from 'lucide-react';
-import type { Paciente } from '../../data/pacientes';
+import type { Paciente } from '@/types/interfaces';
 
 type Props = {
   readonly pacientes: readonly Paciente[];

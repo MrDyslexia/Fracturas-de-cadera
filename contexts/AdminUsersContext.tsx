@@ -45,8 +45,8 @@ type CreateUserPayload = {
     sexo?: 'M'|'F'|'O'|'';
     fecha_nacimiento?: string;
   };
-  role?: 'ADMIN'; // 👈 para altas de administradores SIN profile
-  profile?: {     // 👈 ahora opcional
+  role?: 'ADMIN'; 
+  profile?: {     
     cargo: 'TECNOLOGO'|'INVESTIGADOR'|'FUNCIONARIO';
     rut_profesional?: string;
     especialidad?: string | null;

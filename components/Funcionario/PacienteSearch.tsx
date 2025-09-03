@@ -1,41 +1,43 @@
-// components/Funcionario/PacienteSearch.tsx
-'use client';
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-
-export type Paciente = {
-  rut: string;
-  nombres: string;
-  ApellidoPaterno: string;
-  ApellidoMaterno: string;
-};
-
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {Paciente} from "@/types/interfaces";
 type Props = {
-  value: string;
-  onChange: (v: string) => void;
-  onOpen: (rut: string) => void;
-  recientes: string[];
+  readonly value: string;
+  readonly onChange: (v: string) => void;
+  readonly onOpen: (rut: string) => void;
+  readonly recientes: readonly string[];
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001/api/v1";
 
 function toPaciente(x: any): Paciente {
   return {
-    rut: String(x?.rut ?? '').trim(),
-    nombres: String(x?.nombres ?? x?.nombre ?? '').trim(),
-    ApellidoPaterno: String(x?.apellido_paterno ?? x?.ApellidoPaterno ?? '').trim(),
-    ApellidoMaterno: String(x?.apellido_materno ?? x?.ApellidoMaterno ?? '').trim(),
+    rut: String(x?.rut ?? "").trim(),
+    nombres: String(x?.nombres ?? x?.nombre ?? "").trim(),
+    ApellidoPaterno: String(
+      x?.apellido_paterno ?? x?.ApellidoPaterno ?? ""
+    ).trim(),
+    ApellidoMaterno: String(
+      x?.apellido_materno ?? x?.ApellidoMaterno ?? ""
+    ).trim(),
   };
 }
 
 const norm = (s: string) =>
   s
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
 
-export default function PacienteSearch({ value, onChange, onOpen, recientes }: Props) {
+export default function PacienteSearch({
+  value,
+  onChange,
+  onOpen,
+  recientes,
+}: Props) {
   const { authFetch } = useAuth();
 
   const [results, setResults] = useState<Paciente[]>([]);
@@ -69,19 +71,20 @@ export default function PacienteSearch({ value, onChange, onOpen, recientes }: P
 
         const data = await resp.json().catch(() => ({} as any));
 
-        const arr: any[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data.items)
-          ? data.items
-          : Array.isArray(data.pacientes)
-          ? data.pacientes
-          : [];
+        let arr: any[] = [];
+        if (Array.isArray(data)) {
+          arr = data;
+        } else if (Array.isArray(data.items)) {
+          arr = data.items;
+        } else if (Array.isArray(data.pacientes)) {
+          arr = data.pacientes;
+        }
 
         setResults(arr.map(toPaciente));
       } catch (e: any) {
-        if (e?.name !== 'AbortError') {
+        if (e?.name !== "AbortError") {
           console.error(e);
-          setErr('Error al buscar pacientes');
+          setErr("Error al buscar pacientes");
         }
       } finally {
         setLoading(false);
@@ -91,7 +94,7 @@ export default function PacienteSearch({ value, onChange, onOpen, recientes }: P
     return () => clearTimeout(handle);
   }, [value, authFetch]);
 
-  const hayTexto = value.trim() !== '';
+  const hayTexto = value.trim() !== "";
 
   const sugerencias = useMemo(() => {
     if (!hayTexto) return [];
@@ -111,12 +114,16 @@ export default function PacienteSearch({ value, onChange, onOpen, recientes }: P
       </div>
 
       <div className="p-5 space-y-3">
-        <label className="block text-sm font-medium text-blue-900">
+        <label
+          htmlFor="paciente-search-input"
+          className="block text-sm font-medium text-blue-900"
+        >
           Ingrese RUT o Nombre Paciente
         </label>
 
         <div className="relative">
           <input
+            id="paciente-search-input"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="12.345.678-9 o nombre/apellidos"
@@ -130,37 +137,62 @@ export default function PacienteSearch({ value, onChange, onOpen, recientes }: P
             Abrir
           </button>
 
-          {hayTexto && (
-            <div className="absolute left-0 right-0 mt-2 bg-white/95 backdrop-blur rounded-xl border border-blue-100 shadow-xl overflow-hidden">
-              {loading ? (
-                <div className="px-4 py-3 text-sm text-blue-700">Buscando…</div>
-              ) : err ? (
-                <div className="px-4 py-3 text-sm text-red-700">{err}</div>
-              ) : sugerencias.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-blue-700">Sin coincidencias.</div>
-              ) : (
-                <ul className="max-h-64 overflow-auto">
-                  {sugerencias.map((p) => (
-                    <li
-                      key={p.rut}
-                      onClick={() => onOpen(p.rut)}
-                      className="px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 flex items-center justify-between"
-                    >
-                      <div className="text-blue-900">
-                        <div className="font-medium">
-                          {p.ApellidoPaterno} {p.ApellidoMaterno}, {p.nombres}
-                        </div>
-                        <div className="text-blue-600">{p.rut}</div>
-                      </div>
-                      <span className="text-blue-600 text-xs bg-blue-100 rounded-full px-2 py-0.5">
-                        Ver
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+          {hayTexto &&
+            (() => {
+              let content;
+              if (loading) {
+                content = (
+                  <div className="px-4 py-3 text-sm text-blue-700">
+                    Buscando…
+                  </div>
+                );
+              } else if (err) {
+                content = (
+                  <div className="px-4 py-3 text-sm text-red-700">{err}</div>
+                );
+              } else if (sugerencias.length === 0) {
+                content = (
+                  <div className="px-4 py-3 text-sm text-blue-700">
+                    Sin coincidencias.
+                  </div>
+                );
+              } else {
+                content = (
+                  <ul className="max-h-64 overflow-auto">
+                    {sugerencias.map((p) => (
+                      <li
+                        key={p.rut}
+                        className="flex items-center justify-between"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => onOpen(p.rut)}
+                          className="w-full text-left px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          tabIndex={0}
+                          aria-label={`Abrir paciente ${p.nombres} ${p.ApellidoPaterno} ${p.ApellidoMaterno}`}
+                        >
+                          <div className="text-blue-900">
+                            <div className="font-medium">
+                              {p.ApellidoPaterno} {p.ApellidoMaterno},{" "}
+                              {p.nombres}
+                            </div>
+                            <div className="text-blue-600">{p.rut}</div>
+                          </div>
+                          <span className="text-blue-600 text-xs bg-blue-100 rounded-full px-2 py-0.5">
+                            Ver
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              }
+              return (
+                <div className="absolute left-0 right-0 mt-2 bg-white/95 backdrop-blur rounded-xl border border-blue-100 shadow-xl overflow-hidden">
+                  {content}
+                </div>
+              );
+            })()}
         </div>
 
         <div>
