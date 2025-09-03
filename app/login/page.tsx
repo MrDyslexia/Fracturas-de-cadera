@@ -26,8 +26,11 @@ export default function LoginPage() {
   }, [user, next, router, portalFor]);
 
   const onSubmit = async (correoORut: string, password: string) => {
-    const u = await login(correoORut, password);
-    const target = next?.startsWith("/") ? next : portalFor(u.roles);
+    const user=correoORut.replaceAll('-', '');
+    const u = await login(user, password);
+    console.log("Usuario autenticado:", u);
+    const target = portalFor(u.roles);
+    console.log("Redirigiendo a", target);
     router.replace(target);
   };
   return (

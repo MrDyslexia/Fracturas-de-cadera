@@ -1,32 +1,43 @@
 // components/Login/LoginForm.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { LogIn, User, Lock, Eye, EyeOff, HelpCircle, AlertCircle } from 'lucide-react';
-
-type Props = {
+import { useState } from "react";
+import {
+  LogIn,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  AlertCircle,
+} from "lucide-react";
+import { useRut } from "react-rut-formatter";
+type Props = Readonly<{
   onForgot: () => void;
   onSupport: () => void;
   onRegisterPatient: () => void;
   onSubmit: (rut: string, pass: string) => Promise<void>;
-};
+}>;
 
-export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSubmit }: Props) {
-  const [rut, setRut] = useState('');
-  const [pass, setPass] = useState('');
+export default function LoginForm({
+  onForgot,
+  onSupport,
+  onRegisterPatient,
+  onSubmit,
+}: Props) {
+  const [pass, setPass] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null); 
-
+  const [err, setErr] = useState<string | null>(null);
+  const { rut, updateRut } = useRut();
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErr(null);         
+    setErr(null);
     setLoading(true);
     try {
-      await onSubmit(rut, pass);
+      await onSubmit(rut.raw, pass);
     } catch (e: any) {
- 
-      setErr(e?.message || 'Error de autenticación');
+      setErr(e?.message || "Error de autenticación");
     } finally {
       setLoading(false);
     }
@@ -39,7 +50,9 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
         <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4 shadow-lg">
           <User className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-blue-900 mb-2">Iniciar Sesión</h2>
+        <h2 className="text-3xl font-bold text-blue-900 mb-2">
+          Iniciar Sesión
+        </h2>
         <p className="text-blue-700">Ingresa tus credenciales para continuar</p>
       </div>
 
@@ -50,8 +63,12 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
           <div className="text-sm text-blue-800">
             ¿Tienes problemas para ingresar?
             <div className="font-semibold text-blue-900">
-              Revisa tu RUT y contraseña o{' '}
-              <button type="button" onClick={onSupport} className="underline hover:no-underline">
+              Revisa tu RUT y contraseña o{" "}
+              <button
+                type="button"
+                onClick={onSupport}
+                className="underline hover:no-underline"
+              >
                 contáctanos
               </button>
             </div>
@@ -74,27 +91,37 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
       {/* Form */}
       <form onSubmit={handle} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-blue-900 mb-2">RUT</label>
+          <label
+            htmlFor="rut-input"
+            className="block text-sm font-medium text-blue-900 mb-2"
+          >
+            RUT
+          </label>
           <div className="relative">
             <User className="h-5 w-5 text-blue-500 absolute left-3 top-3" />
             <input
+              id="rut-input"
               inputMode="text"
               autoComplete="username"
-              value={rut}
-              onChange={(e) => setRut(e.target.value)}
+              value={rut.formatted}
+              onChange={(e) => updateRut(e.target.value)}
               className="text-blue-600 w-full pl-10 pr-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500"
               placeholder="12.345.678-9"
               required
+              maxLength={12}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-blue-900 mb-2">Contraseña</label>
+          <label htmlFor="password-input" className="block text-sm font-medium text-blue-900 mb-2">
+            Contraseña
+          </label>
           <div className="relative">
             <Lock className="h-5 w-5 text-blue-500 absolute left-3 top-3" />
             <input
-              type={show ? 'text' : 'password'}
+              id="password-input"
+              type={show ? "text" : "password"}
               autoComplete="current-password"
               value={pass}
               onChange={(e) => setPass(e.target.value)}
@@ -106,9 +133,13 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
               type="button"
               onClick={() => setShow((s) => !s)}
               className="absolute right-3 top-3 text-blue-500"
-              aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
-              {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              {show ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
             </button>
           </div>
         </div>
@@ -129,13 +160,16 @@ export default function LoginForm({ onForgot, onSupport, onRegisterPatient, onSu
           className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg disabled:opacity-60"
         >
           <LogIn className="w-5 h-5" />
-          {loading ? 'Ingresando…' : 'Ingresar'}
+          {loading ? "Ingresando…" : "Ingresar"}
         </button>
       </form>
 
       <div className="mt-6 text-center text-sm text-blue-700">
-        ¿Eres paciente nuevo?{' '}
-        <button onClick={onRegisterPatient} className="font-semibold underline underline-offset-4">
+        ¿Eres paciente nuevo?{" "}
+        <button
+          onClick={onRegisterPatient}
+          className="font-semibold underline underline-offset-4"
+        >
           Regístrate
         </button>
       </div>

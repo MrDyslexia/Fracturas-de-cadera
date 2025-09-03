@@ -90,17 +90,21 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
   }, []);
 
   const portalFor = (roles: UserRole[]) => {
-    const set = new Set((roles ?? []).map((r) => r.toLowerCase()));
-    if (set.has('admin')) return '/adm';
-    if (set.has('investigador')) return '/inv';
-    if (set.has('tecnologo')) return '/tecnologo';
-    if (set.has('paciente')) return '/paciente';
-    if (set.has('funcionario')) return '/fun';
+    const rolePriority: Record<UserRole, string> = {
+      admin: '/adm',
+      investigador: '/inv',
+      tecnologo: '/tecnologo',
+      paciente: '/paciente',
+      funcionario: '/fun',
+    };
+    for (const role of Object.keys(rolePriority) as UserRole[]) {
+      if (roles.includes(role)) return rolePriority[role];
+    }
     return '/login';
   };
 
   const login = async (rut: string, password: string) => {
-
+    if (!rut || !password) throw new Error('RUT y contraseña son obligatorios');
     const url = `${API_BASE}/auth/login`;
     const res = await fetch(url, {
       method: 'POST',
@@ -111,8 +115,6 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
 
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}: ${url}`);
-
-
     const mappedRoles: UserRole[] = (body?.user?.roles || [])
       .map((r: string) => ROLE_MAP[String(r).trim().toUpperCase()] || null)
       .filter(Boolean) as UserRole[];

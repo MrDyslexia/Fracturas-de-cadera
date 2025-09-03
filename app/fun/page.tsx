@@ -12,10 +12,10 @@ import PacienteTable from '../../components/Funcionario/PacienteTable';
 
 // Componente Modal
 interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  paciente: Paciente | null;
-  children: React.ReactNode;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly paciente: Paciente | null;
+  readonly children: React.ReactNode;
 }
 
 function Modal({ isOpen, onClose, paciente, children }: ModalProps) {

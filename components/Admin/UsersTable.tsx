@@ -169,7 +169,7 @@ export function UsersTable() {
               const isAdmin = hasAdminRole(u);
 
               return (
-                <tr key={u.id} className="users-row">
+                <tr key={u.rut} className="users-row"> 
                   <td className="td">
                     <div className="font-medium text-heading">
                       {u.nombres} {u.apellido_paterno} {u.apellido_materno}
