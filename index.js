@@ -43,7 +43,7 @@ app.use((req, res, next) => {
   next();
 });
 // ---------- Healthcheck ----------
-app.get('/health', async (_req, res) => {
+app.get('/', async (_req, res) => {
   try {
     await sequelize.authenticate();
     return res.json({ ok: true, db: 'up' });

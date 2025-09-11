@@ -250,7 +250,110 @@ async function getUser(req, res) {
     console.error('getUser error', err);
     res.status(500).json({ error: 'Error en el servidor' });
   }
+
 }
+
+const User =
+  models.User ||
+  models.user ||
+  models.Usuario ||
+  models.usuario;
+
+const ProfessionalProfile =
+  models.ProfessionalProfile ||
+  models.professional_profile ||
+  models.Profile ||
+  models.profile;
+
+const UserRole =
+  models.UserRole ||
+  models.user_role ||
+  null;
+
+
+const getUserById = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID inválido' });
+    if (!User) return res.status(500).json({ error: 'Modelo User no disponible' });
+
+    // Trae el usuario sin depender del alias de include
+    const user = await User.findByPk(id, {
+      attributes: [
+        'id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno',
+        'correo', 'telefono', 'sexo', 'fecha_nacimiento', 'email_verified'
+      ],
+    });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Perfil profesional (independiente del alias)
+    let profile = null;
+    if (ProfessionalProfile) {
+      profile = await ProfessionalProfile.findOne({ where: { user_id: id } });
+    }
+
+    // Roles: intenta por asociación, luego pivot, luego campo directo
+    let roles = [];
+    if (typeof user.getRoles === 'function') {
+      const rows = await user.getRoles({ joinTableAttributes: [] });
+      roles = rows
+        .map(r => String(r?.nombre || r?.name || r?.role || '').toUpperCase())
+        .filter(Boolean);
+    } else if (UserRole) {
+      const rows = await UserRole.findAll({ where: { user_id: id } });
+      roles = rows
+        .map(r => String(r?.role || r?.nombre || r?.name || '').toUpperCase())
+        .filter(Boolean);
+    } else if (Array.isArray(user.roles)) {
+      roles = user.roles.map(r => String(r).toUpperCase());
+    }
+
+    return res.json({
+      id: user.id,
+      rut: user.rut,
+      nombres: user.nombres,
+      apellido_paterno: user.apellido_paterno,
+      apellido_materno: user.apellido_materno,
+      correo: user.correo,
+      telefono: user.telefono,
+      sexo: user.sexo,
+      fecha_nacimiento: user.fecha_nacimiento,
+      email_verified: user.email_verified,
+      roles,
+      profile: profile || null,
+    });
+  } catch (err) {
+    console.error('getUserById error:', err);
+    return res.status(500).json({ error: 'Error obteniendo usuario' });
+  }
+};
+
+
+const updateUserProfile = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID inválido' });
+    if (!User) return res.status(500).json({ error: 'Modelo User no disponible' });
+    if (!ProfessionalProfile) return res.status(500).json({ error: 'Modelo ProfessionalProfile no disponible' });
+
+    const partial = req.body?.profile || {};
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    let profile = await ProfessionalProfile.findOne({ where: { user_id: id } });
+    if (!profile) {
+      profile = await ProfessionalProfile.create({ user_id: id, ...partial });
+    } else {
+      await profile.update(partial);
+    }
+
+    return res.json({ ok: true, profile });
+  } catch (err) {
+    console.error('updateUserProfile error:', err);
+    return res.status(500).json({ error: 'Error actualizando perfil' });
+  }
+};
+
 
 module.exports = {
   createUserWithRole,
@@ -258,4 +361,6 @@ module.exports = {
   removeRoleFromUser,
   listUsers,
   getUser,
+  getUserById,
+  updateUserProfile,
 };
