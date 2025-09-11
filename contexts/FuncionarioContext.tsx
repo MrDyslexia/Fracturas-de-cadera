@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useMemo, useState } from 'react';
-
-export type Paciente = { rut: string; nombre: string };
+import PacienteSelectorModal from '@/components/Funcionario/PacienteSelectorModal';
+import { Paciente } from '@/types/interfaces';
 
 type Ctx = {
   pacientes: Paciente[];
@@ -16,13 +16,13 @@ type Ctx = {
 const FuncionarioCtx = createContext<Ctx | null>(null);
 
 const MOCK: Paciente[] = [
-  { rut: '12.345.678-9', nombre: 'Juan A. Olivares' },
-  { rut: '13.345.678-4', nombre: 'Maria Angelica C.' },
-  { rut: '14.345.678-5', nombre: 'Paola A. Cereceda' },
-  { rut: '17.345.678-6', nombre: 'Lorenzo A. López' },
-  { rut: '4.345.678-9',  nombre: 'Maria Angelica C.' },
-  { rut: '5.345.678-9',  nombre: 'Maria Angelica C.' },
-  { rut: '6.345.678-9',  nombre: 'Maria Angelica C.' },
+  { rut: '12.345.678-9', nombres: 'Juan A. Olivares', ApellidoPaterno: 'Olivares', ApellidoMaterno: 'Alvarez' },
+  { rut: '13.345.678-4', nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
+  { rut: '14.345.678-5', nombres: 'Paola A. Cereceda', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Araya' },
+  { rut: '17.345.678-6', nombres: 'Lorenzo A. López', ApellidoPaterno: 'López', ApellidoMaterno: 'Alvarez' },
+  { rut: '4.345.678-9',  nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
+  { rut: '5.345.678-9',  nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
+  { rut: '6.345.678-9',  nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
 ];
 
 export function FuncionarioProvider({ children }: { readonly children: React.ReactNode }) {
@@ -34,7 +34,7 @@ export function FuncionarioProvider({ children }: { readonly children: React.Rea
     const s = query.trim().toLowerCase();
     if (!s) return pacientes;
     return pacientes.filter(
-      p => p.rut.toLowerCase().includes(s) || p.nombre.toLowerCase().includes(s)
+      p => p.rut.toLowerCase().includes(s) || p.nombres.toLowerCase().includes(s)
     );
   }, [query, pacientes]);
 
@@ -49,10 +49,13 @@ export function FuncionarioProvider({ children }: { readonly children: React.Rea
     }),
     [pacientes, query, setQuery, filtrados, seleccionado, setSeleccionado]
   );
-
   return (
     <FuncionarioCtx.Provider value={value}>
-      {children}
+      {!seleccionado ? (
+        <PacienteSelectorModal />
+      ) : (
+      children
+      )}
     </FuncionarioCtx.Provider>
   );
 }

@@ -25,3 +25,7 @@ export interface DetallesPaciente {
   riesgo: "bajo" | "medio" | "alto";
   comentario: string;
 }
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
