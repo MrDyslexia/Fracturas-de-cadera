@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
+import type React from "react";
+import { useState } from "react";
 import {
   ClipboardList,
   AlertTriangle,
@@ -18,7 +18,7 @@ import {
   FileText,
   CircleX,
   ChevronDown,
-} from "lucide-react"
+} from "lucide-react";
 function nowDateTime() {
   return new Date().toLocaleString("es-CL", {
     year: "numeric",
@@ -26,37 +26,48 @@ function nowDateTime() {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  })
+  });
 }
-
+import { Switch } from "@/components/ui/Switch";
 function diffDays(date1: string, date2: string) {
-  const d1 = new Date(date1)
-  const d2 = new Date(date2)
-  const diffTime = Math.abs(d1.getTime() - d2.getTime())
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return diffDays
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  const diffTime = Math.abs(d1.getTime() - d2.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
 }
 
-const currentUser = { nombre: "Dr. García" }
+const currentUser = { nombre: "Dr. García" };
 
-function Card({ children, className = "" }: Readonly<{ children: React.ReactNode; className?: string }>) {
-  return <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>{children}</div>
+function Card({
+  children,
+  className = "",
+}: Readonly<{ children: React.ReactNode; className?: string }>) {
+  return (
+    <div
+      className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 function CardHeader({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <div className="p-6 pb-4">{children}</div>
+  return <div className="p-6 pb-4">{children}</div>;
 }
 
 function CardContent({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <div className="px-6 pb-6">{children}</div>
+  return <div className="px-6 pb-6">{children}</div>;
 }
 
 function CardTitle({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <h3 className="text-lg font-semibold text-gray-900">{children}</h3>
+  return <h3 className="text-lg font-semibold text-gray-900">{children}</h3>;
 }
 
-function CardDescription({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <p className="text-sm text-gray-600 mt-1">{children}</p>
+function CardDescription({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return <p className="text-sm text-gray-600 mt-1">{children}</p>;
 }
 
 function Button({
@@ -65,25 +76,28 @@ function Button({
   variant = "default",
   className = "",
 }: Readonly<{
-  children: React.ReactNode
-  onClick?: () => void
-  variant?: "default" | "secondary" | "ghost"
-  className?: string
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: "default" | "secondary" | "ghost";
+  className?: string;
 }>) {
   const baseClasses =
-    "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+    "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2";
 
   const variantClasses = {
     default: "bg-blue-600 text-white hover:bg-blue-700",
     secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
     ghost: "text-gray-600 hover:bg-gray-100",
-  }
+  };
 
   return (
-    <button onClick={onClick} className={`${baseClasses} ${variantClasses[variant]} ${className}`}>
+    <button
+      onClick={onClick}
+      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+    >
       {children}
     </button>
-  )
+  );
 }
 
 function Input({
@@ -93,11 +107,11 @@ function Input({
   placeholder,
   className = "",
 }: Readonly<{
-  type?: string
-  value?: string
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  className?: string
+  type?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  className?: string;
 }>) {
   return (
     <input
@@ -107,7 +121,7 @@ function Input({
       placeholder={placeholder}
       className={`w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${className}`}
     />
-  )
+  );
 }
 
 function Textarea({
@@ -117,11 +131,11 @@ function Textarea({
   disabled = false,
   className = "",
 }: Readonly<{
-  value?: string
-  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  placeholder?: string
-  disabled?: boolean
-  className?: string
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
 }>) {
   return (
     <textarea
@@ -132,11 +146,18 @@ function Textarea({
       rows={3}
       className={`w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 ${className}`}
     />
-  )
+  );
 }
 
-function Label({ children, className = "" }: Readonly<{ children: React.ReactNode; className?: string }>) {
-  return <label className={`text-sm font-medium text-gray-700 ${className}`}>{children}</label>
+function Label({
+  children,
+  className = "",
+}: Readonly<{ children: React.ReactNode; className?: string }>) {
+  return (
+    <label className={`text-sm font-medium text-gray-700 ${className}`}>
+      {children}
+    </label>
+  );
 }
 
 function Select({
@@ -144,9 +165,9 @@ function Select({
   onValueChange,
   children,
 }: Readonly<{
-  value?: string
-  onValueChange?: (value: string) => void
-  children: React.ReactNode
+  value?: string;
+  onValueChange?: (value: string) => void;
+  children: React.ReactNode;
 }>) {
   return (
     <div className="relative">
@@ -159,31 +180,34 @@ function Select({
       </select>
       <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
     </div>
-  )
+  );
 }
 
 function SelectTrigger({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <>{children}</>
+  return <>{children}</>;
 }
 
 function SelectValue() {
-  return null
+  return null;
 }
 
 function SelectContent({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <>{children}</>
+  return <>{children}</>;
 }
 
-function SelectItem({ value, children }: Readonly<{ value: string; children: React.ReactNode }>) {
-  return <option value={value}>{children}</option>
+function SelectItem({
+  value,
+  children,
+}: Readonly<{ value: string; children: React.ReactNode }>) {
+  return <option value={value}>{children}</option>;
 }
 
 function Checkbox({
   checked,
   onCheckedChange,
 }: Readonly<{
-  checked?: boolean
-  onCheckedChange?: (checked: boolean) => void
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
 }>) {
   return (
     <input
@@ -192,16 +216,19 @@ function Checkbox({
       onChange={(e) => onCheckedChange?.(e.target.checked)}
       className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
     />
-  )
+  );
 }
 
-function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
+function Field({
+  label,
+  children,
+}: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <div className="grid gap-2">
       <Label>{label}</Label>
       {children}
     </div>
-  )
+  );
 }
 
 function HabitRow({
@@ -210,20 +237,25 @@ function HabitRow({
   value,
   onChange,
 }: Readonly<{
-  icon: React.ReactNode
-  label: string
-  value: boolean
-  onChange: (value: boolean) => void
+  icon: React.ReactNode;
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
 }>) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3">
         {icon}
         <Label>{label}</Label>
-      </div>
-      <Checkbox checked={value} onCheckedChange={onChange} />
+        
+      </div><Switch
+          checked={value}
+          onCheckedChange={onChange}
+          size="sm"
+          color="primary"
+        />
     </div>
-  )
+  );
 }
 
 function CardHeaderWithIcon({
@@ -231,9 +263,9 @@ function CardHeaderWithIcon({
   title,
   subtitle,
 }: Readonly<{
-  icon: React.ReactNode
-  title: string
-  subtitle: string
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
 }>) {
   return (
     <CardHeader>
@@ -245,7 +277,7 @@ function CardHeaderWithIcon({
         </div>
       </div>
     </CardHeader>
-  )
+  );
 }
 
 export default function MedicinaPage() {
@@ -255,32 +287,33 @@ export default function MedicinaPage() {
     procedencia: "Urgencia",
     fechaDx: "2025-03-01",
     notas: "Dolor y limitación funcional",
-  })
+  });
 
   const [habitos, setHabitos] = useState({
     tabaco: false,
     alcohol: false,
     corticoides: false,
     taco: false,
-  })
+  });
 
-  const [comorb, setComorb] = useState<string[]>([])
+  const [comorb, setComorb] = useState<string[]>([]);
 
   const [preComp, setPreComp] = useState({
     tiene: false,
     desc: "",
-  })
+  });
 
   const [postComp, setPostComp] = useState({
     tiene: false,
     desc: "",
-  })
+  });
 
   const [evol, setEvol] = useState({
     transfusion: false,
     reingreso: false,
-    comentarios: "Buena tolerancia al dolor; iniciar rehabilitación día 1 post‑op.",
-  })
+    comentarios:
+      "Buena tolerancia al dolor; iniciar rehabilitación día 1 post‑op.",
+  });
 
   const [controles, setControles] = useState([
     {
@@ -290,32 +323,45 @@ export default function MedicinaPage() {
       origen: "Ingreso",
       resumen: "Dx inicial S72.1 Pertrocantérica",
     },
-  ])
+  ]);
 
-  const comorbOptions = ["DM2", "EPOC", "ERC", "ECV/ACV", "Parkinson", "Epilepsia"]
+  const comorbOptions = [
+    "DM2",
+    "EPOC",
+    "ERC",
+    "ECV/ACV",
+    "Parkinson",
+    "Epilepsia",
+  ];
 
-  const toggleChip = (k: string) => setComorb((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]))
+  const toggleChip = (k: string) =>
+    setComorb((prev) =>
+      prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]
+    );
 
   function registrarControl(origen: string) {
-    const resumen = `Dx ${dx.cie10} ${dx.lado} — ${dx.procedencia}`
+    const resumen = `Dx ${dx.cie10} ${dx.lado} — ${dx.procedencia}`;
     const nuevo = {
       id: controles.length + 1,
       fecha: nowDateTime(),
       profesional: currentUser.nombre,
       origen,
       resumen,
-    }
-    setControles([...controles, nuevo])
+    };
+    setControles([...controles, nuevo]);
   }
 
-  const ordenados = [...controles].sort((a, b) => b.fecha.localeCompare(a.fecha))
+  const ordenados = [...controles].sort((a, b) =>
+    b.fecha.localeCompare(a.fecha)
+  );
 
   return (
-
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900">Vista Médica</h1>
-        <p className="text-slate-600 mt-2">Registro completo del diagnóstico y evolución del paciente</p>
+        <p className="text-slate-600 mt-2">
+          Registro completo del diagnóstico y evolución del paciente
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -329,20 +375,30 @@ export default function MedicinaPage() {
           <CardContent>
             <div className="grid md:grid-cols-2 gap-4">
               <Field label="CIE‑10 (tipo de fractura)">
-                <Select value={dx.cie10} onValueChange={(value) => setDx({ ...dx, cie10: value })}>
+                <Select
+                  value={dx.cie10}
+                  onValueChange={(value) => setDx({ ...dx, cie10: value })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="S72.0">S72.0 — Intracapsular</SelectItem>
-                    <SelectItem value="S72.1">S72.1 — Pertrocantérica</SelectItem>
-                    <SelectItem value="S72.2">S72.2 — Subtrocantérica</SelectItem>
+                    <SelectItem value="S72.1">
+                      S72.1 — Pertrocantérica
+                    </SelectItem>
+                    <SelectItem value="S72.2">
+                      S72.2 — Subtrocantérica
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
 
               <Field label="Lado de la fractura">
-                <Select value={dx.lado} onValueChange={(value) => setDx({ ...dx, lado: value })}>
+                <Select
+                  value={dx.lado}
+                  onValueChange={(value) => setDx({ ...dx, lado: value })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -355,20 +411,31 @@ export default function MedicinaPage() {
               </Field>
 
               <Field label="Procedencia">
-                <Select value={dx.procedencia} onValueChange={(value) => setDx({ ...dx, procedencia: value })}>
+                <Select
+                  value={dx.procedencia}
+                  onValueChange={(value) =>
+                    setDx({ ...dx, procedencia: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Urgencia">Urgencia</SelectItem>
-                    <SelectItem value="Derivación APS">Derivación APS</SelectItem>
+                    <SelectItem value="Derivación APS">
+                      Derivación APS
+                    </SelectItem>
                     <SelectItem value="Otro centro">Otro centro</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
 
               <Field label="Fecha del diagnóstico">
-                <Input type="date" value={dx.fechaDx} onChange={(e) => setDx({ ...dx, fechaDx: e.target.value })} />
+                <Input
+                  type="date"
+                  value={dx.fechaDx}
+                  onChange={(e) => setDx({ ...dx, fechaDx: e.target.value })}
+                />
               </Field>
 
               <div className="md:col-span-2">
@@ -398,13 +465,17 @@ export default function MedicinaPage() {
                   <Label>Prequirúrgicas</Label>
                   <Checkbox
                     checked={preComp.tiene}
-                    onCheckedChange={(checked) => setPreComp((prev) => ({ ...prev, tiene: !!checked }))}
+                    onCheckedChange={(checked) =>
+                      setPreComp((prev) => ({ ...prev, tiene: !!checked }))
+                    }
                   />
                 </div>
                 <Textarea
                   disabled={!preComp.tiene}
                   value={preComp.desc}
-                  onChange={(e) => setPreComp((prev) => ({ ...prev, desc: e.target.value }))}
+                  onChange={(e) =>
+                    setPreComp((prev) => ({ ...prev, desc: e.target.value }))
+                  }
                   placeholder="Ej.: anemia, INR elevado, infección urinaria..."
                 />
               </div>
@@ -414,13 +485,17 @@ export default function MedicinaPage() {
                   <Label>Postquirúrgicas</Label>
                   <Checkbox
                     checked={postComp.tiene}
-                    onCheckedChange={(checked) => setPostComp((prev) => ({ ...prev, tiene: !!checked }))}
+                    onCheckedChange={(checked) =>
+                      setPostComp((prev) => ({ ...prev, tiene: !!checked }))
+                    }
                   />
                 </div>
                 <Textarea
                   disabled={!postComp.tiene}
                   value={postComp.desc}
-                  onChange={(e) => setPostComp((prev) => ({ ...prev, desc: e.target.value }))}
+                  onChange={(e) =>
+                    setPostComp((prev) => ({ ...prev, desc: e.target.value }))
+                  }
                   placeholder="Ej.: infección de herida, neumonía, TVP..."
                 />
               </div>
@@ -438,25 +513,25 @@ export default function MedicinaPage() {
           <CardContent>
             <div className="grid sm:grid-cols-2 gap-4">
               <HabitRow
-                icon={<Cigarette className="h-4 w-4" />}
+                icon={<Cigarette size={24}/>}
                 label="Tabaco"
                 value={habitos.tabaco}
                 onChange={(v) => setHabitos({ ...habitos, tabaco: v })}
               />
               <HabitRow
-                icon={<Wine className="h-4 w-4" />}
+                icon={<Wine size={24}/>}
                 label="Alcohol"
                 value={habitos.alcohol}
                 onChange={(v) => setHabitos({ ...habitos, alcohol: v })}
               />
               <HabitRow
-                icon={<Pill className="h-4 w-4" />}
+                icon={<Pill size={24}/>}
                 label="Corticoides crónicos"
                 value={habitos.corticoides}
                 onChange={(v) => setHabitos({ ...habitos, corticoides: v })}
               />
               <HabitRow
-                icon={<Droplet className="h-4 w-4" />}
+                icon={<Droplet size={24}/>}
                 label="Anticoagulantes orales (TACO)"
                 value={habitos.taco}
                 onChange={(v) => setHabitos({ ...habitos, taco: v })}
@@ -478,7 +553,9 @@ export default function MedicinaPage() {
                 icon={<Droplet className="h-4 w-4" />}
                 label="Transfusión requerida"
                 value={evol.transfusion}
-                onChange={(v) => setEvol((prev) => ({ ...prev, transfusion: v }))}
+                onChange={(v) =>
+                  setEvol((prev) => ({ ...prev, transfusion: v }))
+                }
               />
               <HabitRow
                 icon={<Clock className="h-4 w-4" />}
@@ -491,7 +568,12 @@ export default function MedicinaPage() {
               <Field label="Comentarios de evolución">
                 <Textarea
                   value={evol.comentarios}
-                  onChange={(e) => setEvol((prev) => ({ ...prev, comentarios: e.target.value }))}
+                  onChange={(e) =>
+                    setEvol((prev) => ({
+                      ...prev,
+                      comentarios: e.target.value,
+                    }))
+                  }
                   placeholder="Dolor controlado, deambulación con asistencia, iniciar rehabilitación..."
                 />
               </Field>
@@ -546,8 +628,8 @@ export default function MedicinaPage() {
                 </thead>
                 <tbody>
                   {ordenados.map((c, i, arr) => {
-                    const prev = arr[i + 1]
-                    const dias = prev ? diffDays(c.fecha, prev.fecha) : "—"
+                    const prev = arr[i + 1];
+                    const dias = prev ? diffDays(c.fecha, prev.fecha) : "—";
                     return (
                       <tr key={c.id} className="border-b">
                         <td className="px-3 py-2">{c.fecha}</td>
@@ -556,7 +638,7 @@ export default function MedicinaPage() {
                         <td className="px-3 py-2">{c.resumen}</td>
                         <td className="px-3 py-2">{dias}</td>
                       </tr>
-                    )
+                    );
                   })}
                 </tbody>
               </table>
@@ -570,7 +652,10 @@ export default function MedicinaPage() {
             <CircleCheck className="h-4 w-4" />
             Guardar
           </Button>
-          <Button variant="secondary" onClick={() => registrarControl("Minuta")}>
+          <Button
+            variant="secondary"
+            onClick={() => registrarControl("Minuta")}
+          >
             <FileText className="h-4 w-4" />
             Guardar y generar minuta
           </Button>
@@ -581,5 +666,5 @@ export default function MedicinaPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

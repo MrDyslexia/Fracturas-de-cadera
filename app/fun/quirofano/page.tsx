@@ -70,6 +70,12 @@ export default function QuirofanoPage() {
 
   return (
     <div className="grid gap-6 p-6">
+      <div className="">
+        <h1 className="text-3xl font-bold text-slate-900">Vista Quirófano</h1>
+        <p className="text-slate-600 mt-2">
+          Registro completo del cirugías y evolución del paciente
+        </p>
+      </div>
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
