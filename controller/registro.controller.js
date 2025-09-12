@@ -60,12 +60,16 @@ async function create(req, res) {
     if (!fecha) return res.status(400).json({ error: 'fecha_registro inválida (ISO recomendado)' });
 
     const actorRut = req.user?.rut || null;
-
+    const normRut = (r) => String(r || '').replace(/\./g, '').replace(/-/g, '').toUpperCase();
+    
     let administrador_rut = null;
     if (req.body?.administrador_rut != null) {
-      const adm = await models.Administrador.findByPk(String(req.body.administrador_rut));
-      if (!adm) return res.status(400).json({ error: 'administrador_rut no existe' });
-      administrador_rut = adm.rut;
+      const rut = normRut(req.body.administrador_rut);
+      const user = await models.User.findOne({ where: { rut } });
+      if (!user) return res.status(400).json({ error: 'administrador_rut no existe' });
+      const adm = await models.Administrador.findByPk(user.id);
+      if (!adm) return res.status(400).json({ error: 'administrador_rut no corresponde a un administrador' });
+      administrador_rut = rut;
     }
 
     const created = await models.Registro.create({
@@ -105,9 +109,12 @@ async function update(req, res) {
 
     if (administrador_rut !== undefined) {
       if (administrador_rut) {
-        const adm = await models.Administrador.findByPk(String(administrador_rut));
-        if (!adm) return res.status(400).json({ error: 'administrador_rut no existe' });
-        row.administrador_rut = adm.rut;
+        const norm = String(administrador_rut).replace(/\./g, '').replace(/-/g, '').toUpperCase();
+        const user = await models.User.findOne({ where: { rut: norm } });
+        if (!user) return res.status(400).json({ error: 'administrador_rut no existe' });
+        const adm = await models.Administrador.findByPk(user.id);
+        if (!adm) return res.status(400).json({ error: 'administrador_rut no corresponde a un administrador' });
+        row.administrador_rut = norm;
       } else {
         row.administrador_rut = null;
       }

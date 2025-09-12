@@ -1,34 +1,36 @@
 // model/initModels.js
 const { sequelize } = require("./db");
 
-// ─── Modelos base ───
+// Modelos base
 const User                = require("./user")(sequelize);
 const Paciente            = require("./paciente")(sequelize);
 const Administrador       = require("./administrador")(sequelize);
-
-// Perfil profesional unificado
 const ProfessionalProfile = require("./professional_profile")(sequelize);
 
-// ─── Negocio ───
-const Examen              = require("./examen")(sequelize);
-const Muestra             = require("./muestra")(sequelize);
-const Resultado           = require("./resultados")(sequelize);
-const Parametro           = require("./parametros")(sequelize); // ✅ FALTABA
-const IndicadorRiesgo     = require("./indicador_riesgo")(sequelize);
-const Alerta              = require("./alerta")(sequelize);
-const Minuta              = require("./minuta")(sequelize);
-const Registro            = require("./registro")(sequelize);
-const GenericReport       = require("./generic_report")(sequelize);
+// Negocio existente
+const Examen          = require("./examen")(sequelize);
+const Muestra         = require("./muestra")(sequelize);
+const Resultado       = require("./resultado")(sequelize);
+const IndicadorRiesgo = require("./indicador_riesgo")(sequelize); // (si lo sigues usando)
+const Alerta          = require("./alerta")(sequelize);
+const Minuta          = require("./minuta")(sequelize);
+const Registro        = require("./registro")(sequelize);
+const GenericReport   = require("./generic_report")(sequelize);
 
-// ───────────────────────────────────────────────────────────────────────────────
-// Relaciones entre modelos
-// ───────────────────────────────────────────────────────────────────────────────
+// **Nuevos**
+const Episodio            = require("./episodio")(sequelize);
+const ControlClinico      = require("./control_clinico")(sequelize);
+const Cirugia             = require("./cirugia")(sequelize);
+const Suspension          = require("./suspension")(sequelize);
+const Complicacion        = require("./complicacion")(sequelize);
+const Evolucion           = require("./evolucion")(sequelize);
+const Antropometria       = require("./antropometria")(sequelize);
+const EpisodioIndicador   = require("./episodio_indicador")(sequelize);
+const ParametroLab        = require("./parametro_lab")(sequelize); // opcional fuerte
 
-// Examen ↔ GenericReport (1:1)
-Examen.hasOne(GenericReport, { foreignKey: "examen_id" });
-GenericReport.belongsTo(Examen, { foreignKey: "examen_id" });
+// ─────────────────────────── Relaciones ───────────────────────────
 
-// Users ↔ Paciente (1:1)
+// Users ↔ Paciente (1:1) 
 User.hasOne(Paciente, { as: "paciente", foreignKey: "user_id", onDelete: "CASCADE" });
 Paciente.belongsTo(User, { as: "user", foreignKey: "user_id" });
 
@@ -40,52 +42,93 @@ Administrador.belongsTo(User, { as: "user", foreignKey: "user_id" });
 User.hasOne(ProfessionalProfile, { as: "professional_profile", foreignKey: "user_id", onDelete: "CASCADE" });
 ProfessionalProfile.belongsTo(User, { as: "user", foreignKey: "user_id" });
 
-// ─── Relaciones de negocio ───
+// Examen ↔ GenericReport (1:1)
+Examen.hasOne(GenericReport, { foreignKey: "examen_id" });
+GenericReport.belongsTo(Examen, { foreignKey: "examen_id" });
 
-// Paciente ↔ Examen (1:N)
+// Paciente ↔ Episodio (1:N)
+Paciente.hasMany(Episodio, { foreignKey: "paciente_id", onDelete: "CASCADE" });
+Episodio.belongsTo(Paciente, { foreignKey: "paciente_id" });
+
+// Episodio ↔ Cirugia (1:N)
+Episodio.hasMany(Cirugia, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+Cirugia.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// Episodio ↔ Suspension (1:N)
+Episodio.hasMany(Suspension, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+Suspension.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// Episodio ↔ Complicacion (1:N)
+Episodio.hasMany(Complicacion, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+Complicacion.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// Episodio ↔ Evolucion (1:1)
+Episodio.hasOne(Evolucion, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+Evolucion.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// Episodio ↔ Antropometria (1:1)
+Episodio.hasOne(Antropometria, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+Antropometria.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// Episodio ↔ ControlClinico (1:N)
+Episodio.hasMany(ControlClinico, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+ControlClinico.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// Episodio ↔ EpisodioIndicador (1:N)
+Episodio.hasMany(EpisodioIndicador, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+EpisodioIndicador.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// Episodio ↔ Resultado (1:N)
+Episodio.hasMany(Resultado, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+Resultado.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+// ParametroLab ↔ Resultado (1:N) (opcional)
+ParametroLab.hasMany(Resultado, { foreignKey: "parametro", sourceKey: "codigo" });
+Resultado.belongsTo(ParametroLab, { foreignKey: "parametro", targetKey: "codigo" });
+
+// Examen / Muestra / Resultado relaciones existentes
 Paciente.hasMany(Examen, { foreignKey: "paciente_id" });
 Examen.belongsTo(Paciente, { foreignKey: "paciente_id" });
 
-// ⛔ OJO: tu modelo Examen NO tiene profesional_id, así que esta relación NO aplica.
-// ProfessionalProfile.hasMany(Examen, { foreignKey: "profesional_id" });
-// Examen.belongsTo(ProfessionalProfile, { foreignKey: "profesional_id" });
+ProfessionalProfile.hasMany(Examen, { foreignKey: "profesional_id" });
+Examen.belongsTo(ProfessionalProfile, { foreignKey: "profesional_id" });
 
-// Examen ↔ Muestra (1:N)
 Examen.hasMany(Muestra, { foreignKey: "examen_id" });
 Muestra.belongsTo(Examen, { foreignKey: "examen_id" });
 
-// ProfessionalProfile ↔ Muestra (1:N)  (Muestra sí tiene profesional_id)
 ProfessionalProfile.hasMany(Muestra, { foreignKey: "profesional_id" });
 Muestra.belongsTo(ProfessionalProfile, { foreignKey: "profesional_id" });
 
-// Muestra ↔ Resultado (1:N)
 Muestra.hasMany(Resultado, { foreignKey: "muestra_id" });
 Resultado.belongsTo(Muestra, { foreignKey: "muestra_id" });
 
-// Examen ↔ Resultado (1:N)
-// ⚠️ Asegúrate de que `resultados.examen_id` sea del MISMO tipo que `examen.examen_id` (INTEGER).
 Examen.hasMany(Resultado, { foreignKey: "examen_id" });
 Resultado.belongsTo(Examen, { foreignKey: "examen_id" });
 
-// Parametro ↔ Resultado (1:N)  ✅ NUEVO (coincide con FK resultados.id_parametro → parametros.id_parametro)
-Parametro.hasMany(Resultado, { foreignKey: "id_parametro" });
-Resultado.belongsTo(Parametro, { foreignKey: "id_parametro" });
-
-// Resultado ↔ IndicadorRiesgo  ⛔ PROBLEMA DE ESQUEMA
-// Estas líneas ASUMEN un campo indicador_riesgo.resultado_id que apunte a una PK simple en Resultado.
-// Tu Resultado NO tiene `resultado_id` (usa PK compuesta), así que comentamos hasta definir la referencia.
-// Resultado.hasMany(IndicadorRiesgo, { foreignKey: "resultado_id" });
-// IndicadorRiesgo.belongsTo(Resultado, { foreignKey: "resultado_id" });
-
-// IndicadorRiesgo ↔ Alerta (1:N)
+// IndicadorRiesgo (si lo mantienes) ↔ Alerta
 IndicadorRiesgo.hasMany(Alerta, { foreignKey: "indicador_id" });
 Alerta.belongsTo(IndicadorRiesgo, { foreignKey: "indicador_id" });
 
-// ProfessionalProfile ↔ Minuta (1:N)
+// Alerta con nuevas FK
+Episodio.hasMany(Alerta, { foreignKey: "episodio_id", onDelete: "CASCADE" });
+Alerta.belongsTo(Episodio, { foreignKey: "episodio_id" });
+
+EpisodioIndicador.hasMany(Alerta, { foreignKey: "indicador_id", onDelete: "SET NULL" });
+Alerta.belongsTo(EpisodioIndicador, { foreignKey: "indicador_id" });
+
+Resultado.hasMany(Alerta, { foreignKey: "resultado_id", onDelete: "SET NULL" });
+Alerta.belongsTo(Resultado, { foreignKey: "resultado_id" });
+
+Suspension.hasMany(Alerta, { foreignKey: "suspension_id", onDelete: "SET NULL" });
+Alerta.belongsTo(Suspension, { foreignKey: "suspension_id" });
+
+Cirugia.hasMany(Alerta, { foreignKey: "cirugia_id", onDelete: "SET NULL" });
+Alerta.belongsTo(Cirugia, { foreignKey: "cirugia_id" });
+
+// Minutas / Descargas / Registro como tenías
 ProfessionalProfile.hasMany(Minuta, { foreignKey: "profesional_id" });
 Minuta.belongsTo(ProfessionalProfile, { foreignKey: "profesional_id" });
 
-// Paciente ↔ Minuta (1:N)
 Paciente.hasMany(Minuta, { foreignKey: "paciente_id" });
 Minuta.belongsTo(Paciente, { foreignKey: "paciente_id" });
 
@@ -100,6 +143,7 @@ module.exports = {
   sequelize,
   User, Paciente, Administrador,
   ProfessionalProfile,
-  Examen, Muestra, Resultado, Parametro, // ✅ incluye Parametro
-  IndicadorRiesgo, Alerta, Minuta, Registro, GenericReport,
+  Examen, Muestra, Resultado, IndicadorRiesgo, Alerta, Minuta, Registro, GenericReport,
+  Episodio, ControlClinico, Cirugia, Suspension, Complicacion, Evolucion, Antropometria, EpisodioIndicador,
+  ParametroLab,
 };
