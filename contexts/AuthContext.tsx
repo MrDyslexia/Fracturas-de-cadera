@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-export type UserRole = 'admin' | 'funcionario' | 'paciente' | 'investigador' | 'tecnologo';
+export type UserRole = 'admin' | 'funcionario' | 'pa' | 'investigador' | 'tecnologo';
 
 export interface User {
   id: number | string;
@@ -25,7 +25,7 @@ type AuthState = {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
 const ROLE_MAP: Record<string, UserRole> = {
-  PACIENTE: 'paciente',
+  PACIENTE: 'pa',
   FUNCIONARIO: 'funcionario',
   TECNOLOGO: 'tecnologo',
   INVESTIGADOR: 'investigador',
@@ -65,7 +65,13 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
             rut: me?.rut,
             roles: mapped,
           });
-          setToken(null); 
+          return;
+        }
+        else if (r.status === 401) {
+          // No autorizado, no hacer nada y limpiar estado
+          setUser(null);
+          setToken(null);
+          localStorage.removeItem(STORAGE_KEY);
           return;
         }
 
@@ -94,7 +100,7 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
       admin: '/adm',
       investigador: '/inv',
       tecnologo: '/tecnologo',
-      paciente: '/paciente',
+      pa: '/pa',
       funcionario: '/fun',
     };
     for (const role of Object.keys(rolePriority) as UserRole[]) {
@@ -118,27 +124,22 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
     const mappedRoles: UserRole[] = (body?.user?.roles || [])
       .map((r: string) => ROLE_MAP[String(r).trim().toUpperCase()] || null)
       .filter(Boolean) as UserRole[];
-
     const u: User = {
-      id: body.user?.id,
+      id: body.user.id,
       nombre: body.user?.nombre,
       correo: body.user?.correo,
       rut: body.user?.rut,
       roles: mappedRoles,
+
     };
-
     setUser(u);
-
-   
     const tok: string | null = body?.token ?? null;
     setToken(tok);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: u, token: tok || '' }));
-
     return u;
   };
 
   const logout = async () => {
-
     await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
     setUser(null);
     setToken(null);

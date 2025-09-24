@@ -1,9 +1,6 @@
-// components/Funcionario/PacienteTable.tsx
 'use client';
-
 import { Search, Users } from 'lucide-react';
 import type { Paciente } from '@/types/interfaces';
-
 type Props = {
   readonly pacientes: readonly Paciente[];
   readonly q: string;
@@ -38,9 +35,10 @@ export default function PacienteTable({
           <thead className="sticky top-0 bg-blue-100/90 backdrop-blur">
             <tr className="text-blue-900">
               <th className="text-left px-6 py-3 font-semibold">RUT</th>
+              <th className="text-left px-6 py-3 font-semibold">Nombre</th>
               <th className="text-left px-6 py-3 font-semibold">Apellido Paterno</th>
               <th className="text-left px-6 py-3 font-semibold">Apellido Materno</th>
-              <th className="text-left px-6 py-3 font-semibold">Nombres</th>
+              
               <th className="px-6 py-3" />
             </tr>
           </thead>
@@ -48,9 +46,10 @@ export default function PacienteTable({
             {pacientes.map((p, i) => (
               <tr key={p.rut} className={i % 2 ? 'bg-blue-50/70' : 'bg-white/70'}>
                 <td className="px-6 py-3 text-blue-900 rounded-l-lg">{p.rut}</td>
-                <td className="px-6 py-3 text-blue-900">{p.ApellidoPaterno}</td>
-                <td className="px-6 py-3 text-blue-900">{p.ApellidoMaterno}</td>
                 <td className="px-6 py-3 text-blue-900">{p.nombres}</td>
+                <td className="px-6 py-3 text-blue-900">{p.Apellido_Paterno}</td>
+                <td className="px-6 py-3 text-blue-900">{p.Apellido_Materno}</td>
+                
                 <td className="px-6 py-3 text-righ rounded-r-lg">
                   <button
                     onClick={() => onVerPerfil(p.rut)}

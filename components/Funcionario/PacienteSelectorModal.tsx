@@ -1,16 +1,42 @@
 "use client";
-
+import { useEffect } from "react";
 import { useFuncionario } from "@/contexts/FuncionarioContext";
 import PacienteSearch from "@/components/Funcionario/PacienteSearch";
 import PacienteTable from "@/components/Funcionario/PacienteTable";
 
 export default function PacienteSelectorModal() {
   const { filtrados, query, setQuery, setSeleccionado } = useFuncionario();
-
   const recientes = ["12.345.678-9", "13.345.678-4", "14.345.678-5"];
-
+  function handleselect(a: any) {
+    //setSeleccionado(a);
+    const fetchSelectPaciente = async () => {
+      try {
+        const user = localStorage.getItem("session_v1");
+        const token = user ? JSON.parse(user).token : null;
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE}/pacientes/${a.user_id}/resumen`,
+          {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+          }
+        );
+        if (!response.ok) {
+          console.error("Error al seleccionar paciente:", response.statusText);
+          return;
+        }
+        const data = await response.json();
+        setSeleccionado(data);
+      } catch (error) {
+        console.error("Failed to fetch pacientes:", error);
+      }
+    };
+    fetchSelectPaciente();
+  }
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 ">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
@@ -27,7 +53,7 @@ export default function PacienteSelectorModal() {
               onChange={setQuery}
               onOpen={(rut) => {
                 const p = filtrados.find((x) => x.rut === rut);
-                if (p) setSeleccionado(p);
+                if (p) handleselect(p);
               }}
               recientes={recientes}
             />
@@ -38,7 +64,7 @@ export default function PacienteSelectorModal() {
               onQChange={setQuery}
               onVerPerfil={(rut) => {
                 const p = filtrados.find((x) => x.rut === rut);
-                if (p) setSeleccionado(p);
+                if (p) handleselect(p);
               }}
             />
           </div>

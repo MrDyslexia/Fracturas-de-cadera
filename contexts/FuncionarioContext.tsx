@@ -1,40 +1,78 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useMemo, useState } from 'react';
-import PacienteSelectorModal from '@/components/Funcionario/PacienteSelectorModal';
-import { Paciente } from '@/types/interfaces';
-
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
+import PacienteSelectorModal from "@/components/Funcionario/PacienteSelectorModal";
+import { DetallesPaciente, Paciente } from "@/types/interfaces";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 type Ctx = {
   pacientes: Paciente[];
   query: string;
   setQuery: (v: string) => void;
   filtrados: Paciente[];
-  seleccionado?: Paciente;
-  setSeleccionado: (p?: Paciente) => void;
+  seleccionado?: DetallesPaciente;
+  setSeleccionado: (p?: DetallesPaciente) => void;
 };
 
 const FuncionarioCtx = createContext<Ctx | null>(null);
 
-const MOCK: Paciente[] = [
-  { rut: '12.345.678-9', nombres: 'Juan A. Olivares', ApellidoPaterno: 'Olivares', ApellidoMaterno: 'Alvarez' },
-  { rut: '13.345.678-4', nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
-  { rut: '14.345.678-5', nombres: 'Paola A. Cereceda', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Araya' },
-  { rut: '17.345.678-6', nombres: 'Lorenzo A. López', ApellidoPaterno: 'López', ApellidoMaterno: 'Alvarez' },
-  { rut: '4.345.678-9',  nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
-  { rut: '5.345.678-9',  nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
-  { rut: '6.345.678-9',  nombres: 'Maria Angelica C.', ApellidoPaterno: 'Cereceda', ApellidoMaterno: 'Castillo' },
-];
+export function FuncionarioProvider({
+  children,
+}: {
+  readonly children: React.ReactNode;
+}) {
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [query, setQuery] = useState("");
+  const [seleccionado, setSeleccionado] = useState<DetallesPaciente | undefined>();
+  const router = useRouter();
+  const { logout } = useAuth();
 
-export function FuncionarioProvider({ children }: { readonly children: React.ReactNode }) {
-  const [pacientes] = useState<Paciente[]>(MOCK);
-  const [query, setQuery] = useState('');
-  const [seleccionado, setSeleccionado] = useState<Paciente | undefined>();
-
+  useEffect(() => {
+    const fetchPacientes = async () => {
+      try {
+        const user = localStorage.getItem("session_v1");
+        const token = user ? JSON.parse(user).token : null;
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE}/pacientes/`,
+          {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+          }
+        );
+        if (response.status === 401) {
+          logout();
+          router.push('/login');
+          console.error(
+        "No autorizado: sesión expirada o credenciales inválidas."
+          );
+          return;
+        }
+        if (!response.ok) {
+          throw new Error("Error fetching pacientes");
+        }
+        const data = await response.json();
+        setPacientes(data);
+      } catch (error) {
+        console.error("Failed to fetch pacientes:", error);
+      }
+    };
+    fetchPacientes();
+  }, []);
   const filtrados = useMemo(() => {
     const s = query.trim().toLowerCase();
     if (!s) return pacientes;
     return pacientes.filter(
-      p => p.rut.toLowerCase().includes(s) || p.nombres.toLowerCase().includes(s)
+      (p) =>
+        p.rut.toLowerCase().includes(s) || p.nombres.toLowerCase().includes(s)
     );
   }, [query, pacientes]);
 
@@ -52,9 +90,25 @@ export function FuncionarioProvider({ children }: { readonly children: React.Rea
   return (
     <FuncionarioCtx.Provider value={value}>
       {!seleccionado ? (
-        <PacienteSelectorModal />
+        <>
+          <div className="min-h-screen w-full bg-[#fafafa] relative text-gray-900">
+            {/* Diagonal Grid with Light */}
+            <div
+              className="absolute inset-0 z-0 pointer-events-none"
+              style={{
+                backgroundImage: `
+          repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.1) 0, rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 20px),
+        repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.1) 0, rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 20px)
+        `,
+                backgroundSize: "40px 40px",
+              }}
+            />
+            {/* Your Content/Components */}
+          </div>
+          <PacienteSelectorModal />
+        </>
       ) : (
-      children
+        children
       )}
     </FuncionarioCtx.Provider>
   );
@@ -62,6 +116,7 @@ export function FuncionarioProvider({ children }: { readonly children: React.Rea
 
 export const useFuncionario = () => {
   const ctx = useContext(FuncionarioCtx);
-  if (!ctx) throw new Error('useFuncionario debe usarse dentro de FuncionarioProvider');
+  if (!ctx)
+    throw new Error("useFuncionario debe usarse dentro de FuncionarioProvider");
   return ctx;
 };

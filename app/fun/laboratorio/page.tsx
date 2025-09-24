@@ -223,45 +223,15 @@ const LaboratorioPage = () => {
       <div className="p-6 max-w-7xl mx-auto relative">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-slate-900">Exámenes de Laboratorio</h1>
-          <p className="text-slate-600 mt-2">Gestión completa de solicitudes y resultados de laboratorio</p>
+          <p className="text-slate-600 mt-2">Gestión completa de resultados de laboratorio</p>
         </div>
 
         <div className="grid gap-6">
           <Card>
             <CardHeaderWithIcon
-              icon={<FlaskConical className="h-5 w-5" />}
-              title="Resumen de Exámenes"
-              subtitle="Estado actual de las solicitudes de laboratorio"
-            />
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 rounded-lg bg-green-50 border border-green-200">
-                  <div className="text-3xl font-bold text-green-600">
-                    {solicitudes.filter((s) => s.estado === "completado").length}
-                  </div>
-                  <div className="text-green-700 font-medium">Completados</div>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
-                  <div className="text-3xl font-bold text-blue-600">
-                    {solicitudes.filter((s) => s.estado === "procesando").length}
-                  </div>
-                  <div className="text-blue-700 font-medium">En proceso</div>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-gray-50 border border-gray-200">
-                  <div className="text-3xl font-bold text-gray-600">
-                    {solicitudes.filter((s) => s.estado === "pendiente").length}
-                  </div>
-                  <div className="text-gray-700 font-medium">Pendientes</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeaderWithIcon
               icon={<Filter className="h-5 w-5" />}
               title="Filtros y Búsqueda"
-              subtitle="Encuentra solicitudes específicas"
+              subtitle="Encuentra examenes específicas"
             />
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -318,8 +288,8 @@ const LaboratorioPage = () => {
           <Card>
             <CardHeaderWithIcon
               icon={<Calendar className="h-5 w-5" />}
-              title={`Solicitudes de Laboratorio (${filtradas.length})`}
-              subtitle="Lista expandible de solicitudes con exámenes individuales"
+              title={`Exámenes de Laboratorio (${filtradas.length})`}
+              subtitle="Lista expandible de exámenes"
             />
             <CardContent>
               <div className="space-y-4">
@@ -367,7 +337,7 @@ const LaboratorioPage = () => {
                       {abierto && (
                         <div className="border-t border-gray-200 bg-gray-50 p-4">
                           <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-medium text-gray-900">Exámenes individuales</h4>
+                            <h4 className="font-medium text-gray-900">Resultados individuales</h4>
                             <Button onClick={() => descargarSolicitud(solicitud)}>
                               <Download className="h-4 w-4" />
                               Descargar todo
@@ -406,21 +376,6 @@ const LaboratorioPage = () => {
               </div>
             </CardContent>
           </Card>
-
-          <div className="flex flex-wrap gap-3">
-            <Button>
-              <CircleCheck className="h-4 w-4" />
-              Guardar
-            </Button>
-            <Button variant="secondary">
-              <Download className="h-4 w-4" />
-              Exportar resultados
-            </Button>
-            <Button variant="ghost">
-              <CircleX className="h-4 w-4" />
-              Limpiar filtros
-            </Button>
-          </div>
         </div>
       </div>
   )

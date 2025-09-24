@@ -1,18 +1,52 @@
 "use client"
 
 import { useState } from "react"
-import { Hospital, Calendar, Clock, PlusCircle, CircleCheck, CircleX } from "lucide-react"
+import { Hospital, Calendar, Clock, PlusCircle, CircleCheck, CircleX, History, Trash2 } from "lucide-react"
 
 function nowDate() {
   return new Date().toISOString().split("T")[0]
 }
-
 function nowTime() {
   return new Date().toTimeString().split(" ")[0].substring(0, 5)
 }
+function nowDateTime() {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
+    d.getMinutes()
+  )}:${pad(d.getSeconds())}`
+}
+
+type Evento = {
+  id: number
+  fecha: string
+  inicio: string
+  fin: string
+  tecnica: string
+  lado: string
+  reop: boolean
+  compIntra: string
+}
+
+type Suspension = {
+  id: number
+  fecha: string
+  tipo: "Clínica" | "Administrativa"
+  motivo: string
+  confirmado: boolean
+}
+
+type RegistroSusp = {
+  id: number
+  fecha: string
+  tipo: string
+  motivo: string
+  registradoEn: string
+}
 
 export default function QuirofanoPage() {
-  const [eventos, setEventos] = useState([
+  // ─────────────────────── Quirófano ───────────────────────
+  const [eventos, setEventos] = useState<Evento[]>([
     {
       id: 1,
       fecha: "2025-03-03",
@@ -25,23 +59,11 @@ export default function QuirofanoPage() {
     },
   ])
 
-  const [suspensiones, setSuspensiones] = useState([
-    { id: 1, fecha: "2025-03-02", tipo: "Clínica", motivo: "INR alto" },
-    { id: 2, fecha: "2025-03-05", tipo: "Administrativa", motivo: "Falta pabellón" },
-  ])
-
-  const [nuevaSusp, setNuevaSusp] = useState({ fecha: nowDate(), tipo: "Clínica", motivo: "" })
-
-  function setCampoEvento(id: number, campo: string, valor: any) {
-    setEventos(eventos.map((e) => (e.id === id ? { ...e, [campo]: valor } : e)))
+  function setCampoEvento(id: number, campo: keyof Evento, valor: any) {
+    setEventos((prev) => prev.map((e) => (e.id === id ? { ...e, [campo]: valor } : e)))
   }
-
-  function setCampoSusp(id: number, campo: string, valor: any) {
-    setSuspensiones(suspensiones.map((s) => (s.id === id ? { ...s, [campo]: valor } : s)))
-  }
-
   function iniciarCirugia() {
-    const nuevo = {
+    const nuevo: Evento = {
       id: eventos.length + 1,
       fecha: nowDate(),
       inicio: nowTime(),
@@ -51,62 +73,77 @@ export default function QuirofanoPage() {
       reop: false,
       compIntra: "",
     }
-    setEventos([...eventos, nuevo])
+    setEventos((prev) => [...prev, nuevo])
   }
-
   function terminarCirugia(id: number) {
-    setEventos(eventos.map((e) => (e.id === id ? { ...e, fin: nowTime() } : e)))
+    setEventos((prev) => prev.map((e) => (e.id === id ? { ...e, fin: nowTime() } : e)))
   }
 
+  // ───────────────────── Suspensiones ──────────────────────
+  const [suspensiones, setSuspensiones] = useState<Suspension[]>([]) // empieza vacía
+  const [registroSusp, setRegistroSusp] = useState<RegistroSusp[]>([])
+
+  // Agregar: crea una fila pendiente editable de inmediato
   function agregarSuspension() {
-    const nuevo = { id: suspensiones.length + 1, ...nuevaSusp }
-    setSuspensiones([...suspensiones, nuevo])
-    setNuevaSusp({ fecha: nowDate(), tipo: "Clínica", motivo: "" })
+    const nuevo: Suspension = {
+      id: suspensiones.length + 1,
+      fecha: nowDate(),
+      tipo: "Clínica",
+      motivo: "",
+      confirmado: false,
+    }
+    setSuspensiones((prev) => [...prev, nuevo])
   }
 
-  function eliminarSusp(id: number) {
-    setSuspensiones(suspensiones.filter((s) => s.id !== id))
+  // Confirmar: pasa al registro y elimina de la tabla superior
+  function confirmarFila(id: number) {
+    const s = suspensiones.find((x) => x.id === id)
+    if (!s) return
+    const reg: RegistroSusp = {
+      id: registroSusp.length + 1,
+      fecha: s.fecha,
+      tipo: s.tipo,
+      motivo: s.motivo,
+      registradoEn: nowDateTime(),
+    }
+    setRegistroSusp((prev) => [reg, ...prev])
+    setSuspensiones((prev) => prev.filter((x) => x.id !== id))
+  }
+
+  // Eliminar pendiente
+  function eliminarFila(id: number) {
+    setSuspensiones((prev) => prev.filter((x) => x.id !== id))
+  }
+
+  function setCampoSusp(id: number, campo: keyof Suspension, valor: any) {
+    setSuspensiones((prev) => prev.map((s) => (s.id === id ? { ...s, [campo]: valor } : s)))
   }
 
   return (
     <div className="grid gap-6 p-6">
-      <div className="">
+      <div>
         <h1 className="text-3xl font-bold text-slate-900">Vista Quirófano</h1>
-        <p className="text-slate-600 mt-2">
-          Registro completo del cirugías y evolución del paciente
-        </p>
+        <p className="text-slate-600 mt-2">Registro cirugías y suspensiones</p>
       </div>
+
+      {/* ───────────── Panel Quirófano ───────────── */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <Hospital className="h-5 w-5 text-slate-700" />
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Quirófano (registro ligero)</h2>
-              <p className="text-sm text-gray-600">Múltiples cirugías por episodio; tiempos y eventos</p>
+              <h2 className="text-lg font-semibold text-gray-900">Quirófano</h2>
+              <p className="text-sm text-gray-600">Múltiples cirugías por episodio, tiempos y eventos</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <CircleCheck className="h-4 w-4" />
-              Guardar
-            </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <CircleX className="h-4 w-4" />
-              Descartar
-            </button>
-          </div>
+          <button
+            onClick={iniciarCirugia}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <Hospital className="h-4 w-4" />
+            Iniciar cirugía
+          </button>
         </div>
-
-        <div className="p-6">
-          <div className="mb-3">
-            <button
-              onClick={iniciarCirugia}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <Hospital className="h-4 w-4" />
-              Iniciar cirugía
-            </button>
-          </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -133,7 +170,6 @@ export default function QuirofanoPage() {
                     const t = h2 * 60 + m2 - (h1 * 60 + m1)
                     duracion = t > 0 ? `${t} min` : ""
                   }
-
                   return (
                     <tr key={e.id} className="border-b">
                       <td className="px-3 py-2">{e.id}</td>
@@ -222,18 +258,28 @@ export default function QuirofanoPage() {
               </tbody>
             </table>
           </div>
-        </div>
       </div>
 
+      {/* ───────────── Panel Suspensiones ───────────── */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <Calendar className="h-5 w-5 text-slate-700" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Suspensiones ({suspensiones.length})</h2>
-              <p className="text-sm text-gray-600">Clínicas o administrativas con motivo (editable)</p>
+              <p className="text-sm text-gray-600">Clínicas o administrativas con motivo</p>
             </div>
           </div>
+
+          {/* Botón único: agrega fila pendiente inmediata */}
+          <button
+            onClick={agregarSuspension}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            title="Agregar"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Agregar
+          </button>
         </div>
 
         <div className="p-6">
@@ -261,7 +307,7 @@ export default function QuirofanoPage() {
                     <td className="px-3 py-2">
                       <select
                         value={s.tipo}
-                        onChange={(e) => setCampoSusp(s.id, "tipo", e.target.value)}
+                        onChange={(e) => setCampoSusp(s.id, "tipo", e.target.value as Suspension["tipo"])}
                         className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option>Clínica</option>
@@ -278,53 +324,72 @@ export default function QuirofanoPage() {
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <button
-                        onClick={() => eliminarSusp(s.id)}
-                        className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        Eliminar
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => confirmarFila(s.id)}
+                          className="inline-flex items-center gap-2 px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                          <CircleCheck className="h-4 w-4" />
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => eliminarFila(s.id)}
+                          className="inline-flex items-center gap-2 px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          title="Eliminar (pendiente)"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
-                <tr className="bg-slate-50">
-                  <td className="px-3 py-2">
-                    <input
-                      type="date"
-                      value={nuevaSusp.fecha}
-                      onChange={(e) => setNuevaSusp({ ...nuevaSusp, fecha: e.target.value })}
-                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <select
-                      value={nuevaSusp.tipo}
-                      onChange={(e) => setNuevaSusp({ ...nuevaSusp, tipo: e.target.value })}
-                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option>Clínica</option>
-                      <option>Administrativa</option>
-                    </select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={nuevaSusp.motivo}
-                      onChange={(e) => setNuevaSusp({ ...nuevaSusp, motivo: e.target.value })}
-                      placeholder="Motivo"
-                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <button
-                      onClick={agregarSuspension}
-                      className="inline-flex items-center gap-2 px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                      Agregar
-                    </button>
-                  </td>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ───────────── Registro de suspensiones ───────────── */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-3 p-6 border-b border-gray-200">
+          <History className="h-5 w-5 text-slate-700" />
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Registro de suspensiones</h2>
+            <p className="text-sm text-gray-600">Solo se muestran las confirmadas</p>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-slate-100 text-slate-700">
+                  <th className="px-3 py-2 text-left">#</th>
+                  <th className="px-3 py-2 text-left">Fecha</th>
+                  <th className="px-3 py-2 text-left">Tipo</th>
+                  <th className="px-3 py-2 text-left">Motivo</th>
+                  <th className="px-3 py-2 text-left">Registrado el</th>
                 </tr>
+              </thead>
+              <tbody>
+                {registroSusp.length === 0 ? (
+                  <tr>
+                    <td className="px-3 py-6 text-center text-slate-500" colSpan={5}>
+                      Sin registros aún.
+                    </td>
+                  </tr>
+                ) : (
+                  registroSusp.map((r) => (
+                    <tr key={r.id} className="border-b">
+                      <td className="px-3 py-2">{r.id}</td>
+                      <td className="px-3 py-2">{r.fecha}</td>
+                      <td className="px-3 py-2">{r.tipo}</td>
+                      <td className="px-3 py-2">{r.motivo}</td>
+                      <td className="px-3 py-2">{r.registradoEn}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -18,7 +18,7 @@ function ConfiguracionScreen() {
 
 export default function ConfiguracionPage() {
   return (
-    <RoleGuard allow={['paciente']}>
+    <RoleGuard allow={['pa']}>
       <ConfiguracionScreen />
     </RoleGuard>
   );

@@ -17,10 +17,10 @@ function toPaciente(x: any): Paciente {
   return {
     rut: String(x?.rut ?? "").trim(),
     nombres: String(x?.nombres ?? x?.nombre ?? "").trim(),
-    ApellidoPaterno: String(
+    Apellido_Paterno: String(
       x?.apellido_paterno ?? x?.ApellidoPaterno ?? ""
     ).trim(),
-    ApellidoMaterno: String(
+    Apellido_Materno: String(
       x?.apellido_materno ?? x?.ApellidoMaterno ?? ""
     ).trim(),
   };
@@ -101,7 +101,7 @@ export default function PacienteSearch({
     const s = norm(value.trim());
     return results
       .filter((p) => {
-        const full = `${p.rut} ${p.nombres} ${p.ApellidoPaterno} ${p.ApellidoMaterno}`;
+        const full = `${p.rut} ${p.nombres} ${p.Apellido_Paterno} ${p.Apellido_Materno}`;
         return norm(full).includes(s);
       })
       .slice(0, 6);
@@ -169,11 +169,11 @@ export default function PacienteSearch({
                           onClick={() => onOpen(p.rut)}
                           className="w-full text-left px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500"
                           tabIndex={0}
-                          aria-label={`Abrir paciente ${p.nombres} ${p.ApellidoPaterno} ${p.ApellidoMaterno}`}
+                          aria-label={`Abrir paciente ${p.nombres} ${p.Apellido_Paterno} ${p.Apellido_Materno}`}
                         >
                           <div className="text-blue-900">
                             <div className="font-medium">
-                              {p.ApellidoPaterno} {p.ApellidoMaterno},{" "}
+                              {p.Apellido_Paterno} {p.Apellido_Materno},{" "}
                               {p.nombres}
                             </div>
                             <div className="text-blue-600">{p.rut}</div>

@@ -1,218 +1,505 @@
-"use client";
-import { useState } from "react";
-import {
-  Droplets,
-  Activity,
-  FileText,
-  AlertTriangle,
-  User,
-  Ruler,
-  Weight,
-} from "lucide-react";
-import MinutaModal from "@/components/Funcionario/modals/MinutaModal";
-import BloodModal from "@/components/Funcionario/modals/BloodModal";
-import ParametersModal from "@/components/Funcionario/modals/ParametersModal";
-import HistoryModal from "@/components/Funcionario/modals/HistoryModal";
-import AlertsModal from "@/components/Funcionario/modals/AlertsModal";
-import RoleGuard from "@/components/RoleGuard";
+"use client"
+import { useState, useEffect, useRef } from "react"
+import { Droplets, Activity, FileText, AlertTriangle, User, Ruler, Weight, UserSearch } from "lucide-react"
+import MinutaModal from "@/components/Funcionario/modals/MinutaModal"
+import BloodModal from "@/components/Funcionario/modals/BloodModal"
+import ParametersModal from "@/components/Funcionario/modals/ParametersModal"
+import HistoryModal from "@/components/Funcionario/modals/HistoryModal"
+import AlertsModal from "@/components/Funcionario/modals/AlertsModal"
+import RoleGuard from "@/components/RoleGuard"
+import Body from "@/components/Funcionario/body"
+import { useFuncionario } from "@/contexts/FuncionarioContext"
+import type { DetallesPaciente } from "@/types/interfaces"
+import * as echarts from "echarts"
+
 export default function FuncionarioHome() {
-  const [selectedPatient] = useState({
-    nombre: "María González Pérez",
-    rut: "12.345.678-9",
-    fechaNacimiento: "15/03/1979",
-    edad: { años: 45, meses: 7 },
-    sexo: "Femenino",
-    tipoSangre: "O+",
-    altura: 165,
-    peso: 68,
-  });
-  const [showMinutaModal, setShowMinutaModal] = useState(false);
-  const [showBloodModal, setShowBloodModal] = useState(false);
-  const [showParametersModal, setShowParametersModal] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showAlertsModal, setShowAlertsModal] = useState(false);
+  const { seleccionado, setSeleccionado } = useFuncionario() as {
+    seleccionado: DetallesPaciente | undefined
+    setSeleccionado: (paciente: DetallesPaciente | undefined) => void
+  }
+
+  const [showMinutaModal, setShowMinutaModal] = useState(false)
+  const [showBloodModal, setShowBloodModal] = useState(false)
+  const [showParametersModal, setShowParametersModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [showAlertsModal, setShowAlertsModal] = useState(false)
+
+  const chartRef = useRef<HTMLDivElement>(null)
+  const chartInstance = useRef<echarts.ECharts | null>(null)
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("es-ES")
+  }
+
+  const getBMIStatus = (bmi: number) => {
+    if (bmi < 18.5) return "Bajo peso"
+    if (bmi < 25) return "Normal"
+    if (bmi < 30) return "Sobrepeso"
+    return "Obesidad"
+  }
+
+  const processLabData = () => {
+    if (!seleccionado?.laboratorio?.solicitudes?.[0]?.muestras) return null
+
+    const muestras = seleccionado.laboratorio.solicitudes[0].muestras
+    const dates: string[] = []
+    const hemoglobina: number[] = []
+    const glucosa: number[] = []
+    const colesterol: number[] = []
+    const trigliceridos: number[] = []
+
+    // Sort samples by date
+    const sortedMuestras = [...muestras].sort(
+      (a, b) => new Date(a.fecha_recepcion).getTime() - new Date(b.fecha_recepcion).getTime(),
+    )
+
+    sortedMuestras.forEach((muestra) => {
+      const date = new Date(muestra.fecha_recepcion).toLocaleDateString("es-ES", {
+        month: "short",
+        day: "numeric",
+      })
+      dates.push(date)
+
+      muestra.resultados.forEach((resultado: { parametro: any; valor: number }) => {
+        switch (resultado.parametro) {
+          case "HB":
+            hemoglobina.push(resultado.valor)
+            break
+          case "GLUCOSA":
+            glucosa.push(resultado.valor)
+            break
+          case "COLESTEROL_TOTAL":
+            colesterol.push(resultado.valor)
+            break
+          case "TRIGLICERIDOS":
+            trigliceridos.push(resultado.valor)
+            break
+        }
+      })
+    })
+
+    return { dates, hemoglobina, glucosa, colesterol, trigliceridos }
+  }
+
+  useEffect(() => {
+    if (!chartRef.current || !seleccionado) return
+
+    // Initialize chart if not exists
+    if (!chartInstance.current) {
+      chartInstance.current = echarts.init(chartRef.current)
+    }
+
+    const labData = processLabData()
+    if (!labData) return
+
+    const option = {
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "cross",
+        },
+        formatter: (params: any) => {
+          let result = `<strong>${params[0].axisValue}</strong><br/>`
+          params.forEach((param: any) => {
+            const unit = param.seriesName === "Hemoglobina" ? "g/dL" : "mg/dL"
+            result += `${param.marker} ${param.seriesName}: ${param.value} ${unit}<br/>`
+          })
+          return result
+        },
+      },
+      legend: {
+        data: ["Hemoglobina", "Glucosa", "Colesterol Total", "Triglicéridos"],
+        top: 10,
+      },
+      grid: {
+        left: "12%",
+        right: "12%",
+        bottom: "8%",
+        top: "15%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        boundaryGap: false,
+        data: labData.dates,
+        axisLabel: {
+          color: "#6B7280",
+        },
+      },
+      yAxis: [
+        {
+          type: "value",
+          name: "Hemoglobina (g/dL)",
+          position: "left",
+          axisLabel: {
+            color: "#6B7280",
+            formatter: "{value}",
+          },
+          nameTextStyle: {
+            color: "#6B7280",
+            fontSize: 12,
+            padding: [0, 0, 0, 10],
+          },
+          splitLine: {
+            show: true,
+            lineStyle: {
+              color: "#F3F4F6",
+            },
+          },
+        },
+        {
+          type: "value",
+          name: "Otros parámetros (mg/dL)",
+          position: "right",
+          axisLabel: {
+            color: "#6B7280",
+            formatter: "{value}",
+          },
+          nameTextStyle: {
+            color: "#6B7280",
+            fontSize: 12,
+            padding: [0, 10, 0, 0],
+          },
+        },
+      ],
+      series: [
+        {
+          name: "Hemoglobina",
+          type: "line",
+          yAxisIndex: 0,
+          data: labData.hemoglobina,
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: "#DC2626",
+          },
+          itemStyle: {
+            color: "#DC2626",
+          },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                {
+                  offset: 0,
+                  color: "rgba(220, 38, 38, 0.3)",
+                },
+                {
+                  offset: 1,
+                  color: "rgba(220, 38, 38, 0.05)",
+                },
+              ],
+            },
+          },
+        },
+        {
+          name: "Glucosa",
+          type: "line",
+          yAxisIndex: 1,
+          data: labData.glucosa,
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: "#2563EB",
+          },
+          itemStyle: {
+            color: "#2563EB",
+          },
+        },
+        {
+          name: "Colesterol Total",
+          type: "line",
+          yAxisIndex: 1,
+          data: labData.colesterol,
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: "#059669",
+          },
+          itemStyle: {
+            color: "#059669",
+          },
+        },
+        {
+          name: "Triglicéridos",
+          type: "line",
+          yAxisIndex: 1,
+          data: labData.trigliceridos,
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: "#7C3AED",
+          },
+          itemStyle: {
+            color: "#7C3AED",
+          },
+        },
+      ],
+    }
+
+    chartInstance.current.setOption(option)
+
+    // Handle resize
+    const handleResize = () => {
+      chartInstance.current?.resize()
+    }
+    window.addEventListener("resize", handleResize)
+
+    return () => {
+      window.removeEventListener("resize", handleResize)
+    }
+  }, [seleccionado])
+
+  useEffect(() => {
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.dispose()
+        chartInstance.current = null
+      }
+    }
+  }, [])
+
+  if (!seleccionado) {
+    return (
+      <RoleGuard allow={["funcionario"]}>
+        <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">No hay paciente seleccionado</h2>
+            <p className="text-gray-600 mb-6">Selecciona un paciente para ver su información</p>
+            <button
+              onClick={() => setSeleccionado(undefined)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Seleccionar Paciente
+            </button>
+          </div>
+        </div>
+      </RoleGuard>
+    )
+  }
+
   return (
     <RoleGuard allow={["funcionario"]}>
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex justify-between items-start">
+        <div className="flex justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Vista general del paciente</h1>
+            <p className="text-slate-600 mt-2">Resumen rápido del estado y acciones médicas disponibles</p>
+          </div>
+          <button
+            onClick={() => setSeleccionado(undefined)}
+            className="px-4 py-2 bg-white text-blue-600 rounded-xl border-2 hover:bg-blue-700 hover:text-white transition-colors flex items-center space-x-2"
+          >
+            <UserSearch size={24} />
+            <span>Seleccionar paciente</span>
+          </button>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="flex justify-between items-center p-6">
             <div className="flex items-start space-x-4">
               <div className="p-3 bg-blue-100 rounded-full">
                 <User className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-                  {selectedPatient.nombre}
-                </h1>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-3">{seleccionado.general.nombre}</h1>
                 <div className="flex items-center space-x-6 text-sm">
                   <div className="flex items-center space-x-2">
-                    <span className="text-gray-800">{selectedPatient.rut}</span>
+                    {seleccionado.general.rut
+                      ? seleccionado.general.rut.replace(/^(\d{1,2})(\d{3})(\d{3})([0-9kK])$/, "$1.$2.$3-$4")
+                      : ""}
+                  </div>
+                  <div className="w-px h-4 bg-gray-300"></div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-800">{formatDate(seleccionado.general.fecha_nacimiento)}</span>
                   </div>
                   <div className="w-px h-4 bg-gray-300"></div>
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-800">
-                      {selectedPatient.fechaNacimiento}
+                      {seleccionado.general.edad} años {seleccionado.general.edad_meses} meses
                     </span>
                   </div>
                   <div className="w-px h-4 bg-gray-300"></div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-gray-800">
-                      {selectedPatient.edad.años} años{" "}
-                      {selectedPatient.edad.meses} meses
-                    </span>
-                  </div>
-                  <div className="w-px h-4 bg-gray-300"></div>
-                  <div className="flex items-center space-x-2">
-
-                    <span className="text-gray-800">
-                      {selectedPatient.sexo}
-                    </span>
-                  </div>
-                  <div className="w-px h-4 bg-gray-300"></div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-semibold text-red-600">
-                      {selectedPatient.tipoSangre}
-                    </span>
+                    <span className="font-semibold text-red-600">{seleccionado.general.tipo_sangre}</span>
                   </div>
                 </div>
               </div>
             </div>
             <button
               onClick={() => setShowMinutaModal(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-100 hover:text-blue-600 hover:border-2 border-2 border-blue-600 transition-colors flex items-center space-x-2"
             >
-              <FileText className="w-5 h-5" />
+              <FileText size={24} />
               <span>Generar Minuta</span>
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-6 mb-6">
-          {/* Bloque izquierdo - Figura humana con altura y peso */}
+          {/* Left column - Medical Actions Buttons */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Datos Físicos
-            </h2>
-            <div className="grid grid-cols-3 gap-4 items-start">
-              {/* Altura a la izquierda */}
-              <div className="flex flex-col items-center justify-center h-full">
-                <div className="p-3 bg-blue-50 rounded-lg text-center">
-                  <Ruler className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                  <div className="text-xs font-medium text-blue-800 mb-1">
-                    Altura
-                  </div>
-                  <div className="font-semibold text-blue-800">
-                    {selectedPatient.altura} cm
-                  </div>
-                </div>
-              </div>
-
-              {/* Imagen del humano al centro con peso debajo */}
-              <div className="flex flex-col items-center">
-                <img
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-1BNespmUlaZAEjDWxZ5jPQDAJYW5XU.png"
-                  alt="Figura humana anatómica"
-                  className="w-20 h-auto drop-shadow-sm mb-3"
-                />
-                {/* Peso debajo de la imagen */}
-                <div className="p-3 bg-green-50 rounded-lg text-center">
-                  <Weight className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                  <div className="text-xs font-medium text-green-800 mb-1">
-                    Peso
-                  </div>
-                  <div className="font-semibold text-green-800">
-                    {selectedPatient.peso} kg
-                  </div>
-                </div>
-              </div>
-
-              {/* IMC a la derecha */}
-              <div className="flex flex-col items-center justify-center h-full">
-                <div className="p-3 bg-purple-50 rounded-lg text-center">
-                  <div className="text-xs font-medium text-purple-800 mb-1">
-                    IMC
-                  </div>
-                  <div className="font-semibold text-purple-800">
-                    {(
-                      selectedPatient.peso /
-                      Math.pow(selectedPatient.altura / 100, 2)
-                    ).toFixed(1)}
-                  </div>
-                  <div className="text-xs text-purple-600 mt-1">Normal</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bloque derecho - 4 botones con iconos */}
-          <div className="col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Acciones Médicas
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Médicas</h2>
+            <div className="flex flex-col space-y-4">
               {/* Botón 1: Información de sangre */}
               <button
                 onClick={() => setShowBloodModal(true)}
-                className="p-6 border-2 border-red-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors group"
+                className="p-4 border-2 border-red-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors group text-left"
               >
-                <div className="flex flex-col items-center space-y-3">
-                  <Droplets className="w-12 h-12 text-red-600 group-hover:text-red-700" />
-                  <span className="font-medium text-gray-900">
-                    Análisis de Sangre
-                  </span>
-                  <span className="text-sm text-gray-500 text-center">
-                    Ver resultados y parámetros sanguíneos
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <Droplets className="w-8 h-8 text-red-600 group-hover:text-red-700" />
+                  <div>
+                    <div className="font-medium text-gray-900">Análisis de Sangre</div>
+                    <div className="text-sm text-gray-500">Ver resultados y parámetros sanguíneos</div>
+                  </div>
                 </div>
               </button>
 
               {/* Botón 2: Parámetros */}
               <button
                 onClick={() => setShowParametersModal(true)}
-                className="p-6 border-2 border-blue-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group text-left"
               >
-                <div className="flex flex-col items-center space-y-3">
-                  <Activity className="w-12 h-12 text-blue-600 group-hover:text-blue-700" />
-                  <span className="font-medium text-gray-900">
-                    Parámetros Vitales
-                  </span>
-                  <span className="text-sm text-gray-500 text-center">
-                    Monitoreo de signos vitales
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <Activity className="w-8 h-8 text-blue-600 group-hover:text-blue-700" />
+                  <div>
+                    <div className="font-medium text-gray-900">Parámetros Vitales</div>
+                    <div className="text-sm text-gray-500">Monitoreo de signos vitales</div>
+                  </div>
                 </div>
               </button>
 
               {/* Botón 3: Historial de diagnósticos */}
               <button
                 onClick={() => setShowHistoryModal(true)}
-                className="p-6 border-2 border-green-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group"
+                className="p-4 border-2 border-green-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group text-left"
               >
-                <div className="flex flex-col items-center space-y-3">
-                  <FileText className="w-12 h-12 text-green-600 group-hover:text-green-700" />
-                  <span className="font-medium text-gray-900">
-                    Historial Médico
-                  </span>
-                  <span className="text-sm text-gray-500 text-center">
-                    Diagnósticos y tratamientos previos
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <FileText className="w-8 h-8 text-green-600 group-hover:text-green-700" />
+                  <div>
+                    <div className="font-medium text-gray-900">Historial Médico</div>
+                    <div className="text-sm text-gray-500">Diagnósticos y tratamientos previos</div>
+                  </div>
                 </div>
               </button>
 
               {/* Botón 4: Alertas */}
               <button
                 onClick={() => setShowAlertsModal(true)}
-                className="p-6 border-2 border-yellow-200 rounded-lg hover:border-yellow-300 hover:bg-yellow-50 transition-colors group"
+                className="p-4 border-2 border-yellow-200 rounded-lg hover:border-yellow-300 hover:bg-yellow-50 transition-colors group text-left"
               >
-                <div className="flex flex-col items-center space-y-3">
-                  <AlertTriangle className="w-12 h-12 text-yellow-600 group-hover:text-yellow-700" />
-                  <span className="font-medium text-gray-900">
-                    Alertas Médicas
-                  </span>
-                  <span className="text-sm text-gray-500 text-center">
-                    Avisos y parámetros críticos
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <AlertTriangle className="w-8 h-8 text-yellow-600 group-hover:text-yellow-700" />
+                  <div>
+                    <div className="font-medium text-gray-900">Alertas Médicas</div>
+                    <div className="text-sm text-gray-500">Avisos y parámetros críticos</div>
+                  </div>
                 </div>
               </button>
+            </div>
+          </div>
+
+          {/* Right columns - Physical Data */}
+          <div className="col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6 text-center">Datos Físicos del Paciente</h2>
+
+            <div className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 rounded-2xl p-8 border-2 border-blue-200/50 shadow-inner">
+              <div className="absolute inset-0 flex justify-center items-center">
+                <Body className="w-full h-full text-blue-300/30" />
+              </div>
+
+              <div className="relative z-10 h-72 flex flex-col justify-between items-start">
+                {/* Altura positioned at head level */}
+                <div className="flex justify-center">
+                  <div className="group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-blue-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer">
+                    {/* Compact version - only value and unit */}
+                    <div className="group-hover:hidden px-4 py-2">
+                      <div className="text-lg font-bold text-blue-900">
+                        {Math.round(seleccionado.general.altura * 100)}cm
+                      </div>
+                    </div>
+                    {/* Expanded version on hover */}
+                    <div className="hidden group-hover:block px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-blue-100 rounded-full">
+                          <Ruler className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-blue-700 uppercase tracking-wide">Altura</div>
+                          <div className="text-xl font-bold text-blue-900">
+                            {Math.round(seleccionado.general.altura * 100)}
+                          </div>
+                          <div className="text-xs text-blue-600">centímetros</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Peso positioned at torso level */}
+                <div className="flex justify-start">
+                  <div className="group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-green-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer">
+                    {/* Compact version - only value and unit */}
+                    <div className="group-hover:hidden px-4 py-2">
+                      <div className="text-lg font-bold text-green-900">{seleccionado.general.peso}kg</div>
+                    </div>
+                    {/* Expanded version on hover */}
+                    <div className="hidden group-hover:block px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-green-100 rounded-full">
+                          <Weight className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-green-700 uppercase tracking-wide">Peso</div>
+                          <div className="text-xl font-bold text-green-900">{seleccionado.general.peso}</div>
+                          <div className="text-xs text-green-600">kilogramos</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* IMC positioned at lower torso level */}
+                <div className="flex justify-end">
+                  <div className="group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-purple-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer">
+                    {/* Compact version - only value and unit */}
+                    <div className="group-hover:hidden px-4 py-2">
+                      <div className="text-lg font-bold text-purple-900">
+                        {(seleccionado.general.peso / Math.pow(seleccionado.general.altura, 2)).toFixed(1)}
+                      </div>
+                    </div>
+                    {/* Expanded version on hover */}
+                    <div className="hidden group-hover:block px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-purple-100 rounded-full">
+                          <Activity className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">IMC</div>
+                          <div className="text-xl font-bold text-purple-900">
+                            {(seleccionado.general.peso / Math.pow(seleccionado.general.altura, 2)).toFixed(1)}
+                          </div>
+                          <div className="text-xs text-purple-600">
+                            {getBMIStatus(seleccionado.general.peso / Math.pow(seleccionado.general.altura, 2))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -221,10 +508,8 @@ export default function FuncionarioHome() {
           {/* TDC (Dx→Cx) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-1">5.2</div>
-              <div className="text-sm font-medium text-gray-900 mb-1">
-                TDC (Dx→Cx)
-              </div>
+              <div className="text-2xl font-bold text-blue-600 mb-1">{seleccionado.general.tdc_dias}</div>
+              <div className="text-sm font-medium text-gray-900 mb-1">TDC (Dx→Cx)</div>
               <div className="text-xs text-gray-500">días</div>
             </div>
           </div>
@@ -232,10 +517,8 @@ export default function FuncionarioHome() {
           {/* TPO (Cx→Alta) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 mb-1">3.8</div>
-              <div className="text-sm font-medium text-gray-900 mb-1">
-                TPO (Cx→Alta)
-              </div>
+              <div className="text-2xl font-bold text-green-600 mb-1">{seleccionado.general.tpo_dias}</div>
+              <div className="text-sm font-medium text-gray-900 mb-1">TPO (Cx→Alta)</div>
               <div className="text-xs text-gray-500">días</div>
             </div>
           </div>
@@ -243,10 +526,8 @@ export default function FuncionarioHome() {
           {/* TTH (Dx→Alta) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600 mb-1">9.0</div>
-              <div className="text-sm font-medium text-gray-900 mb-1">
-                TTH (Dx→Alta)
-              </div>
+              <div className="text-2xl font-bold text-purple-600 mb-1">{seleccionado.general.tth_dias}</div>
+              <div className="text-sm font-medium text-gray-900 mb-1">TTH (Dx→Alta)</div>
               <div className="text-xs text-gray-500">días</div>
             </div>
           </div>
@@ -254,166 +535,28 @@ export default function FuncionarioHome() {
           {/* Dx actual */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-lg font-semibold text-red-600 mb-1">
-                C78.9
-              </div>
-              <div className="text-sm font-medium text-gray-900 mb-1">
-                Dx actual
-              </div>
-              <div className="text-xs text-gray-500">Metástasis</div>
+              <div className="text-lg font-semibold text-red-600 mb-1">{seleccionado.general.dx_actual.cie10}</div>
+              <div className="text-sm font-medium text-gray-900 mb-1">Dx actual</div>
+              <div className="text-xs text-gray-500">{seleccionado.general.dx_actual.tipo_fractura}</div>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Evolución de Parámetros Sanguíneos por Año
-          </h2>
-          <div className="h-80 border border-gray-200 rounded-lg p-4">
-            <svg className="w-full h-full" viewBox="0 0 800 300">
-              {/* Grid */}
-              <defs>
-                <pattern
-                  id="grid"
-                  width="80"
-                  height="30"
-                  patternUnits="userSpaceOnUse"
-                >
-                  <path
-                    d="M 80 0 L 0 0 0 30"
-                    fill="none"
-                    stroke="#f3f4f6"
-                    strokeWidth="1"
-                  />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-
-              {/* Ejes */}
-              <line
-                x1="60"
-                y1="250"
-                x2="740"
-                y2="250"
-                stroke="#374151"
-                strokeWidth="2"
-              />
-              <line
-                x1="60"
-                y1="250"
-                x2="60"
-                y2="50"
-                stroke="#374151"
-                strokeWidth="2"
-              />
-
-              {/* Línea de hemoglobina */}
-              <polyline
-                fill="none"
-                stroke="#dc2626"
-                strokeWidth="3"
-                points="100,200 180,190 260,185 340,180 420,175 500,170 580,165 660,160 740,155"
-              />
-
-              {/* Línea de glucosa */}
-              <polyline
-                fill="none"
-                stroke="#2563eb"
-                strokeWidth="3"
-                points="100,220 180,210 260,205 340,200 420,195 500,190 580,185 660,180 740,175"
-              />
-
-              {/* Puntos de datos */}
-              {[100, 180, 260, 340, 420, 500, 580, 660, 740].map((x, i) => (
-                <g key={x}>
-                  <circle cx={x} cy={200 - i * 5} r="4" fill="#dc2626" />
-                  <circle cx={x} cy={220 - i * 5} r="4" fill="#2563eb" />
-                </g>
-              ))}
-
-              {/* Etiquetas de años */}
-              {[
-                "2016",
-                "2017",
-                "2018",
-                "2019",
-                "2020",
-                "2021",
-                "2022",
-                "2023",
-                "2024",
-              ].map((year, i) => (
-                <text
-                  key={year}
-                  x={100 + i * 80}
-                  y={270}
-                  textAnchor="middle"
-                  className="text-xs fill-gray-600"
-                >
-                  {year}
-                </text>
-              ))}
-
-              {/* Leyenda */}
-              <g transform="translate(600, 80)">
-                <rect
-                  x="0"
-                  y="0"
-                  width="120"
-                  height="60"
-                  fill="white"
-                  stroke="#e5e7eb"
-                  strokeWidth="1"
-                  rx="4"
-                />
-                <line
-                  x1="10"
-                  y1="20"
-                  x2="30"
-                  y2="20"
-                  stroke="#dc2626"
-                  strokeWidth="3"
-                />
-                <text x="35" y="24" className="text-xs fill-gray-700">
-                  Hemoglobina
-                </text>
-                <line
-                  x1="10"
-                  y1="40"
-                  x2="30"
-                  y2="40"
-                  stroke="#2563eb"
-                  strokeWidth="3"
-                />
-                <text x="35" y="44" className="text-xs fill-gray-700">
-                  Glucosa
-                </text>
-              </g>
-            </svg>
-          </div>
+          <div ref={chartRef} className="h-96 w-full p-4"></div>
         </div>
 
-        <MinutaModal
-          isOpen={showMinutaModal}
-          onClose={() => setShowMinutaModal(false)}
-        />
-        <BloodModal
-          isOpen={showBloodModal}
-          onClose={() => setShowBloodModal(false)}
-        />
+        {/* Existing modals */}
+        <MinutaModal isOpen={showMinutaModal} onClose={() => setShowMinutaModal(false)} />
+        <BloodModal isOpen={showBloodModal} onClose={() => setShowBloodModal(false)} paciente={seleccionado} />
         <ParametersModal
           isOpen={showParametersModal}
           onClose={() => setShowParametersModal(false)}
+          paciente={seleccionado}
         />
-        <HistoryModal
-          isOpen={showHistoryModal}
-          onClose={() => setShowHistoryModal(false)}
-        />
-        <AlertsModal
-          isOpen={showAlertsModal}
-          onClose={() => setShowAlertsModal(false)}
-        />
+        <HistoryModal isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} paciente={seleccionado} />
+        <AlertsModal isOpen={showAlertsModal} onClose={() => setShowAlertsModal(false)} paciente={seleccionado} />
       </div>
     </RoleGuard>
-  );
+  )
 }

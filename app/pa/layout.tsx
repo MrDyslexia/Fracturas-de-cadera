@@ -4,13 +4,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { PatientProvider } from '@/contexts/PatientContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { House, FlaskConical, ClipboardList, Settings, LogOut } from 'lucide-react';
+import { House, Settings, LogOut } from 'lucide-react';
 import React from 'react';
 
 const navItems = [
-  { href: '/paciente',          icon: House,         label: 'Resumen' },
-  { href: '/paciente/ficha',    icon: ClipboardList, label: 'Ficha médica' },
-  { href: '/paciente/examenes', icon: FlaskConical,  label: 'Exámenes' },
+  { href: '/pa',          icon: House,         label: 'Resumen' },
 ];
 
 export default function PacienteLayout({ children }: { readonly children: React.ReactNode }) {
@@ -20,7 +18,7 @@ export default function PacienteLayout({ children }: { readonly children: React.
 
   // ✅ Home solo activo en coincidencia exacta
   const isActive = (href: string) => {
-    if (href === '/paciente') return pathname === '/paciente';
+    if (href === '/pa') return pathname === '/pa';
     return pathname === href || pathname.startsWith(href + '/');
   };
 
@@ -53,10 +51,10 @@ export default function PacienteLayout({ children }: { readonly children: React.
 
             {/* Configuración */}
             <button
-              onClick={() => router.push('/paciente/configuracion')}
+              onClick={() => router.push('/pa/configuracion')}
               title="Configuración"
               className={`mt-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white hover:bg-slate-100 transition
-                ${isActive('/paciente/configuracion') ? 'ring-2 ring-slate-900' : ''}`}
+                ${isActive('/pa/configuracion') ? 'ring-2 ring-slate-900' : ''}`}
             >
               <Settings className="h-5 w-5" />
             </button>
