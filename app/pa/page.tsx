@@ -159,11 +159,11 @@ const PacientePage = () => {
     if (!examen.muestra || examen.muestra.length === 0) {
       return "pendiente";
     }
-    
-    const tieneResultados = examen.muestra.some((muestra: any) => 
-      muestra.resultados && muestra.resultados.length > 0
+
+    const tieneResultados = examen.muestra.some(
+      (muestra: any) => muestra.resultados && muestra.resultados.length > 0
     );
-    
+
     return tieneResultados ? "completado" : "procesando";
   };
 
@@ -171,30 +171,39 @@ const PacientePage = () => {
   const optsTipoMuestra = [
     "",
     ...new Set(
-      examenes?.flatMap(examen => 
-        examen.muestras?.map(muestra => muestra.tipo_muestra) || []
+      examenes?.flatMap(
+        (examen) =>
+          examen.muestras?.map((muestra) => muestra.tipo_muestra) || []
       ) || []
     ),
   ];
 
   const optsTipoExamen = [
     "",
-    ...new Set(examenes?.map(examen => examen.tipo_examen) || []),
+    ...new Set(examenes?.map((examen) => examen.tipo_examen) || []),
   ];
 
   // Filtrar exámenes
-  const examenesFiltrados = examenes?.filter((examen) => {
-    const cumpleTipoExamen = !filtros.tipoExamen || examen.tipo_examen === filtros.tipoExamen;
-    
-    const cumpleTipoMuestra = !filtros.tipoMuestra || 
-      examen.muestras?.some(muestra => muestra.tipo_muestra === filtros.tipoMuestra);
-    
-    const cumpleBusqueda = !filtros.busqueda ||
-      examen.examen_id.toString().includes(filtros.busqueda) ||
-      examen.tipo_examen.toLowerCase().includes(filtros.busqueda.toLowerCase());
+  const examenesFiltrados =
+    examenes?.filter((examen) => {
+      const cumpleTipoExamen =
+        !filtros.tipoExamen || examen.tipo_examen === filtros.tipoExamen;
 
-    return cumpleTipoExamen && cumpleTipoMuestra && cumpleBusqueda;
-  }) || [];
+      const cumpleTipoMuestra =
+        !filtros.tipoMuestra ||
+        examen.muestras?.some(
+          (muestra) => muestra.tipo_muestra === filtros.tipoMuestra
+        );
+
+      const cumpleBusqueda =
+        !filtros.busqueda ||
+        examen.examen_id.toString().includes(filtros.busqueda) ||
+        examen.tipo_examen
+          .toLowerCase()
+          .includes(filtros.busqueda.toLowerCase());
+
+      return cumpleTipoExamen && cumpleTipoMuestra && cumpleBusqueda;
+    }) || [];
 
   const toggle = (examenId: string) => {
     const nuevas = new Set(abiertas);
@@ -206,39 +215,76 @@ const PacientePage = () => {
     setAbiertas(nuevas);
   };
 
-  const descargarExamenCompleto = (examen: any) => {
-    console.log("Descargando examen completo:", examen.examen_id);
-    const fetchPacientes = async () => {
-      try {
-        const user = localStorage.getItem("session_v1");
-        const token = user ? JSON.parse(user).token : null;
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/examenes/${examen.examen_id}/muestras`,
-          {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-          }
-        );
-        if (!response.ok) {
-          throw new Error("Error fetching descarga de examen");
-        }
-      } catch (error) {
-        console.error("Failed to fetch pacientes:", error);
-      }
-    };
-    fetchPacientes();
-  };
+  const descargarExamenCompleto = async (examen: any) => {
+    try {
+      const user = localStorage.getItem("session_v1");
+      const token = user ? JSON.parse(user).token : null;
 
-  const descargarResultado = (resultado: any) => {
-    console.log("Descargando resultado:", resultado.resultado_id);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/examenes/${examen.examen_id}/muestras`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error fetching exam document");
+      }
+
+      // Check if response is a blob (PDF/document) or JSON
+      const contentType = response.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/pdf")) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `examen_${examen.examen_id}_${examen.tipo_examen}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else if (
+        contentType &&
+        (contentType.includes("text/plain") || contentType.includes("text/txt"))
+      ) {
+        const textContent = await response.text();
+        const blob = new Blob([textContent], { type: "text/plain" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `examen_${examen.examen_id}_${examen.tipo_examen}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        const data = await response.json();
+        const jsonString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `examen_${examen.examen_id}_datos.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error("[v0] Failed to download exam:", error);
+      // You could add a toast notification here
+      alert("Error al descargar el examen. Por favor, inténtelo de nuevo.");
+    }
   };
 
   // Formatear fecha para mostrar
   const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES');
+    return new Date(fecha).toLocaleDateString("es-ES");
   };
 
   if (loading) {
@@ -261,7 +307,7 @@ const PacientePage = () => {
           Gestión completa de resultados de laboratorio
         </p>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="flex justify-between items-center p-6">
           <div className="flex items-start space-x-4">
@@ -292,8 +338,8 @@ const PacientePage = () => {
                 <div className="w-px h-4 bg-gray-300"></div>
                 <div className="flex items-center space-x-2">
                   <span className="text-gray-800">
-                    {paciente?.edad_anios || 0} años{" "}
-                    {paciente?.edad_meses || 0} meses
+                    {paciente?.edad_anios || 0} años {paciente?.edad_meses || 0}{" "}
+                    meses
                   </span>
                 </div>
                 <div className="w-px h-4 bg-gray-300"></div>
@@ -379,8 +425,12 @@ const PacientePage = () => {
                   const abierto = abiertas.has(examenId);
                   const estado = determinarEstado(examen);
                   const totalMuestras = examen.muestras?.length || 0;
-                  const totalResultados = examen.muestras?.reduce((total, muestra) => 
-                    total + (muestra.Resultados?.length || 0), 0) || 0;
+                  const totalResultados =
+                    examen.muestras?.reduce(
+                      (total, muestra) =>
+                        total + (muestra.Resultados?.length || 0),
+                      0
+                    ) || 0;
 
                   return (
                     <div
@@ -395,12 +445,16 @@ const PacientePage = () => {
                           <div className="flex items-center gap-4">
                             <div className="flex flex-col">
                               <div className="font-semibold text-gray-900">
-                                Examen #{examen.examen_id} - {examen.tipo_examen}
+                                Examen #{examen.examen_id} -{" "}
+                                {examen.tipo_examen}
                               </div>
                               <div className="text-sm text-gray-600 flex items-center gap-2">
                                 <Calendar className="h-3 w-3" />
-                                {totalMuestras > 0 && examen.muestras?.[0]?.fecha_recepcion 
-                                  ? formatearFecha(examen.muestras[0].fecha_recepcion)
+                                {totalMuestras > 0 &&
+                                examen.muestras?.[0]?.fecha_recepcion
+                                  ? formatearFecha(
+                                      examen.muestras[0].fecha_recepcion
+                                    )
                                   : "Sin fecha"}
                               </div>
                             </div>
@@ -433,53 +487,65 @@ const PacientePage = () => {
                             <h4 className="font-medium text-gray-900">
                               Muestras y Resultados
                             </h4>
-                            <Button onClick={() => descargarExamenCompleto(examen)}>
+                            <Button
+                              onClick={() => descargarExamenCompleto(examen)}
+                            >
                               <Download className="h-4 w-4" />
                               Descargar todo
                             </Button>
                           </div>
                           <div className="space-y-4">
                             {examen.muestras?.map((muestra, index) => (
-                              <div key={muestra.muestra_id} className="bg-white rounded-lg border border-gray-200 p-4">
+                              <div
+                                key={muestra.muestra_id}
+                                className="bg-white rounded-lg border border-gray-200 p-4"
+                              >
                                 <div className="font-medium text-gray-900 mb-2">
-                                  Muestra #{muestra.muestra_id} - {muestra.tipo_muestra}
+                                  Muestra #{muestra.muestra_id} -{" "}
+                                  {muestra.tipo_muestra}
                                 </div>
                                 <div className="text-sm text-gray-600 mb-3">
-                                  Extracción: {muestra.fecha_extraccion ? formatearFecha(muestra.fecha_extraccion) : "—"} | 
-                                  Recepción: {formatearFecha(muestra.fecha_recepcion)}
-                                  {muestra.observaciones && ` | ${muestra.observaciones}`}
+                                  Extracción:{" "}
+                                  {muestra.fecha_extraccion
+                                    ? formatearFecha(muestra.fecha_extraccion)
+                                    : "—"}{" "}
+                                  | Recepción:{" "}
+                                  {formatearFecha(muestra.fecha_recepcion)}
+                                  {muestra.observaciones &&
+                                    ` | ${muestra.observaciones}`}
                                 </div>
 
-                                {muestra.Resultados && muestra.Resultados.length > 0 ? (
+                                {muestra.Resultados &&
+                                muestra.Resultados.length > 0 ? (
                                   <div className="space-y-2">
                                     {muestra.Resultados.map((resultado) => (
-                                      <div key={resultado.resultado_id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                      <div
+                                        key={resultado.resultado_id}
+                                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                                      >
                                         <div className="flex items-center gap-4">
                                           <div className="flex flex-col">
                                             <div className="font-medium text-gray-900">
                                               {resultado.parametro}
                                             </div>
                                             <div className="text-sm text-gray-600">
-                                              Valor: {resultado.valor} {resultado.unidad || ""}
+                                              Valor: {resultado.valor}{" "}
+                                              {resultado.unidad || ""}
                                             </div>
                                           </div>
                                           <div className="text-xs text-gray-500">
-                                            {formatearFecha(resultado.fecha_resultado)}
+                                            {formatearFecha(
+                                              resultado.fecha_resultado
+                                            )}
                                           </div>
                                         </div>
-                                        <Button
-                                          variant="ghost"
-                                          onClick={() => descargarResultado(resultado)}
-                                          className="h-8 w-8 p-0"
-                                        >
-                                          <Download className="h-4 w-4" />
-                                        </Button>
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
                                   <div className="text-center py-2 text-gray-500 text-sm">
-                                    No hay resultados disponibles para esta muestra
+                                    No hay resultados disponibles para esta
+                                    muestra
                                   </div>
                                 )}
                               </div>
