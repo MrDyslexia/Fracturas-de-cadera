@@ -7,7 +7,6 @@ type Props = {
   readonly value: string;
   readonly onChange: (v: string) => void;
   readonly onOpen: (rut: string) => void;
-  readonly recientes: readonly string[];
 };
 
 const API_BASE =
@@ -36,7 +35,6 @@ export default function PacienteSearch({
   value,
   onChange,
   onOpen,
-  recientes,
 }: Props) {
   const { authFetch } = useAuth();
 
@@ -195,20 +193,6 @@ export default function PacienteSearch({
             })()}
         </div>
 
-        <div>
-          <h3 className="text-sm font-medium text-blue-900 mb-2">Recientes</h3>
-          <div className="flex flex-wrap gap-2">
-            {recientes.map((r) => (
-              <button
-                key={r}
-                onClick={() => onOpen(r)}
-                className="px-3 py-1.5 text-sm border border-blue-300 rounded-full text-blue-700 hover:bg-blue-100 transition"
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

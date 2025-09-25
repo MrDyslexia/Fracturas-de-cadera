@@ -92,7 +92,6 @@ export function FuncionarioProvider({
       {!seleccionado ? (
         <>
           <div className="min-h-screen w-full bg-[#fafafa] relative text-gray-900">
-            {/* Diagonal Grid with Light */}
             <div
               className="absolute inset-0 z-0 pointer-events-none"
               style={{
@@ -103,7 +102,6 @@ export function FuncionarioProvider({
                 backgroundSize: "40px 40px",
               }}
             />
-            {/* Your Content/Components */}
           </div>
           <PacienteSelectorModal />
         </>

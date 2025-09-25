@@ -6,7 +6,6 @@ import PacienteTable from "@/components/Funcionario/PacienteTable";
 
 export default function PacienteSelectorModal() {
   const { filtrados, query, setQuery, setSeleccionado } = useFuncionario();
-  const recientes = ["12.345.678-9", "13.345.678-4", "14.345.678-5"];
   function handleselect(a: any) {
     //setSeleccionado(a);
     const fetchSelectPaciente = async () => {
@@ -55,7 +54,6 @@ export default function PacienteSelectorModal() {
                 const p = filtrados.find((x) => x.rut === rut);
                 if (p) handleselect(p);
               }}
-              recientes={recientes}
             />
 
             <PacienteTable

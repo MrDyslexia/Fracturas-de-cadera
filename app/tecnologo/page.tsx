@@ -3,13 +3,12 @@
 
 import RoleGuard from '@/components/RoleGuard';
 import { useAuth } from '@/contexts/AuthContext';
-import { useConfirmBackToLogin } from '@/hooks/useConfirmBackToLogin';
+
 import React from 'react';
 import SearchPaciente from '@/components/Tecnologo/SearchPaciente';
 
 function TecHomeScreen() {
   const { logout } = useAuth();
-  useConfirmBackToLogin(() => { logout(); });
 
   return (
     <div className="space-y-6">

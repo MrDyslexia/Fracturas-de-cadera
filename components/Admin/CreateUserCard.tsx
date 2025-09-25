@@ -248,7 +248,7 @@ export function CreateUserCard() {
 
         <input
           className="fc-input"
-          placeholder="Teléfono (opcional)"
+          placeholder="Teléfono"
           value={telefono}
           onChange={(e) => setTelefono(e.target.value)}
         />

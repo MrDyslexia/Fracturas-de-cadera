@@ -1,13 +1,19 @@
-// contexts/TecnologoContext.tsx
 "use client";
 
 import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
+import PacienteSelectorModalView, {
+  TecnologoModalItem,
+} from "@/components/Tecnologo/PacienteSelectorModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001/api/v1";
@@ -29,6 +35,8 @@ type SearchItem = {
   nombres: string;
   apellido_paterno: string;
   apellido_materno: string;
+  Apellido_Paterno?: string;
+  Apellido_Materno?: string;
 };
 
 type TecnologoContextType = {
@@ -68,71 +76,183 @@ function nombreCompleto(u: any) {
 export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<SearchItem[]>([]);
+  const [basePacientes, setBasePacientes] = useState<SearchItem[]>([]);
   const [paciente, setPaciente] = useState<PacienteLite | null>(null);
 
+  const pathname = usePathname();
+  const router = useRouter();
+  const { logout, authFetch } = useAuth();
+
+  useEffect(() => setMounted(true), []);
+
+  // Mostrar modal en todo /tecnologo excepto configuración
+  const requirePatientHere = useMemo(() => {
+    if (!pathname) return false;
+    if (pathname.startsWith("/tecnologo/configuracion")) return false;
+    return pathname === "/tecnologo" || pathname.startsWith("/tecnologo/");
+  }, [pathname]);
+
+  // Hidratar selección previa
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("tec_selectedPatient");
+      if (raw) setPaciente(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  // ESC para cerrar
+  useEffect(() => {
+    if (!(requirePatientHere && !paciente)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") router.push("/tecnologo");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [requirePatientHere, paciente, router]);
+
+  // Búsqueda
+  const mapToSearchItem = useCallback((raw: any): SearchItem | null => {
+    const userId = Number(raw?.user_id ?? raw?.id);
+    if (!Number.isFinite(userId) || userId <= 0) return null;
+    const rut = raw?.rut ?? raw?.user?.rut ?? "";
+    const nombres = raw?.nombres ?? raw?.user?.nombres ?? "";
+    const apellidoP = raw?.apellido_paterno ?? raw?.Apellido_Paterno ?? raw?.user?.apellido_paterno ?? "";
+    const apellidoM = raw?.apellido_materno ?? raw?.Apellido_Materno ?? raw?.user?.apellido_materno ?? "";
+    return {
+      user_id: userId,
+      rut: String(rut ?? ""),
+      nombres: String(nombres ?? ""),
+      apellido_paterno: String(apellidoP ?? ""),
+      apellido_materno: String(apellidoM ?? ""),
+      Apellido_Paterno: String(apellidoP ?? ""),
+      Apellido_Materno: String(apellidoM ?? ""),
+    };
+  }, []);
+
   const searchPacientes = useCallback(async (q: string) => {
-    if (!q?.trim()) {
-      setResults([]);
+    const query = q?.trim();
+    if (!query) {
+      setResults(basePacientes.length ? [...basePacientes] : []);
       return;
     }
     setSearching(true);
     setError(null);
     try {
-      const r = await fetch(
-        `${API_BASE}/pacientes/search?q=${encodeURIComponent(q)}&limit=6`,
-        { credentials: "include" }
+      const r = await authFetch(
+        `${API_BASE}/pacientes/search?q=${encodeURIComponent(query)}&limit=6`
       );
+      if (r.status === 401) {
+        router.push("/login");
+        return;
+      }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
-      setResults(Array.isArray(j?.items) ? j.items : []);
-    } catch (err: any) {
+      const items = Array.isArray(j?.items)
+        ? j.items
+            .map(mapToSearchItem)
+            .filter((x): x is SearchItem => Boolean(x))
+        : [];
+      setResults(items);
+    } catch (err) {
       console.error("Error al buscar pacientes:", err);
       setError("Error al buscar pacientes");
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [authFetch, basePacientes, mapToSearchItem, router]);
 
-  const clearResults = useCallback(() => setResults([]), []);
+  const clearResults = useCallback(
+    () => setResults(basePacientes.length ? [...basePacientes] : []),
+    [basePacientes]
+  );
 
-  const loadPaciente = useCallback(async (user_id: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const ru = await fetch(`${API_BASE}/users/${user_id}`, {
-        credentials: "include",
-      });
-      if (!ru.ok) throw new Error(`Usuario HTTP ${ru.status}`);
-      const u = await ru.json();
+  useEffect(() => {
+    let active = true;
+    const fetchInicial = async () => {
+      setSearching(true);
+      setError(null);
+      try {
+        const resp = await authFetch(`${API_BASE}/pacientes/`);
+        if (resp.status === 401) {
+          router.push("/login");
+          return;
+        }
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const items = Array.isArray(data)
+          ? data
+              .map(mapToSearchItem)
+              .filter((x): x is SearchItem => Boolean(x))
+          : [];
+        if (!active) return;
+        setBasePacientes(items);
+        setResults(items.length ? [...items] : []);
+      } catch (err) {
+        if (!active) return;
+        console.error("Error al cargar pacientes:", err);
+        setError("Error al cargar pacientes");
+        setBasePacientes([]);
+        setResults([]);
+      } finally {
+        if (active) setSearching(false);
+      }
+    };
 
-      const rp = await fetch(`${API_BASE}/pacientes/${user_id}`, {
-        credentials: "include",
-      });
-      if (rp.status !== 200 && rp.status !== 404) throw new Error(`Paciente HTTP ${rp.status}`);
+    void fetchInicial();
+    return () => {
+      active = false;
+    };
+  }, [authFetch, mapToSearchItem, router]);
 
-      const pac: PacienteLite = {
-        user_id,
-        rut: String(u?.rut ?? ""),
-        nombres: u?.nombres,
-        apellido_paterno: u?.apellido_paterno,
-        apellido_materno: u?.apellido_materno,
-        nombre_completo: nombreCompleto(u),
-        sexo: u?.sexo ?? undefined,
-        fecha_nacimiento: u?.fecha_nacimiento ?? null,
-      };
-      setPaciente(pac);
-    } catch (err: any) {
-      console.error("Error al cargar paciente:", err);
-      setError("Error al cargar paciente");
-      setPaciente(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Cargar paciente seleccionado
+  const loadPaciente = useCallback(
+    async (user_id: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const ru = await authFetch(`${API_BASE}/users/${user_id}`);
+        if (ru.status === 401) {
+          try {
+            sessionStorage.removeItem("tec_selectedPatient");
+          } catch {}
+          await logout();
+          router.push("/login");
+          return;
+        }
+        if (!ru.ok) throw new Error(`Usuario HTTP ${ru.status}`);
+        const u = await ru.json();
+        const pac: PacienteLite = {
+          user_id,
+          rut: String(u?.rut ?? ""),
+          nombres: u?.nombres,
+          apellido_paterno: u?.apellido_paterno,
+          apellido_materno: u?.apellido_materno,
+          nombre_completo: nombreCompleto(u),
+          sexo: u?.sexo ?? undefined,
+          fecha_nacimiento: u?.fecha_nacimiento ?? null,
+        };
+        setPaciente(pac);
+        try {
+          sessionStorage.setItem("tec_selectedPatient", JSON.stringify(pac));
+        } catch {}
+      } catch (err) {
+        console.error("Error al cargar paciente:", err);
+        setError("Error al cargar paciente");
+        setPaciente(null);
+        try {
+          sessionStorage.removeItem("tec_selectedPatient");
+        } catch {}
+      } finally {
+        setLoading(false);
+      }
+    },
+    [authFetch, logout, router]
+  );
 
   const value: TecnologoContextType = useMemo(
     () => ({
@@ -157,9 +277,35 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
     ]
   );
 
+  // Handlers para modal
+  const handleSearch = useCallback(
+    (q: string) => (q.trim() ? searchPacientes(q.trim()) : clearResults()),
+    [searchPacientes, clearResults]
+  );
+  const handleSelectUserId = useCallback(
+    (id: number) => loadPaciente(id),
+    [loadPaciente]
+  );
+
+  // Modal con portal y capas seguras
+  const modal =
+  requirePatientHere && !paciente ? (
+    <PacienteSelectorModalView
+      open
+      onCancel={() => router.push("/tecnologo")}   // o "/tecnologo/configuracion"
+      results={results as unknown as TecnologoModalItem[]}
+      searching={searching}
+      onSearch={handleSearch}
+      onClear={clearResults}
+      onSelectUserId={handleSelectUserId}
+    />
+  ) : null;
+
+
   return (
     <TecnologoContext.Provider value={value}>
       {children}
+      {mounted ? createPortal(modal, document.body) : null}
     </TecnologoContext.Provider>
   );
 };
