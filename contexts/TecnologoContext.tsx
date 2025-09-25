@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,6 +15,7 @@ import PacienteSelectorModalView, {
   TecnologoModalItem,
 } from "@/components/Tecnologo/PacienteSelectorModal";
 import { useAuth } from "@/contexts/AuthContext";
+import type { DetallesPaciente } from "@/types/interfaces";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001/api/v1";
@@ -49,7 +51,9 @@ type TecnologoContextType = {
   clearResults: () => void;
 
   paciente?: PacienteLite | null;
+  detalles?: DetallesPaciente | null;
   loadPaciente: (user_id: number) => Promise<void>;
+  clearSelection: () => void;
 };
 
 const TecnologoContext = createContext<TecnologoContextType>({
@@ -60,7 +64,9 @@ const TecnologoContext = createContext<TecnologoContextType>({
   searchPacientes: async () => {},
   clearResults: () => {},
   paciente: null,
+  detalles: null,
   loadPaciente: async () => {},
+  clearSelection: () => {},
 });
 
 export const useTecnologo = () => useContext(TecnologoContext);
@@ -83,6 +89,8 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
   const [results, setResults] = useState<SearchItem[]>([]);
   const [basePacientes, setBasePacientes] = useState<SearchItem[]>([]);
   const [paciente, setPaciente] = useState<PacienteLite | null>(null);
+  const [detalles, setDetalles] = useState<DetallesPaciente | null>(null);
+  const pendingUserIdRef = useRef<number | null>(null);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -101,8 +109,32 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("tec_selectedPatient");
-      if (raw) setPaciente(JSON.parse(raw));
-    } catch {}
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed?.paciente) setPaciente(parsed.paciente);
+      else if (parsed?.user_id) {
+        const pid = Number(parsed.user_id);
+        if (Number.isFinite(pid)) {
+          setPaciente({
+            user_id: pid,
+            rut: parsed?.rut ?? "",
+            nombres: parsed?.nombres,
+            apellido_paterno: parsed?.apellido_paterno,
+            apellido_materno: parsed?.apellido_materno,
+            nombre_completo: parsed?.nombre_completo,
+            sexo: parsed?.sexo,
+            fecha_nacimiento: parsed?.fecha_nacimiento ?? null,
+          });
+        }
+      }
+      if (parsed?.detalles) setDetalles(parsed.detalles);
+      else {
+        const uid = Number(parsed?.paciente?.user_id ?? parsed?.user_id);
+        if (Number.isFinite(uid) && uid > 0) pendingUserIdRef.current = uid;
+      }
+    } catch {
+      // Ignorar errores de parseo
+    }
   }, []);
 
   // ESC para cerrar
@@ -155,7 +187,7 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
       const items = Array.isArray(j?.items)
         ? j.items
             .map(mapToSearchItem)
-            .filter((x): x is SearchItem => Boolean(x))
+            .filter((x: SearchItem | null | undefined): x is SearchItem => Boolean(x))
         : [];
       setResults(items);
     } catch (err) {
@@ -215,8 +247,12 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(true);
       setError(null);
       try {
-        const ru = await authFetch(`${API_BASE}/users/${user_id}`);
-        if (ru.status === 401) {
+        const [ru, resumenResp] = await Promise.all([
+          authFetch(`${API_BASE}/users/${user_id}`),
+          authFetch(`${API_BASE}/pacientes/${user_id}/resumen`),
+        ]);
+
+        if (ru.status === 401 || resumenResp.status === 401) {
           try {
             sessionStorage.removeItem("tec_selectedPatient");
           } catch {}
@@ -224,26 +260,51 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
           router.push("/login");
           return;
         }
+
         if (!ru.ok) throw new Error(`Usuario HTTP ${ru.status}`);
-        const u = await ru.json();
+        if (!resumenResp.ok) throw new Error(`Resumen HTTP ${resumenResp.status}`);
+
+        const [u, resumen] = await Promise.all([ru.json(), resumenResp.json()]);
+        setDetalles(resumen);
+
+        const general = resumen?.general ?? {};
+        const sexoRaw = String(general?.sexo ?? u?.sexo ?? "").toUpperCase();
+        const sexo: "M" | "F" | "O" | undefined = sexoRaw.startsWith("M")
+          ? "M"
+          : sexoRaw.startsWith("F")
+          ? "F"
+          : sexoRaw
+          ? "O"
+          : undefined;
+
+        const nombreCompletoGeneral = general?.nombre
+          ? String(general.nombre)
+          : nombreCompleto(u);
+
         const pac: PacienteLite = {
           user_id,
-          rut: String(u?.rut ?? ""),
-          nombres: u?.nombres,
-          apellido_paterno: u?.apellido_paterno,
-          apellido_materno: u?.apellido_materno,
-          nombre_completo: nombreCompleto(u),
-          sexo: u?.sexo ?? undefined,
-          fecha_nacimiento: u?.fecha_nacimiento ?? null,
+          rut: String(general?.rut ?? u?.rut ?? ""),
+          nombres: u?.nombres ?? nombreCompletoGeneral,
+          apellido_paterno: u?.apellido_paterno ?? "",
+          apellido_materno: u?.apellido_materno ?? "",
+          nombre_completo: nombreCompletoGeneral,
+          sexo,
+          fecha_nacimiento:
+            general?.fecha_nacimiento ?? u?.fecha_nacimiento ?? null,
         };
+
         setPaciente(pac);
         try {
-          sessionStorage.setItem("tec_selectedPatient", JSON.stringify(pac));
+          sessionStorage.setItem(
+            "tec_selectedPatient",
+            JSON.stringify({ paciente: pac, detalles: resumen })
+          );
         } catch {}
       } catch (err) {
         console.error("Error al cargar paciente:", err);
         setError("Error al cargar paciente");
         setPaciente(null);
+        setDetalles(null);
         try {
           sessionStorage.removeItem("tec_selectedPatient");
         } catch {}
@@ -254,6 +315,22 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
     [authFetch, logout, router]
   );
 
+  useEffect(() => {
+    if (!detalles && pendingUserIdRef.current) {
+      const uid = pendingUserIdRef.current;
+      pendingUserIdRef.current = null;
+      if (uid) void loadPaciente(uid);
+    }
+  }, [detalles, loadPaciente]);
+
+  const clearSelection = useCallback(() => {
+    setPaciente(null);
+    setDetalles(null);
+    try {
+      sessionStorage.removeItem("tec_selectedPatient");
+    } catch {}
+  }, []);
+
   const value: TecnologoContextType = useMemo(
     () => ({
       loading,
@@ -263,7 +340,9 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
       searchPacientes,
       clearResults,
       paciente,
+      detalles,
       loadPaciente,
+      clearSelection,
     }),
     [
       loading,
@@ -273,7 +352,9 @@ export const TecnologoProvider: React.FC<{ children: React.ReactNode }> = ({
       searchPacientes,
       clearResults,
       paciente,
+      detalles,
       loadPaciente,
+      clearSelection,
     ]
   );
 

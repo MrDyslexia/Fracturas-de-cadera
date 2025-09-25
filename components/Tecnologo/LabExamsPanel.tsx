@@ -1,35 +1,11 @@
+// components/Tecnologo/LabExamsPanel.tsx
 "use client";
 
 import { useMemo, useState } from "react";
-import { User, UserSearch, Calendar, ChevronDown, Download, Filter, Search } from "lucide-react";
-import RoleGuard from "@/components/RoleGuard";
+import { Calendar, ChevronDown, Download, Filter, Search } from "lucide-react";
 import { useTecnologo } from "@/contexts/TecnologoContext";
-import type { DetallesPaciente } from "@/types/interfaces";
 
-/* ==============================
-   Helpers básicos
-============================== */
-function formatDate(dateString?: string | null) {
-  if (!dateString) return "—";
-  const d = new Date(dateString);
-  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("es-ES");
-}
-function fmtFechaLarga(fecha?: string | null) {
-  if (!fecha) return "—";
-  const d = new Date(fecha);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("es-CL", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/* ==============================
-   UI mini (Card y Button)
-============================== */
+/* ---------- UI helpers ---------- */
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>{children}</div>;
 }
@@ -62,9 +38,7 @@ function Button({
   return <button onClick={onClick} className={`${base} ${variants[variant]} ${className}`}>{children}</button>;
 }
 
-/* ==============================
-   Tipos UI estandarizados para exámenes
-============================== */
+/* ---------- Tipos UI ---------- */
 type ResultadoUI = {
   resultado_id: string | number;
   parametro: string;
@@ -87,45 +61,88 @@ type ExamenUI = {
   muestras: MuestraUI[];
 };
 
-/* ==============================
-   Panel de exámenes (replica del portal de Pacientes)
-============================== */
-function LabExamsPanel() {
+/* ---------- Formato fecha ---------- */
+function fmtFecha(fecha?: string | null) {
+  if (!fecha) return "—";
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("es-CL", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export default function LabExamsPanel() {
   const { detalles } = useTecnologo();
 
-  // Mapear detalles.laboratorio.solicitudes -> ExamenUI[]
+  /* ===============================
+     NORMALIZACIÓN DE FUENTES
+     Une: laboratorio.solicitudes + laboratorio.examenes
+  =============================== */
   const examenes: ExamenUI[] = useMemo(() => {
-    const solicitudes = (detalles as any)?.laboratorio?.solicitudes ?? [];
-    if (!Array.isArray(solicitudes)) return [];
-    return solicitudes.map((sol: any, i: number) => {
-      const muestrasSrc = sol?.muestras ?? [];
-      const muestras: MuestraUI[] = Array.isArray(muestrasSrc)
-        ? muestrasSrc.map((m: any, j: number) => ({
-            muestra_id: m?.muestra_id ?? m?.id ?? `${i}-${j}`,
-            tipo_muestra: m?.tipo_muestra ?? m?.tipo ?? "SANGRE",
-            fecha_recepcion: m?.fecha_recepcion ?? null,
-            fecha_extraccion: m?.fecha_extraccion ?? null,
-            validado_por: m?.validado_por ?? m?.validador ?? null,
-            observaciones: m?.observaciones ?? m?.observacion ?? null,
-            Resultados: Array.isArray(m?.Resultados ?? m?.resultados)
-              ? (m.Resultados ?? m.resultados).map((r: any, k: number): ResultadoUI => ({
-                  resultado_id: r?.resultado_id ?? r?.id ?? `${i}-${j}-${k}`,
-                  parametro: r?.parametro ?? "-",
-                  valor: r?.valor ?? "-",
-                  unidad: r?.unidad ?? null,
-                  fecha_resultado: r?.fecha_resultado ?? m?.fecha_recepcion ?? null,
-                }))
-              : [],
+    const lab = (detalles as any)?.laboratorio ?? {};
+    const solicitudes = Array.isArray(lab?.solicitudes) ? lab.solicitudes : [];
+    const examenesApi = Array.isArray(lab?.examenes) ? lab.examenes : [];
+
+    const mapResultados = (m: any, i: number, j: number): ResultadoUI[] =>
+      Array.isArray(m?.Resultados ?? m?.resultados)
+        ? (m.Resultados ?? m.resultados).map((r: any, k: number): ResultadoUI => ({
+            resultado_id: r?.resultado_id ?? r?.id ?? `${i}-${j}-${k}`,
+            parametro: r?.parametro ?? "-",
+            valor: r?.valor ?? "-",
+            unidad: r?.unidad ?? null,
+            fecha_resultado: r?.fecha_resultado ?? m?.fecha_recepcion ?? null,
           }))
         : [];
+
+    const mapMuestra = (m: any, i: number, j: number): MuestraUI => ({
+      muestra_id: m?.muestra_id ?? m?.id ?? `${i}-${j}`,
+      tipo_muestra: m?.tipo_muestra ?? m?.tipo ?? "SANGRE",
+      fecha_recepcion: m?.fecha_recepcion ?? null,
+      fecha_extraccion: m?.fecha_extraccion ?? null,
+      validado_por: m?.validado_por ?? m?.validador ?? null,
+      observaciones: m?.observaciones ?? m?.observacion ?? null,
+      Resultados: mapResultados(m, i, j),
+    });
+
+    const fromSolicitudes: ExamenUI[] = solicitudes.map((sol: any, i: number) => {
+      const muestrasSrc = Array.isArray(sol?.muestras) ? sol.muestras : [];
+      const muestras = muestrasSrc.map((m: any, j: number) => mapMuestra(m, i, j));
       return {
-        examen_id: sol?.examen_id ?? sol?.id ?? i + 1,
+        examen_id: sol?.examen_id ?? sol?.id ?? `S-${i + 1}`,
         tipo_examen: sol?.tipo_examen ?? sol?.tipo ?? "LABORATORIO",
         muestras,
       };
     });
+
+    const fromExamenes: ExamenUI[] = examenesApi.map((ex: any, i: number) => {
+      const muestrasSrc = Array.isArray(ex?.muestras) ? ex.muestras : [];
+      const muestras = muestrasSrc.map((m: any, j: number) => mapMuestra(m, i, j));
+      return {
+        examen_id: ex?.examen_id ?? ex?.id ?? `E-${i + 1}`,
+        tipo_examen: ex?.tipo_examen ?? ex?.tipo ?? "LABORATORIO",
+        muestras,
+      };
+    });
+
+    // Unificar y deduplicar por examen_id
+    const all = [...fromSolicitudes, ...fromExamenes];
+    const seen = new Set<string | number>();
+    const dedup: ExamenUI[] = [];
+    for (const e of all) {
+      if (seen.has(e.examen_id)) continue;
+      seen.add(e.examen_id);
+      dedup.push(e);
+    }
+    return dedup;
   }, [detalles]);
 
+  /* ===============================
+     FILTROS + EXPANDIBLES
+  =============================== */
   const [abiertas, setAbiertas] = useState<Set<string | number>>(new Set());
   const [filtros, setFiltros] = useState({ tipoMuestra: "", tipoExamen: "", busqueda: "" });
 
@@ -145,11 +162,9 @@ function LabExamsPanel() {
       const byMuestra = !filtros.tipoMuestra || ex.muestras?.some((m) => m.tipo_muestra === filtros.tipoMuestra);
       const byQ =
         !q ||
-        String(ex.examen_id).includes(q) ||
+        String(ex.examen_id).toLowerCase().includes(q) ||
         ex.tipo_examen.toLowerCase().includes(q) ||
-        ex.muestras?.some((m) =>
-          m.Resultados?.some((r) => String(r.parametro).toLowerCase().includes(q))
-        );
+        ex.muestras?.some((m) => m.Resultados?.some((r) => String(r.parametro).toLowerCase().includes(q)));
       return byExamen && byMuestra && byQ;
     });
   }, [examenes, filtros]);
@@ -160,7 +175,9 @@ function LabExamsPanel() {
     setAbiertas(s);
   };
 
-  // Descarga igual que en Portal Paciente (ajusta endpoint si tu backend para tecnólogo es otro)
+  /* ===============================
+     DESCARGA
+  =============================== */
   const descargarExamenCompleto = async (examen: ExamenUI) => {
     try {
       const user = localStorage.getItem("session_v1");
@@ -212,8 +229,11 @@ function LabExamsPanel() {
     }
   };
 
+  /* ===============================
+     RENDER
+  =============================== */
   return (
-    <div className="grid gap-6 mt-6">
+    <div className="grid gap-6">
       {/* Filtros */}
       <Card>
         <CardHeaderWithIcon
@@ -233,6 +253,7 @@ function LabExamsPanel() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+
             <select
               value={filtros.tipoExamen}
               onChange={(e) => setFiltros((f) => ({ ...f, tipoExamen: e.target.value }))}
@@ -243,6 +264,7 @@ function LabExamsPanel() {
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
+
             <select
               value={filtros.tipoMuestra}
               onChange={(e) => setFiltros((f) => ({ ...f, tipoMuestra: e.target.value }))}
@@ -257,7 +279,7 @@ function LabExamsPanel() {
         </CardContent>
       </Card>
 
-      {/* Lista expandible */}
+      {/* Lista de exámenes */}
       <Card>
         <CardHeaderWithIcon
           icon={<Calendar className="h-5 w-5" />}
@@ -285,7 +307,7 @@ function LabExamsPanel() {
                             <div className="font-semibold text-gray-900">Examen - {ex.tipo_examen}</div>
                             <div className="text-sm text-gray-600 flex items-center gap-2">
                               <Calendar className="h-3 w-3" />
-                              {primeraFecha ? fmtFechaLarga(primeraFecha) : "Sin fecha"}
+                              {primeraFecha ? fmtFecha(primeraFecha) : "Sin fecha"}
                             </div>
                           </div>
                           <div className="hidden md:flex flex-col gap-1">
@@ -315,7 +337,7 @@ function LabExamsPanel() {
                             <div key={String(m.muestra_id)} className="bg-white rounded-lg border border-gray-200 p-4">
                               <div className="font-medium text-gray-900 mb-2">Muestra - {m.tipo_muestra}</div>
                               <div className="text-sm text-gray-600 mb-3">
-                                Recepción: {fmtFechaLarga(m.fecha_recepcion)} | Validador: {m.validado_por ?? "—"} | Extracción: {fmtFechaLarga(m.fecha_extraccion)}
+                                Recepción: {fmtFecha(m.fecha_recepcion)} | Validador: {m.validado_por ?? "—"} | Extracción: {fmtFecha(m.fecha_extraccion)}
                               </div>
                               <div className="text-sm text-gray-600 mb-3">Observación: {m.observaciones ? ` ${m.observaciones}` : "—"}</div>
 
@@ -330,7 +352,7 @@ function LabExamsPanel() {
                                             Valor: {r.valor} {r.unidad || ""}
                                           </div>
                                         </div>
-                                        <div className="text-xs text-gray-500">{fmtFechaLarga(r.fecha_resultado)}</div>
+                                        <div className="text-xs text-gray-500">{fmtFecha(r.fecha_resultado)}</div>
                                       </div>
                                     </div>
                                   ))}
@@ -351,84 +373,5 @@ function LabExamsPanel() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-/* ==============================
-   Página principal del Tecnólogo
-============================== */
-export function TecnologoDashboard() {
-  const { detalles: seleccionado, clearSelection } = useTecnologo();
-
-  if (!seleccionado) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">No hay paciente seleccionado</h2>
-        </div>
-      </div>
-    );
-  }
-
-  const general = (seleccionado as DetallesPaciente).general;
-  const rutFmt = general?.rut
-    ? String(general.rut).replace(/^(\d{1,2})(\d{3})(\d{3})([0-9kK])$/, "$1.$2.$3-$4")
-    : "—";
-
-  const edadDescripcion =
-    general?.edad != null
-      ? `${general.edad} años${general?.edad_meses ? ` ${general.edad_meses} meses` : ""}`
-      : "—";
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header + ficha básica (lo que ya tenías) */}
-      <div className="flex justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Vista general del paciente</h1>
-          <p className="text-slate-600 mt-2">Resumen básico</p>
-        </div>
-        <button
-          onClick={clearSelection}
-          className="px-4 py-2 bg-white text-blue-600 rounded-xl border-2 hover:bg-blue-700 hover:text-white transition-colors flex items-center space-x-2"
-        >
-          <UserSearch size={24} />
-          <span>Seleccionar paciente</span>
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-start gap-4 p-6">
-          <div className="p-3 bg-blue-100 rounded-full">
-            <User className="w-8 h-8 text-blue-600" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold text-gray-900">{general?.nombre ?? "Paciente"}</h2>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <div className="text-gray-800"><span className="font-medium">RUT: </span>{rutFmt}</div>
-              <div className="w-px h-4 bg-gray-300" />
-              <div className="text-gray-800"><span className="font-medium">Fecha de nacimiento: </span>{formatDate(general?.fecha_nacimiento)}</div>
-              <div className="w-px h-4 bg-gray-300" />
-              <div className="text-gray-800"><span className="font-medium">Edad: </span>{edadDescripcion}</div>
-              <div className="w-px h-4 bg-gray-300" />
-              <div className="text-gray-800"><span className="font-medium">Sexo: </span>{general?.sexo ?? "—"}</div>
-              <div className="w-px h-4 bg-gray-300" />
-              <span className="px-3 py-1 rounded-full bg-red-50 text-red-600 text-sm font-medium">{general?.tipo_sangre ?? "—"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Panel de exámenes (replicado del portal Paciente) */}
-      <LabExamsPanel />
-    </div>
-  );
-}
-
-export default function TecnologoHomePage() {
-  return (
-    <RoleGuard allow={["tecnologo"]}>
-      <TecnologoDashboard />
-    </RoleGuard>
   );
 }
