@@ -4,16 +4,14 @@ import { useMemo, useState } from 'react';
 import { useAdminUsers } from '../../contexts/AdminUsersContext';
 import { Check, Loader2, Plus, UserPlus } from 'lucide-react';
 import { normEmail, strongPwd, isValidRutCl } from '../../utils/rut';
-
-type CargoForm = 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO' | 'ADMINISTRADOR';
+import { useRut } from "react-rut-formatter";
+ type CargoForm = 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO' | 'ADMINISTRADOR';
 
 type Status = { type: 'ok' | 'err' | ''; msg: string };
 
 export function CreateUserCard() {
   const { createUser, addRole, fetchUsers, loading } = useAdminUsers();
-
-  // --- identidad ---
-  const [rut, setRut] = useState('');
+  const { rut, updateRut, isValid } = useRut();
   const [nombres, setNombres] = useState('');
   const [apellidoPaterno, setApellidoPaterno] = useState('');
   const [apellidoMaterno, setApellidoMaterno] = useState('');
@@ -39,7 +37,7 @@ export function CreateUserCard() {
   // validaciones mínimas
   const puedeCrear = useMemo(() => {
     const okBase =
-      isValidRutCl(rut) &&
+      isValid &&
       nombres.trim().length >= 2 &&
       apellidoPaterno.trim().length >= 2 &&
       apellidoMaterno.trim().length >= 2 &&
@@ -68,7 +66,7 @@ export function CreateUserCard() {
 
   function handleRutChange(e: React.ChangeEvent<HTMLInputElement>) {
     const inputRut = e.target.value;
-    setRut(inputRut);
+    updateRut(inputRut);
 
     if (validarRut(inputRut)) {
       const clean = inputRut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
@@ -142,7 +140,7 @@ export function CreateUserCard() {
     });
 
     // limpiar formulario
-    setRut('');
+    updateRut('');
     setNombres('');
     setApellidoPaterno('');
     setApellidoMaterno('');
@@ -197,8 +195,10 @@ export function CreateUserCard() {
         <input
           className="fc-input"
           placeholder="RUT nacional (12.345.678-9)"
-          value={rut}
+          value={rut.formatted}
           onChange={handleRutChange}
+          maxLength={12}
+          required={true}
         />
         <input
           className="fc-input"

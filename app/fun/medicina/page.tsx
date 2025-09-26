@@ -651,6 +651,25 @@ export default function MedicinaPage() {
 
             {/* Contenido scrollable del modal */}
             <CardContent className="flex-1 overflow-y-auto">
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <Field label="Peso">
+                  <Input
+                    type="number"
+                    value={nuevo.peso ?? ""}
+                    onChange={(e) => setNuevo({ ...nuevo, peso: e.target.value })}
+                    placeholder="kg"
+                  />
+                </Field>
+
+                <Field label="Altura">
+                  <Input
+                    type="number"
+                    value={nuevo.altura ?? ""}
+                    onChange={(e) => setNuevo({ ...nuevo, altura: e.target.value })}
+                    placeholder="cm"
+                  />
+                </Field>
+              </div>
               {/* cabecera */}
               <div className="grid md:grid-cols-2 gap-4">
                 <Field label="Tipo de control">

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { ArrowLeft, UserPlus, User, Mail, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
-
+import { useRut } from "react-rut-formatter";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
 
@@ -24,7 +24,7 @@ function isValidRut(rutRaw: string) {
 }
 
 export default function PatientRegister({ onBack }: { onBack: () => void }) {
-  const [rut, setRut] = useState('');
+  const { rut, updateRut, isValid } = useRut();
   const [nombres, setNombres] = useState('');
   const [apellidoPaterno, setApellidoPaterno] = useState('');
   const [apellidoMaterno, setApellidoMaterno] = useState('');
@@ -54,17 +54,10 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
     return !Number.isNaN(d.getTime()) && d <= today; 
   }, [fechaNac]);
 
-  const rutOk = useMemo(() => (rut ? isValidRut(rut) : false), [rut]);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
     setOk(null);
-
-    if (!rutOk) {
-      setErr('RUT inválido.');
-      return;
-    }
     if (!passOk) {
       setErr('La contraseña debe tener al menos 8 caracteres, 1 mayúscula y 1 número.');
       return;
@@ -88,7 +81,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          rut: rut.trim(),
+          rut: rut.raw.replaceAll('.', '').replaceAll('-', ''),
           nombres: nombres.trim(),
           apellido_paterno: apellidoPaterno.trim(),
           apellido_materno: apellidoMaterno.trim(),
@@ -135,14 +128,15 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
             <User className="h-5 w-5 text-blue-500 absolute left-3 top-3" />
             <input
               type="text"
-              value={rut}
-              onChange={(e) => setRut(e.target.value)}
+              value={rut.formatted}
+              onChange={(e) => updateRut(e.target.value)}
               placeholder="12.345.678-9"
               className="text-blue-600 w-full pl-10 pr-12 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500"
               required
+              maxLength={12}
             />
           </div>
-          {!!rut && !rutOk && <p className="text-xs mt-1 text-blue-700">RUT no válido.</p>}
+          {!!rut && isValid && <p className="text-xs mt-1 text-blue-700">RUT no válido.</p>}
         </div>
 
         {/* Nombres */}
@@ -296,7 +290,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
             !apellidoPaterno ||
             !apellidoMaterno ||
             !correo ||
-            !rutOk ||
+            !isValid ||
             !passOk ||
             !passMatch ||
             !fechaOk ||

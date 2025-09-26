@@ -111,6 +111,7 @@ export interface Quirofano {
 }
 
 export interface ResultadoLaboratorio {
+  resultado_id: number
   nombre: string
   parametro: string
   valor: number
@@ -122,9 +123,11 @@ export interface MuestraLaboratorio {
   muestra_id: number
   tipo_muestra: string
   fecha_recepcion: string
+  fecha_extraccion: string | null
   validado_por: string
   fecha_validacion: string | null
   resultados: ResultadoLaboratorio[]
+  observaciones: string | null
 }
 
 export interface SolicitudLaboratorio {

@@ -1,41 +1,31 @@
-// components/Tecnologo/ExamFormFrame.tsx
-'use client';
+"use client";
 
-import React from 'react';
-import { useTecnologo } from '@/contexts/TecnologoContext';
+import type { ReactNode } from "react";
 
-export default function ExamFormFrame({ title, children }:{ title: string; children: React.ReactNode }) {
-  const { paciente } = useTecnologo();
+interface ExamFormFrameProps {
+  children: ReactNode;
+}
 
+export default function ExamFormFrame({ children }: ExamFormFrameProps) {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-
-      {paciente && (
-        <div className="rounded-2xl p-[1px] bg-gradient-to-r from-indigo-200/60 via-sky-200/60 to-emerald-200/60">
-          <div className="rounded-2xl bg-white p-4">
-            <div className="text-sm text-slate-700">
-              <span className="font-semibold uppercase">{paciente.nombre_completo}</span>
-              <span className="mx-3">•</span>
-              <span>{paciente.rut}</span>
+    <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-8">
+        <form className="space-y-6">
+            {children}
+            <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Guardar Examen
+              </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-2xl p-[1px] bg-gradient-to-r from-indigo-200/60 via-sky-200/60 to-emerald-200/60">
-        <form
-          onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); console.log('submit', Object.fromEntries(fd as any)); alert('Formulario listo para conectar al backend.'); }}
-          className="rounded-2xl bg-white p-5 space-y-4"
-        >
-          {children}
-          <div className="pt-2">
-            <button type="submit" className="rounded-xl bg-blue-700 text-white px-4 py-2 text-sm hover:bg-blue-800">
-              Guardar
-            </button>
-          </div>
-        </form>
+          </form>
       </div>
-    </div>
   );
 }

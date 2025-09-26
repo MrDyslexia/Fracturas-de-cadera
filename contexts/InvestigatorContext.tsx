@@ -1,374 +1,311 @@
-"use client";
+"use client"
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type React from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import muestras from "../data/examples.json"
+export type Resultado = {
+  resultado_id: number
+  episodio_id: number
+  muestra_id: number
+  examen_id: number
+  parametro: string
+  valor: number
+  unidad: string
+  fecha_resultado: string
+}
 
-/** ====== Tipos ====== */
-export type ExamItem = {
-  nombre: string;
-  fechaRecepcion: string;   // ISO
-  validadoPor: string;
-  fechaResultado: string;   // ISO
-};
+export type Muestra = {
+  muestra_id: number
+  tipo_muestra: string
+  fecha_extraccion: string
+  fecha_recepcion: string
+  observaciones: string
+  examen_id: number
+  profesional_id: number
+  Resultados: Resultado[]
+}
 
-export type AnonRecord = {
-  id: string;
-  solicitud: string;
-  fechaIngreso: string;     // ISO date
-  procedencia: string;      // p.ej. "Urgencia HGF", "CESFAM", etc.
-  tipoIngreso: "Urgencia" | "Electivo";
-  tipoMuestra: string;      // p.ej. "Sangre", "Orina", "Imagen"
-  sexo: "M" | "F";
-  edad: number;             // años
-  cie10: string;            // p.ej. S72.0
-  fracturaTipo: "Intracapsular" | "Extracapsular" | "Otra";
-  examenes: ExamItem[];
-};
-
-export type Filters = {
-  q: string;
-  year?: number;
-  procedencia?: string;
-  tipoIngreso?: "Urgencia" | "Electivo";
-  tipoMuestra?: string;
-  sexo?: "M" | "F";
-  edadMin?: number;
-  edadMax?: number;
-};
-
-type Summary = {
-  total: number;
-  totalExams: number;
-  yearsRange?: string;
-};
-
-type Ctx = {
-  loading: boolean;
-  error?: string;
-  data: AnonRecord[];
-  filtered: AnonRecord[];
-  selectedIds: Set<string>;
-  toggleSelect: (id: string) => void;
-  selectAllFiltered: () => void;
-  clearSelection: () => void;
+type InvestigatorContextType = {
+  loading: boolean
+  error?: string | null
+  items: Muestra[]
+  filtered: Muestra[]
+  refresh: () => Promise<void>
 
   // filtros
-  filters: Filters;
-  setFilters: (p: Partial<Filters>) => void;
-  clearFilters: () => void;
-
-  // paginación
-  page: number;
-  pageSize: number;
-  setPage: (p: number) => void;
-  setPageSize: (n: number) => void;
-
-  // resumen
-  summary: Summary;
-
-  // datos
-  refresh: () => void;
-
-  // descargas
-  downloadCSV: (onlySelected?: boolean) => Promise<void>;
-  downloadXLSX: (onlySelected?: boolean) => Promise<void>;
-};
-
-const InvestigatorContext = createContext<Ctx | null>(null);
-
-/** ====== Utilidad: generar CSV simple ====== */
-function toCSV(rows: Record<string, any>[]) {
-  if (!rows.length) return "";
-  const cols = Object.keys(rows[0]);
-  const esc = (v: any) =>
-    typeof v === "string"
-      ? `"${v.replaceAll('"', '""')}"`
-      : v === null || v === undefined
-      ? ""
-      : String(v);
-  const head = cols.join(";");
-  const body = rows.map((r) => cols.map((c) => esc(r[c])).join(";")).join("\n");
-  // BOM para Excel
-  return "\uFEFF" + head + "\n" + body;
-}
-
-function downloadFile(name: string, mime: string, content: BlobPart) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
-/** ====== Datos MOCK si no hay API ====== */
-function generateMock(n = 120): AnonRecord[] {
-  const procedencias = ["Urgencia HGF", "Trauma Sur", "Cesfam Oriente", "Clínica X"];
-  const muestras = ["Sangre", "Orina", "Imagen"];
-  const cie = ["S72.0", "S72.1", "S72.2"];
-  const out: AnonRecord[] = [];
-  const today = new Date().getFullYear();
-
-  for (let i = 0; i < n; i++) {
-    const year = today - Math.floor(Math.random() * 6); // últimos 6 años
-    const month = 1 + Math.floor(Math.random() * 12);
-    const day = 1 + Math.floor(Math.random() * 28);
-    const id = crypto.randomUUID();
-    const exCount = Math.floor(Math.random() * 3) + 1;
-    const exs: ExamItem[] = Array.from({ length: exCount }).map((_, j) => {
-      const d = new Date(year, month - 1, day + j);
-      const dr = new Date(year, month - 1, day + j + 1);
-      return {
-        nombre: ["Hemograma", "INR", "RX Cadera", "Vitamina D"][Math.floor(Math.random() * 4)],
-        fechaRecepcion: d.toISOString(),
-        validadoPor: ["TM-124", "TM-233", "Dr-55"][Math.floor(Math.random() * 3)],
-        fechaResultado: dr.toISOString(),
-      };
-    });
-
-    out.push({
-      id,
-      solicitud: "SOL-" + String(10000 + i),
-      fechaIngreso: new Date(year, month - 1, day).toISOString(),
-      procedencia: procedencias[Math.floor(Math.random() * procedencias.length)],
-      tipoIngreso: Math.random() > 0.3 ? "Urgencia" : "Electivo",
-      tipoMuestra: muestras[Math.floor(Math.random() * muestras.length)],
-      sexo: Math.random() > 0.5 ? "F" : "M",
-      edad: 60 + Math.floor(Math.random() * 40),
-      cie10: cie[Math.floor(Math.random() * cie.length)],
-      fracturaTipo: Math.random() > 0.5 ? "Intracapsular" : "Extracapsular",
-      examenes: exs,
-    });
+  filtros: {
+    busqueda: string
+    tipoMuestra: string
+    parametro: string
+    anio: string
+    valorMin?: number
+    valorMax?: number
+    profesionalId?: number
+    examenId?: number
   }
-  return out;
+  setFiltros: (p: Partial<InvestigatorContextType["filtros"]>) => void
+  clearFiltros: () => void
+
+  // selección
+  seleccion: Set<number>
+  toggleSel: (id: number) => void
+  clearSel: () => void
+
+  // export
+  downloadCSV: (soloSeleccion?: boolean) => void
+  downloadJSON: (soloSeleccion?: boolean) => void
+  downloadExcel: (soloSeleccion?: boolean) => void
 }
 
-/** ====== Provider ====== */
-export function InvestigatorProvider({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
-  const [data, setData] = useState<AnonRecord[]>([]);
-  const [filters, setFiltersState] = useState<Filters>({ q: "" });
+const InvestigatorContext = createContext<InvestigatorContextType>({
+  loading: true,
+  error: null,
+  items: [],
+  filtered: [],
+  refresh: async () => {},
+  filtros: {
+    busqueda: "",
+    tipoMuestra: "",
+    parametro: "",
+    anio: "",
+  },
+  setFiltros: () => {},
+  clearFiltros: () => {},
+  seleccion: new Set(),
+  toggleSel: () => {},
+  clearSel: () => {},
+  downloadCSV: () => {},
+  downloadJSON: () => {},
+  downloadExcel: () => {},
+})
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+export const useInvestigator = () => useContext(InvestigatorContext)
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+// Helpers
+function toCSV(rows: Record<string, any>[]) {
+  if (!rows.length) return ""
+  const cols = Object.keys(rows[0])
+  const esc = (v: any) => (typeof v === "string" ? `"${v.replaceAll('"', '""')}"` : v == null ? "" : String(v))
+  const head = cols.join(";")
+  const body = rows.map((r) => cols.map((c) => esc(r[c])).join(";")).join("\n")
+  return "\uFEFF" + head + "\n" + body
+}
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(undefined);
+function downloadFile(name: string, content: BlobPart, mime = "text/csv;charset=utf-8") {
+  const a = document.createElement("a")
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }))
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+export const InvestigatorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [items, setItems] = useState<Muestra[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [filtros, setFiltrosState] = useState({
+    busqueda: "",
+    tipoMuestra: "",
+    parametro: "",
+    anio: "",
+    valorMin: undefined as number | undefined,
+    valorMax: undefined as number | undefined,
+    profesionalId: undefined as number | undefined,
+    examenId: undefined as number | undefined,
+  })
+
+  const [seleccion, setSeleccion] = useState<Set<number>>(new Set())
+
+  const fetchItems = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      if (!API_BASE) {
-        // MODO MOCK
-        await new Promise((r) => setTimeout(r, 500));
-        setData(generateMock(180));
-      } else {
-        const params = new URLSearchParams();
-        if (filters.q) params.set("q", filters.q);
-        if (filters.year) params.set("year", String(filters.year));
-        if (filters.sexo) params.set("sexo", filters.sexo);
-        if (filters.procedencia) params.set("procedencia", filters.procedencia);
-        if (filters.tipoIngreso) params.set("tipoIngreso", filters.tipoIngreso);
-        if (filters.tipoMuestra) params.set("tipoMuestra", filters.tipoMuestra);
-        if (filters.edadMin != null) params.set("edadMin", String(filters.edadMin));
-        if (filters.edadMax != null) params.set("edadMax", String(filters.edadMax));
-        params.set("page", String(page));
-        params.set("pageSize", String(pageSize));
-
-        const res = await fetch(`${API_BASE}/investigador/records?` + params.toString(), {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        setData(json.items as AnonRecord[]);
+      console.log("[v0] Loading data from /data/examples.json")
+      const response = await fetch("/data/examples.json")
+      if (!response.ok) {
+        const response = muestras
+        return setItems(response.muestras || [])
       }
-    } catch (e: any) {
-      setError(e?.message ?? "Error al cargar datos");
+      const data = await response.json()
+      console.log("[v0] Loaded data:", data)
+      setItems(data.muestras || [])
+    } catch (e) {
+      console.error("[v0] Error loading data:", e)
+      setError("Error al cargar los datos")
+      // Fallback to empty array instead of mock data
+      setItems([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [API_BASE, filters, page, pageSize]);
+  }, []) // Removed dependencies since we're not using filters in the fetch
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchItems()
+  }, [fetchItems])
 
-  const setFilters = useCallback((p: Partial<Filters>) => {
-    setFiltersState((prev) => {
-      const merged = { ...prev, ...p };
-      return merged;
-    });
-    setPage(1);
-  }, []);
+  const setFiltros = useCallback(
+    (p: Partial<typeof filtros>) => {
+      setFiltrosState((prev) => ({ ...prev, ...p }))
+    },
+    [setFiltrosState],
+  )
 
-  const clearFilters = useCallback(() => {
-    setFiltersState({ q: "" });
-    setPage(1);
-  }, []);
+  const clearFiltros = useCallback(() => {
+    setFiltrosState({
+      busqueda: "",
+      tipoMuestra: "",
+      parametro: "",
+      anio: "",
+      valorMin: undefined,
+      valorMax: undefined,
+      profesionalId: undefined,
+      examenId: undefined,
+    })
+    setSeleccion(new Set())
+  }, [])
 
   const filtered = useMemo(() => {
-    const out = data.filter((r) => {
-      const year = new Date(r.fechaIngreso).getFullYear();
-      if (filters.year && year !== filters.year) return false;
-      if (filters.sexo && r.sexo !== filters.sexo) return false;
-      if (filters.procedencia && r.procedencia !== filters.procedencia) return false;
-      if (filters.tipoIngreso && r.tipoIngreso !== filters.tipoIngreso) return false;
-      if (filters.tipoMuestra && r.tipoMuestra !== filters.tipoMuestra) return false;
-      if (filters.edadMin != null && r.edad < filters.edadMin) return false;
-      if (filters.edadMax != null && r.edad > filters.edadMax) return false;
-      if (filters.q) {
-        const q = filters.q.toLowerCase();
-        const hay =
-          r.solicitud.toLowerCase().includes(q) ||
-          r.cie10.toLowerCase().includes(q) ||
-          r.procedencia.toLowerCase().includes(q) ||
-          r.tipoMuestra.toLowerCase().includes(q) ||
-          r.fracturaTipo.toLowerCase().includes(q);
-        if (!hay) return false;
+    const q = filtros.busqueda.toLowerCase().trim()
+    return items.filter((m) => {
+      if (filtros.tipoMuestra && m.tipo_muestra !== filtros.tipoMuestra) return false
+      if (filtros.anio && new Date(m.fecha_extraccion).getFullYear() !== Number(filtros.anio)) return false
+      if (filtros.profesionalId != null && m.profesional_id !== filtros.profesionalId) return false
+      if (filtros.examenId != null && m.examen_id !== filtros.examenId) return false
+
+      // Filtrar por parámetro específico en los resultados
+      if (filtros.parametro) {
+        const tieneParametro = m.Resultados.some((r) =>
+          r.parametro.toLowerCase().includes(filtros.parametro.toLowerCase()),
+        )
+        if (!tieneParametro) return false
       }
-      return true;
-    });
-    return out;
-  }, [data, filters]);
 
-  const summary = useMemo<Summary>(() => {
-    const years = data.map((r) => new Date(r.fechaIngreso).getFullYear());
-    const min = Math.min(...years);
-    const max = Math.max(...years);
-    const totalExams = data.reduce((acc, r) => acc + r.examenes.length, 0);
-    return {
-      total: data.length,
-      totalExams,
-      yearsRange: isFinite(min) && isFinite(max) ? `${min}-${max}` : undefined,
-    };
-  }, [data]);
+      // Filtrar por rango de valores
+      if (filtros.valorMin != null || filtros.valorMax != null) {
+        const tieneValorEnRango = m.Resultados.some((r) => {
+          if (filtros.valorMin != null && r.valor < filtros.valorMin) return false
+          if (filtros.valorMax != null && r.valor > filtros.valorMax) return false
+          return true
+        })
+        if (!tieneValorEnRango) return false
+      }
 
-  const refresh = useCallback(() => fetchData(), [fetchData]);
+      if (q) {
+        const hay =
+          m.tipo_muestra.toLowerCase().includes(q) ||
+          m.observaciones.toLowerCase().includes(q) ||
+          String(m.muestra_id).includes(q) ||
+          String(m.examen_id).includes(q) ||
+          String(m.profesional_id).includes(q) ||
+          m.Resultados.some((r) => r.parametro.toLowerCase().includes(q) || r.unidad.toLowerCase().includes(q))
+        if (!hay) return false
+      }
+      return true
+    })
+  }, [items, filtros])
 
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((s) => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-  const selectAllFiltered = useCallback(() => {
-    setSelectedIds(new Set(filtered.map((r) => r.id)));
-  }, [filtered]);
-  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+  const toggleSel = useCallback((id: number) => {
+    setSeleccion((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  }, [])
+  const clearSel = useCallback(() => setSeleccion(new Set()), [])
 
   const rowsForExport = useCallback(
-    (onlySelected?: boolean) => {
-      const base = onlySelected ? filtered.filter((r) => selectedIds.has(r.id)) : filtered;
-      // aplanamos 1:N con exámenes
-      const rows = base.flatMap((r) =>
-        r.examenes.length
-          ? r.examenes.map((e) => ({
-              id: r.id,
-              solicitud: r.solicitud,
-              fecha_ingreso: r.fechaIngreso.substring(0, 10),
-              procedencia: r.procedencia,
-              tipo_ingreso: r.tipoIngreso,
-              tipo_muestra: r.tipoMuestra,
-              sexo: r.sexo,
-              edad: r.edad,
-              cie10: r.cie10,
-              fractura_tipo: r.fracturaTipo,
-              examen: e.nombre,
-              fecha_recepcion: e.fechaRecepcion.substring(0, 10),
-              validado_por: e.validadoPor,
-              fecha_resultado: e.fechaResultado.substring(0, 10),
+    (soloSel?: boolean) => {
+      const base = soloSel ? filtered.filter((m) => seleccion.has(m.muestra_id)) : filtered
+      const rows = base.flatMap((m) =>
+        m.Resultados.length > 0
+          ? m.Resultados.map((r) => ({
+              muestra_id: m.muestra_id,
+              tipo_muestra: m.tipo_muestra,
+              fecha_extraccion: m.fecha_extraccion.slice(0, 10),
+              fecha_recepcion: m.fecha_recepcion.slice(0, 10),
+              observaciones: m.observaciones,
+              examen_id: m.examen_id,
+              profesional_id: m.profesional_id,
+              resultado_id: r.resultado_id,
+              episodio_id: r.episodio_id,
+              parametro: r.parametro,
+              valor: r.valor,
+              unidad: r.unidad,
+              fecha_resultado: r.fecha_resultado.slice(0, 10),
             }))
           : [
               {
-                id: r.id,
-                solicitud: r.solicitud,
-                fecha_ingreso: r.fechaIngreso.substring(0, 10),
-                procedencia: r.procedencia,
-                tipo_ingreso: r.tipoIngreso,
-                tipo_muestra: r.tipoMuestra,
-                sexo: r.sexo,
-                edad: r.edad,
-                cie10: r.cie10,
-                fractura_tipo: r.fracturaTipo,
-                examen: "",
-                fecha_recepcion: "",
-                validado_por: "",
+                muestra_id: m.muestra_id,
+                tipo_muestra: m.tipo_muestra,
+                fecha_extraccion: m.fecha_extraccion.slice(0, 10),
+                fecha_recepcion: m.fecha_recepcion.slice(0, 10),
+                observaciones: m.observaciones,
+                examen_id: m.examen_id,
+                profesional_id: m.profesional_id,
+                resultado_id: 0,
+                episodio_id: 0,
+                parametro: "",
+                valor: 0,
+                unidad: "",
                 fecha_resultado: "",
               },
-            ]
-      );
-      return rows;
+            ],
+      )
+      return rows
     },
-    [filtered, selectedIds]
-  );
+    [filtered, seleccion],
+  )
 
   const downloadCSV = useCallback(
-    async (onlySelected?: boolean) => {
-      const rows = rowsForExport(onlySelected);
-      const csv = toCSV(rows);
+    (soloSel?: boolean) => {
+      const rows = rowsForExport(soloSel)
+      const csv = toCSV(rows)
+      downloadFile(`muestras_resultados${soloSel ? "_seleccion" : ""}.csv`, csv, "text/csv;charset=utf-8")
+    },
+    [rowsForExport],
+  )
+
+  const downloadJSON = useCallback(
+    (soloSel?: boolean) => {
+      const base = soloSel ? filtered.filter((m) => seleccion.has(m.muestra_id)) : filtered
+      const json = JSON.stringify({ muestras: base }, null, 2)
+      downloadFile(`muestras_resultados${soloSel ? "_seleccion" : ""}.json`, json, "application/json")
+    },
+    [filtered, seleccion],
+  )
+
+  const downloadExcel = useCallback(
+    (soloSel?: boolean) => {
+      const rows = rowsForExport(soloSel)
+      const csv = toCSV(rows)
       downloadFile(
-        `registros_anonimizados${onlySelected ? "_seleccion" : ""}.csv`,
-        "text/csv;charset=utf-8",
-        csv
-      );
+        `muestras_resultados${soloSel ? "_seleccion" : ""}.xlsx`,
+        csv,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      )
     },
-    [rowsForExport]
-  );
+    [rowsForExport],
+  )
 
-  const downloadXLSX = useCallback(
-    async (onlySelected?: boolean) => {
-      try {
-        // import dinámico opcional (si tienes 'xlsx' instalado)
-        const XLSX: any = (await import("xlsx")).default ?? (await import("xlsx"));
-        const rows = rowsForExport(onlySelected);
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Registros");
-        const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        downloadFile(
-          `registros_anonimizados${onlySelected ? "_seleccion" : ""}.xlsx`,
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          out
-        );
-      } catch {
-        // si no está la librería, caemos a CSV
-        await downloadCSV(onlySelected);
-      }
-    },
-    [downloadCSV, rowsForExport]
-  );
-
-  const value: Ctx = {
+  const value: InvestigatorContextType = {
     loading,
     error,
-    data,
+    items,
     filtered,
-    selectedIds,
-    toggleSelect,
-    selectAllFiltered,
-    clearSelection,
-    filters,
-    setFilters,
-    clearFilters,
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
-    summary,
-    refresh,
+    refresh: fetchItems,
+    filtros,
+    setFiltros,
+    clearFiltros,
+    seleccion,
+    toggleSel,
+    clearSel,
     downloadCSV,
-    downloadXLSX,
-  };
+    downloadJSON,
+    downloadExcel,
+  }
 
-  return <InvestigatorContext.Provider value={value}>{children}</InvestigatorContext.Provider>;
-}
-
-/** ====== Hook ====== */
-export function useInvestigator() {
-  const ctx = useContext(InvestigatorContext);
-  if (!ctx) throw new Error("useInvestigator debe usarse dentro de InvestigatorProvider");
-  return ctx;
+  return <InvestigatorContext.Provider value={value}>{children}</InvestigatorContext.Provider>
 }

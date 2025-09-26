@@ -1,61 +1,69 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Database, Download, Search, Home } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { InvestigatorProvider } from "@/contexts/InvestigatorContext";
+import { useAuth } from "@/contexts/AuthContext";
+import RoleGuard from "@/components/RoleGuard";
+import { House, Settings, LogOut, Database } from "lucide-react";
 
-const nav = [
-  { href: "/investigador", icon: Home, label: "Inicio" },
-  { href: "/investigador#explorar", icon: Search, label: "Explorar registros" },
-  { href: "/investigador#descargar", icon: Download, label: "Descargar" },
-];
+const navItems = [{ href: "/inv", icon: House, label: "Resumen" }];
 
-export default function InvestigadorLayout({
-  children,
-}: {
-  readonly children: React.ReactNode;
-}) {
+export default function InvLayout({ children }: { readonly children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const isActive = (href: string) => (href === "/inv" ? pathname === "/inv" : pathname.startsWith(href));
+
+  const onLogout = async () => {
+    if (!window.confirm("¿Deseas cerrar sesión y volver al login?")) return;
+    await logout?.();
+    router.replace("/login");
+  };
+
   return (
-    <InvestigatorProvider>
-      <div className="force-light min-h-[100vh] bg-gradient-to-br from-slate-50 to-slate-100 text-slate-800">
-        <aside className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Database className="h-6 w-6" />
-              <div>
-                <p className="text-sm font-semibold leading-tight">Portal Investigador</p>
-                <p className="text-xs text-slate-500 leading-tight">
-                  Navegar y descargar registros anonimizados
-                </p>
-              </div>
-            </div>
-
-            <nav className="flex gap-1">
-              {nav.map((n) => {
-                const Icon = n.icon;
-                const active = usePathname() === n.href;
-                return (
+    <RoleGuard allow={["investigador","admin"]}>
+      <InvestigatorProvider>
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
+          <aside className="fixed left-0 top-0 h-screen w-[72px] border-r border-slate-200 bg-white/70 backdrop-blur">
+            <div className="flex h-full flex-col items-center py-4 gap-3">
+              
+              <div className="mt-2 flex flex-col gap-2">
+                {navItems.map(({ href, icon: Icon, label }) => (
                   <Link
-                    key={n.href}
-                    href={n.href}
-                    className={[
-                      "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm",
-                      active ? "bg-slate-900 text-white" : "hover:bg-slate-100",
-                    ].join(" ")}
+                    key={href}
+                    href={href}
+                    title={label}
+                    className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl transition
+                    ${isActive(href) ? "bg-slate-900 text-white shadow-lg" : "bg-white hover:bg-slate-100 border border-slate-200"}`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {n.label}
+                    <Icon className="h-5 w-5" />
                   </Link>
-                );
-              })}
-            </nav>
-          </div>
-        </aside>
+                ))}
+              </div>
 
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
-      </div>
-    </InvestigatorProvider>
+              <button
+                onClick={() => router.push("/inv/configuracion")}
+                title="Configuración"
+                className={`mt-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white hover:bg-slate-100 transition
+                  ${isActive("/inv/configuracion") ? "ring-2 ring-slate-900" : ""}`}
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+
+              <button
+                onClick={onLogout}
+                title="Cerrar sesión"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white hover:bg-red-50 hover:text-red-600 transition"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
+          </aside>
+          <main className="ml-[72px]">{children}</main>
+        </div>
+      </InvestigatorProvider>
+    </RoleGuard>
   );
 }

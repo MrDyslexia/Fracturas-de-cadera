@@ -3,14 +3,10 @@
 import { useMemo, useState } from 'react';
 import { useAdminUsers } from '../../contexts/AdminUsersContext';
 import {
-  BadgeCheck,
-  Edit3,
   RefreshCw,
   Search,
   ShieldMinus,
   ShieldPlus,
-  ToggleLeft,
-  ToggleRight,
 } from 'lucide-react';
 import { isValidRutCl } from '../../utils/rut';
 
@@ -138,14 +134,14 @@ export function UsersTable() {
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
-            <button
-              onClick={() => fetchUsers()}
-              className="rounded-xl px-4 py-2 font-medium text-white transition bg-blue-600 hover:bg-blue-700 active:bg-blue-600 shadow-sm hover:shadow-lg active:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={loading}
-              type="button"
-            >
-              {loading ? 'Actualizando…' : 'Actualizar'}
-            </button>
+          <button
+            onClick={() => fetchUsers()}
+            className="rounded-xl px-4 py-2 font-medium text-white transition bg-blue-600 hover:bg-blue-700 active:bg-blue-600 shadow-sm hover:shadow-lg active:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={loading}
+            type="button"
+          >
+            {loading ? 'Actualizando…' : 'Actualizar'}
+          </button>
         </div>
       </div>
 
@@ -158,7 +154,7 @@ export function UsersTable() {
               <th className="th sticky-head">Correo</th>
               <th className="th sticky-head">Cargo</th>
               <th className="th sticky-head">RUT Profesional</th>
-              <th className="th sticky-head">Estado</th>
+              {/* Columna Estado eliminada */}
               <th className="th sticky-head w-56">Acciones</th>
             </tr>
           </thead>
@@ -169,7 +165,7 @@ export function UsersTable() {
               const isAdmin = hasAdminRole(u);
 
               return (
-                <tr key={u.rut} className="users-row"> 
+                <tr key={u.rut} className="users-row">
                   <td className="td">
                     <div className="font-medium text-heading">
                       {u.nombres} {u.apellido_paterno} {u.apellido_materno}
@@ -204,7 +200,6 @@ export function UsersTable() {
                     </div>
                   </td>
 
-
                   <td className="td text-body">
                     {(() => {
                       let rutContent;
@@ -225,48 +220,10 @@ export function UsersTable() {
                     })()}
                   </td>
 
+                  {/* Columna Estado eliminada */}
 
                   <td className="td">
-                    {p?.activo ? (
-                      <span className="inline-flex items-center gap-1 font-medium text-success">
-                        <ToggleRight className="h-4 w-4" /> Activo
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-muted">
-                        <ToggleLeft className="h-4 w-4" /> Inactivo
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="td">
-                    <div className="flex justify-between items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const cargo = (prompt(
-                            'Asignar cargo (TECNOLOGO | INVESTIGADOR | FUNCIONARIO):',
-                            p?.cargo || 'TECNOLOGO'
-                          ) ?? '') as any;
-                          if (!cargo) return;
-                          const rpRaw = prompt(
-                            'RUT profesional (12.345.678-9):',
-                            p?.rut_profesional || ''
-                          );
-                          const rp = (rpRaw ?? '').trim();
-                          if (cargo !== 'FUNCIONARIO' && !isValidRutCl(rp)) {
-                            alert('RUT profesional inválido'); return;
-                          }
-                          updateProfile(u.id, {
-                            cargo,
-                            rut_profesional: cargo === 'FUNCIONARIO' ? undefined : (rp || undefined),
-                            activo: true,
-                          }).then(fetchUsers);
-                        }}
-                        className="flex rounded-2xl justify-between gap-2 border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1 text-sm text-blue-700 hover:text-blue-900 transition"
-                        title="Editar perfil o cargo del usuario"
-                      >
-                        <Edit3 className="h-4 w-4" /><span>Editar</span>
-                      </button>
-
+                    <div className="flex justify-start items-center gap-2">
                       {isAdmin ? (
                         <button
                           onClick={() => removeRole(u.id, 'ADMIN')}
@@ -284,13 +241,6 @@ export function UsersTable() {
                           <ShieldPlus className="h-4 w-4" /><span>Asignar</span>
                         </button>
                       )}
-
-                      {u.email_verified && (
-                        <span className="inline-flex items-center gap-1 text-success">
-                          <BadgeCheck className="h-4 w-4" />
-                          <span className="text-xs font-medium">email verificado</span>
-                        </span>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -299,7 +249,8 @@ export function UsersTable() {
 
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-muted">Sin resultados…</td>
+                {/* Antes: colSpan={7}. Se reduce en 1 porque se eliminó “Estado” */}
+                <td colSpan={6} className="py-10 text-center text-muted">Sin resultados…</td>
               </tr>
             )}
           </tbody>

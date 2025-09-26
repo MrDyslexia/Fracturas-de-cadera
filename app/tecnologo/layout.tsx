@@ -1,4 +1,3 @@
-// app/tecnologo/layout.tsx
 "use client";
 
 import Link from "next/link";
@@ -30,9 +29,9 @@ const navItems: NavItem[] = [
   { href: "/tecnologo", icon: House, label: "Panel del tecnólogo", group: "main" },
 
   // Grupo: Carga de datos/exámenes
-  { href: "/tecnologo/cargar/laboratorio", icon: FlaskConical, label: "Subir laboratorio", requiresPatient: true, group: "upload" },
-  { href: "/tecnologo/cargar/imagenes",    icon: ImageIcon,    label: "Subir imágenes",   requiresPatient: true, group: "upload" },
-  { href: "/tecnologo/cargar/biopsia",      icon: Microscope,   label: "Subir biopsia",    requiresPatient: true, group: "upload" },
+  { href: "/tecnologo/laboratorio", icon: FlaskConical, label: "Subir laboratorio", requiresPatient: true, group: "upload" },
+  { href: "/tecnologo/imagenes",    icon: ImageIcon,    label: "Subir imágenes",   requiresPatient: true, group: "upload" },
+  { href: "/tecnologo/biopsia",      icon: Microscope,   label: "Subir biopsia",    requiresPatient: true, group: "upload" },
 ];
 
 export default function TecnologoLayout({ children }: { readonly children: React.ReactNode }) {
