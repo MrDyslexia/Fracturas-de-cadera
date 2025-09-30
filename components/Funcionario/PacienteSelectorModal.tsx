@@ -1,11 +1,13 @@
 "use client";
-import { useEffect } from "react";
 import { useFuncionario } from "@/contexts/FuncionarioContext";
+import {useAuth} from "@/contexts/AuthContext";
+import { useConfirmBackToLogin } from "@/hooks/useConfirmBackToLogin";
 import PacienteSearch from "@/components/Funcionario/PacienteSearch";
 import PacienteTable from "@/components/Funcionario/PacienteTable";
 
 export default function PacienteSelectorModal() {
   const { filtrados, query, setQuery, setSeleccionado } = useFuncionario();
+  const { logout } = useAuth();
   function handleselect(a: any) {
     //setSeleccionado(a);
     const fetchSelectPaciente = async () => {
@@ -34,6 +36,9 @@ export default function PacienteSelectorModal() {
     };
     fetchSelectPaciente();
   }
+  useConfirmBackToLogin(() => {
+      logout();
+    });
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 ">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full max-h-[90vh] overflow-hidden">

@@ -1,97 +1,200 @@
-"use client"
-import { useState, useEffect, useRef } from "react"
-import { Droplets, Activity, FileText, AlertTriangle, User, Ruler, Weight, UserSearch } from "lucide-react"
-import MinutaModal from "@/components/Funcionario/modals/MinutaModal"
-import BloodModal from "@/components/Funcionario/modals/BloodModal"
-import ParametersModal from "@/components/Funcionario/modals/ParametersModal"
-import HistoryModal from "@/components/Funcionario/modals/HistoryModal"
-import AlertsModal from "@/components/Funcionario/modals/AlertsModal"
-import RoleGuard from "@/components/RoleGuard"
-import Body from "@/components/Funcionario/body"
-import { useFuncionario } from "@/contexts/FuncionarioContext"
-import type { DetallesPaciente } from "@/types/interfaces"
-import * as echarts from "echarts"
+"use client";
+import { useState, useEffect, useRef } from "react";
+import {
+  Droplets,
+  Activity,
+  FileText,
+  AlertTriangle,
+  User,
+  Ruler,
+  Weight,
+  UserSearch,
+  TrendingUp,
+} from "lucide-react";
+import MinutaModal from "@/components/Funcionario/modals/MinutaModal";
+import BloodModal from "@/components/Funcionario/modals/BloodModal";
+import ParametersModal from "@/components/Funcionario/modals/ParametersModal";
+import HistoryModal from "@/components/Funcionario/modals/HistoryModal";
+import IndicatorsModal from "@/components/Funcionario/modals/IndicatorsModal";
+import AlertsModal from "@/components/Funcionario/modals/AlertsModal";
+import RoleGuard from "@/components/RoleGuard";
+import Body from "@/components/Funcionario/body";
+import { useFuncionario } from "@/contexts/FuncionarioContext";
+import type { DetallesPaciente } from "@/types/interfaces";
+import * as echarts from "echarts";
+
 
 export default function FuncionarioHome() {
   const { seleccionado, setSeleccionado } = useFuncionario() as {
-    seleccionado: DetallesPaciente | undefined
-    setSeleccionado: (paciente: DetallesPaciente | undefined) => void
-  }
+    seleccionado: DetallesPaciente | undefined;
+    setSeleccionado: (paciente: DetallesPaciente | undefined) => void;
+  };
+  const [showMinutaModal, setShowMinutaModal] = useState(false);
+  const [showBloodModal, setShowBloodModal] = useState(false);
+  const [showParametersModal, setShowParametersModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
+  const [showIndicatorsModal, setShowIndicatorsModal] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const chartInstance = useRef<echarts.ECharts | null>(null);
 
-  const [showMinutaModal, setShowMinutaModal] = useState(false)
-  const [showBloodModal, setShowBloodModal] = useState(false)
-  const [showParametersModal, setShowParametersModal] = useState(false)
-  const [showHistoryModal, setShowHistoryModal] = useState(false)
-  const [showAlertsModal, setShowAlertsModal] = useState(false)
+  // Función para determinar la severidad máxima de las alertas activas
+  const getMaxAlertSeverity = () => {
+    if (!seleccionado?.general?.alertas_medicas?.length) return null;
 
-  const chartRef = useRef<HTMLDivElement>(null)
-  const chartInstance = useRef<echarts.ECharts | null>(null)
+    const activeAlerts = seleccionado.general.alertas_medicas.filter(
+      (alerta) => alerta.activa
+    );
+    if (activeAlerts.length === 0) return null;
+
+    const severityOrder = { ALTA: 3, MEDIA: 2, BAJA: 1 };
+
+    const maxSeverity = activeAlerts.reduce((max, alerta) => {
+      return severityOrder[alerta.severidad as keyof typeof severityOrder] >
+        severityOrder[max as keyof typeof severityOrder]
+        ? alerta.severidad
+        : max;
+    }, activeAlerts[0].severidad);
+
+    return maxSeverity;
+  };
+
+  // Función para obtener los estilos según la severidad de alertas
+  const getAlertButtonStyles = () => {
+    const maxSeverity = getMaxAlertSeverity();
+
+    switch (maxSeverity) {
+      case "ALTA":
+        return {
+          border:
+            "border-2 border-red-200 hover:border-red-300 hover:bg-red-50",
+          icon: "text-red-600 group-hover:text-red-700",
+        };
+      case "MEDIA":
+        return {
+          border:
+            "border-2 border-yellow-200 hover:border-yellow-300 hover:bg-yellow-50",
+          icon: "text-yellow-600 group-hover:text-yellow-700",
+        };
+      case "BAJA":
+        return {
+          border:
+            "border-2 border-green-200 hover:border-green-300 hover:bg-green-50",
+          icon: "text-green-600 group-hover:text-green-700",
+        };
+      default:
+        return {
+          border:
+            "border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50",
+          icon: "text-gray-600 group-hover:text-gray-700",
+        };
+    }
+  };
+
+  // Función para obtener los estilos según el nivel de indicadores
+  const getIndicatorsButtonStyles = () => {
+    const nivel = seleccionado?.indicadores?.nivel;
+
+    switch (nivel) {
+      case "ALTO":
+        return {
+          border:
+            "border-2 border-red-200 hover:border-red-300 hover:bg-red-50",
+          icon: "text-red-600 group-hover:text-red-700",
+        };
+      case "MEDIO":
+        return {
+          border:
+            "border-2 border-yellow-200 hover:border-yellow-300 hover:bg-yellow-50",
+          icon: "text-yellow-600 group-hover:text-yellow-700",
+        };
+      case "BAJO":
+        return {
+          border:
+            "border-2 border-green-200 hover:border-green-300 hover:bg-green-50",
+          icon: "text-green-600 group-hover:text-green-700",
+        };
+      default:
+        return {
+          border:
+            "border-2 border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50",
+          icon: "text-indigo-600 group-hover:text-indigo-700",
+        };
+    }
+  };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES")
-  }
+    const date = new Date(dateString);
+    return date.toLocaleDateString("es-ES");
+  };
 
   const getBMIStatus = (bmi: number) => {
-    if (bmi < 18.5) return "Bajo peso"
-    if (bmi < 25) return "Normal"
-    if (bmi < 30) return "Sobrepeso"
-    return "Obesidad"
-  }
+    if (bmi < 18.5) return "Bajo peso";
+    if (bmi < 25) return "Normal";
+    if (bmi < 30) return "Sobrepeso";
+    return "Obesidad";
+  };
 
   const processLabData = () => {
-    if (!seleccionado?.laboratorio?.solicitudes?.[0]?.muestras) return null
+    if (!seleccionado?.laboratorio?.solicitudes?.[0]?.muestras) return null;
 
-    const muestras = seleccionado.laboratorio.solicitudes[0].muestras
-    const dates: string[] = []
-    const hemoglobina: number[] = []
-    const glucosa: number[] = []
-    const colesterol: number[] = []
-    const trigliceridos: number[] = []
+    const muestras = seleccionado.laboratorio.solicitudes[0].muestras;
+    const dates: string[] = [];
+    const hemoglobina: number[] = [];
+    const glucosa: number[] = [];
+    const colesterol: number[] = [];
+    const trigliceridos: number[] = [];
 
     // Sort samples by date
     const sortedMuestras = [...muestras].sort(
-      (a, b) => new Date(a.fecha_recepcion).getTime() - new Date(b.fecha_recepcion).getTime(),
-    )
+      (a, b) =>
+        new Date(a.fecha_recepcion).getTime() -
+        new Date(b.fecha_recepcion).getTime()
+    );
 
     sortedMuestras.forEach((muestra) => {
-      const date = new Date(muestra.fecha_recepcion).toLocaleDateString("es-ES", {
-        month: "short",
-        day: "numeric",
-      })
-      dates.push(date)
-
-      muestra.resultados.forEach((resultado: { parametro: any; valor: number }) => {
-        switch (resultado.parametro) {
-          case "HB":
-            hemoglobina.push(resultado.valor)
-            break
-          case "GLUCOSA":
-            glucosa.push(resultado.valor)
-            break
-          case "COLESTEROL_TOTAL":
-            colesterol.push(resultado.valor)
-            break
-          case "TRIGLICERIDOS":
-            trigliceridos.push(resultado.valor)
-            break
+      const date = new Date(muestra.fecha_recepcion).toLocaleDateString(
+        "es-ES",
+        {
+          month: "short",
+          day: "numeric",
         }
-      })
-    })
+      );
+      dates.push(date);
 
-    return { dates, hemoglobina, glucosa, colesterol, trigliceridos }
-  }
+      muestra.resultados.forEach(
+        (resultado: { parametro: any; valor: number }) => {
+          switch (resultado.parametro) {
+            case "HB":
+              hemoglobina.push(resultado.valor);
+              break;
+            case "GLUCOSA":
+              glucosa.push(resultado.valor);
+              break;
+            case "COLESTEROL_TOTAL":
+              colesterol.push(resultado.valor);
+              break;
+            case "TRIGLICERIDOS":
+              trigliceridos.push(resultado.valor);
+              break;
+          }
+        }
+      );
+    });
+
+    return { dates, hemoglobina, glucosa, colesterol, trigliceridos };
+  };
 
   useEffect(() => {
-    if (!chartRef.current || !seleccionado) return
+    if (!chartRef.current || !seleccionado) return;
 
     // Initialize chart if not exists
     if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current)
+      chartInstance.current = echarts.init(chartRef.current);
     }
 
-    const labData = processLabData()
-    if (!labData) return
+    const labData = processLabData();
+    if (!labData) return;
 
     const option = {
       tooltip: {
@@ -100,12 +203,12 @@ export default function FuncionarioHome() {
           type: "cross",
         },
         formatter: (params: any) => {
-          let result = `<strong>${params[0].axisValue}</strong><br/>`
+          let result = `<strong>${params[0].axisValue}</strong><br/>`;
           params.forEach((param: any) => {
-            const unit = param.seriesName === "Hemoglobina" ? "g/dL" : "mg/dL"
-            result += `${param.marker} ${param.seriesName}: ${param.value} ${unit}<br/>`
-          })
-          return result
+            const unit = param.seriesName === "Hemoglobina" ? "g/dL" : "mg/dL";
+            result += `${param.marker} ${param.seriesName}: ${param.value} ${unit}<br/>`;
+          });
+          return result;
         },
       },
       legend: {
@@ -248,37 +351,41 @@ export default function FuncionarioHome() {
           },
         },
       ],
-    }
+    };
 
-    chartInstance.current.setOption(option)
+    chartInstance.current.setOption(option);
 
     // Handle resize
     const handleResize = () => {
-      chartInstance.current?.resize()
-    }
-    window.addEventListener("resize", handleResize)
+      chartInstance.current?.resize();
+    };
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize)
-    }
-  }, [seleccionado])
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [seleccionado]);
 
   useEffect(() => {
     return () => {
       if (chartInstance.current) {
-        chartInstance.current.dispose()
-        chartInstance.current = null
+        chartInstance.current.dispose();
+        chartInstance.current = null;
       }
-    }
-  }, [])
+    };
+  }, []);
 
   if (!seleccionado) {
     return (
       <RoleGuard allow={["funcionario"]}>
         <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">No hay paciente seleccionado</h2>
-            <p className="text-gray-600 mb-6">Selecciona un paciente para ver su información</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              No hay paciente seleccionado
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Selecciona un paciente para ver su información
+            </p>
             <button
               onClick={() => setSeleccionado(undefined)}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -288,16 +395,23 @@ export default function FuncionarioHome() {
           </div>
         </div>
       </RoleGuard>
-    )
+    );
   }
+
+  const alertStyles = getAlertButtonStyles();
+  const indicatorsStyles = getIndicatorsButtonStyles();
 
   return (
     <RoleGuard allow={["funcionario"]}>
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="flex justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Vista general del paciente</h1>
-            <p className="text-slate-600 mt-2">Resumen rápido del estado y acciones médicas disponibles</p>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Vista general del paciente
+            </h1>
+            <p className="text-slate-600 mt-2">
+              Resumen rápido del estado y acciones médicas disponibles
+            </p>
           </div>
           <button
             onClick={() => setSeleccionado(undefined)}
@@ -314,26 +428,33 @@ export default function FuncionarioHome() {
                 <User className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900 mb-3">{seleccionado.general.nombre}</h1>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-3">
+                  {seleccionado.general.nombre}
+                </h1>
                 <div className="flex items-center space-x-6 text-sm">
                   <div className="flex items-center space-x-2">
-                    {seleccionado.general.rut
-                      ? seleccionado.general.rut.replace(/^(\d{1,2})(\d{3})(\d{3})([0-9kK])$/, "$1.$2.$3-$4")
-                      : ""}
-                  </div>
-                  <div className="w-px h-4 bg-gray-300"></div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-800">{formatDate(seleccionado.general.fecha_nacimiento)}</span>
-                  </div>
-                  <div className="w-px h-4 bg-gray-300"></div>
-                  <div className="flex items-center space-x-2">
                     <span className="text-gray-800">
-                      {seleccionado.general.edad} años {seleccionado.general.edad_meses} meses
+                      {seleccionado.general.rut}
                     </span>
                   </div>
                   <div className="w-px h-4 bg-gray-300"></div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-semibold text-red-600">{seleccionado.general.tipo_sangre}</span>
+                    <span className="text-gray-800">
+                      {formatDate(seleccionado.general.fecha_nacimiento)}
+                    </span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-300"></div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-800">
+                      {seleccionado.general.edad} años{" "}
+                      {seleccionado.general.edad_meses} meses
+                    </span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-300"></div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-semibold text-red-600">
+                      {seleccionado.general.tipo_sangre}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -351,8 +472,29 @@ export default function FuncionarioHome() {
         <div className="grid grid-cols-3 gap-6 mb-6">
           {/* Left column - Medical Actions Buttons */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Médicas</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Acciones Médicas
+            </h2>
             <div className="flex flex-col space-y-4">
+              {/* Botón de Indicadores - CON COLOR DINÁMICO */}
+              <button
+                onClick={() => setShowIndicatorsModal(true)}
+                className={`p-4 rounded-lg transition-colors group text-left ${indicatorsStyles.border}`}
+              >
+                <div className="flex items-center space-x-3">
+                  <TrendingUp className={`w-8 h-8 ${indicatorsStyles.icon}`} />
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      Indicadores
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Riesgo de refractura:{" "}
+                      {seleccionado.indicadores?.suma}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
               {/* Botón 1: Información de sangre */}
               <button
                 onClick={() => setShowBloodModal(true)}
@@ -361,8 +503,12 @@ export default function FuncionarioHome() {
                 <div className="flex items-center space-x-3">
                   <Droplets className="w-8 h-8 text-red-600 group-hover:text-red-700" />
                   <div>
-                    <div className="font-medium text-gray-900">Análisis de Sangre</div>
-                    <div className="text-sm text-gray-500">Ver resultados y parámetros sanguíneos</div>
+                    <div className="font-medium text-gray-900">
+                      Análisis de Sangre
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Ver resultados y parámetros sanguíneos
+                    </div>
                   </div>
                 </div>
               </button>
@@ -375,8 +521,12 @@ export default function FuncionarioHome() {
                 <div className="flex items-center space-x-3">
                   <Activity className="w-8 h-8 text-blue-600 group-hover:text-blue-700" />
                   <div>
-                    <div className="font-medium text-gray-900">Parámetros Vitales</div>
-                    <div className="text-sm text-gray-500">Monitoreo de signos vitales</div>
+                    <div className="font-medium text-gray-900">
+                      Parámetros Vitales
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Monitoreo de signos vitales
+                    </div>
                   </div>
                 </div>
               </button>
@@ -389,38 +539,49 @@ export default function FuncionarioHome() {
                 <div className="flex items-center space-x-3">
                   <FileText className="w-8 h-8 text-green-600 group-hover:text-green-700" />
                   <div>
-                    <div className="font-medium text-gray-900">Historial Médico</div>
-                    <div className="text-sm text-gray-500">Diagnósticos y tratamientos previos</div>
+                    <div className="font-medium text-gray-900">
+                      Historial Médico
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Diagnósticos y tratamientos previos
+                    </div>
                   </div>
                 </div>
               </button>
 
-              {/* Botón 4: Alertas */}
+              {/* Botón 4: Alertas - CON COLOR DINÁMICO */}
               <button
                 onClick={() => setShowAlertsModal(true)}
-                className="p-4 border-2 border-yellow-200 rounded-lg hover:border-yellow-300 hover:bg-yellow-50 transition-colors group text-left"
+                className={`p-4 rounded-lg transition-colors group text-left ${alertStyles.border}`}
               >
                 <div className="flex items-center space-x-3">
-                  <AlertTriangle className="w-8 h-8 text-yellow-600 group-hover:text-yellow-700" />
+                  <AlertTriangle className={`w-8 h-8 ${alertStyles.icon}`} />
                   <div>
-                    <div className="font-medium text-gray-900">Alertas Médicas</div>
-                    <div className="text-sm text-gray-500">Avisos y parámetros críticos</div>
+                    <div className="font-medium text-gray-900">
+                      Alertas Médicas
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Avisos y parámetros críticos
+                    </div>
                   </div>
                 </div>
               </button>
             </div>
           </div>
 
+          {/* Resto del código permanece igual... */}
           {/* Right columns - Physical Data */}
           <div className="col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 text-center">Datos Físicos del Paciente</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6 text-center">
+              Datos Físicos del Paciente
+            </h2>
 
-            <div className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 rounded-2xl p-8 border-2 border-blue-200/50 shadow-inner">
-              <div className="absolute inset-0 flex justify-center items-center">
-                <Body className="w-full h-full text-blue-300/30" />
+            <div className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 rounded-2xl p-8 border-2 border-blue-200/50 shadow-inner min-h-[400px]">
+              <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
+                <Body className="w-56 h-96 text-blue-300/30" />
               </div>
 
-              <div className="relative z-10 h-72 flex flex-col justify-between items-start">
+              <div className="relative z-10 h-[400px] flex flex-col justify-between items-start py-4">
                 {/* Altura positioned at head level */}
                 <div className="flex justify-center">
                   <div className="group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-blue-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer">
@@ -437,11 +598,15 @@ export default function FuncionarioHome() {
                           <Ruler className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <div className="text-xs font-medium text-blue-700 uppercase tracking-wide">Altura</div>
+                          <div className="text-xs font-medium text-blue-700 uppercase tracking-wide">
+                            Altura
+                          </div>
                           <div className="text-xl font-bold text-blue-900">
                             {Math.round(seleccionado.general.altura * 100)}
                           </div>
-                          <div className="text-xs text-blue-600">centímetros</div>
+                          <div className="text-xs text-blue-600">
+                            centímetros
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -449,11 +614,13 @@ export default function FuncionarioHome() {
                 </div>
 
                 {/* Peso positioned at torso level */}
-                <div className="flex justify-start">
+                <div className="flex justify-start ">
                   <div className="group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-green-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer">
                     {/* Compact version - only value and unit */}
                     <div className="group-hover:hidden px-4 py-2">
-                      <div className="text-lg font-bold text-green-900">{seleccionado.general.peso}kg</div>
+                      <div className="text-lg font-bold text-green-900">
+                        {seleccionado.general.peso}kg
+                      </div>
                     </div>
                     {/* Expanded version on hover */}
                     <div className="hidden group-hover:block px-6 py-4">
@@ -462,9 +629,15 @@ export default function FuncionarioHome() {
                           <Weight className="w-5 h-5 text-green-600" />
                         </div>
                         <div>
-                          <div className="text-xs font-medium text-green-700 uppercase tracking-wide">Peso</div>
-                          <div className="text-xl font-bold text-green-900">{seleccionado.general.peso}</div>
-                          <div className="text-xs text-green-600">kilogramos</div>
+                          <div className="text-xs font-medium text-green-700 uppercase tracking-wide">
+                            Peso
+                          </div>
+                          <div className="text-xl font-bold text-green-900">
+                            {seleccionado.general.peso}
+                          </div>
+                          <div className="text-xs text-green-600">
+                            kilogramos
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -472,12 +645,15 @@ export default function FuncionarioHome() {
                 </div>
 
                 {/* IMC positioned at lower torso level */}
-                <div className="flex justify-end">
+                <div className="flex justify-end ">
                   <div className="group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-purple-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer">
                     {/* Compact version - only value and unit */}
                     <div className="group-hover:hidden px-4 py-2">
                       <div className="text-lg font-bold text-purple-900">
-                        {(seleccionado.general.peso / Math.pow(seleccionado.general.altura, 2)).toFixed(1)}
+                        {(
+                          seleccionado.general.peso /
+                          Math.pow(seleccionado.general.altura, 2)
+                        ).toFixed(1)}
                       </div>
                     </div>
                     {/* Expanded version on hover */}
@@ -487,12 +663,20 @@ export default function FuncionarioHome() {
                           <Activity className="w-5 h-5 text-purple-600" />
                         </div>
                         <div>
-                          <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">IMC</div>
+                          <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">
+                            IMC
+                          </div>
                           <div className="text-xl font-bold text-purple-900">
-                            {(seleccionado.general.peso / Math.pow(seleccionado.general.altura, 2)).toFixed(1)}
+                            {(
+                              seleccionado.general.peso /
+                              Math.pow(seleccionado.general.altura, 2)
+                            ).toFixed(1)}
                           </div>
                           <div className="text-xs text-purple-600">
-                            {getBMIStatus(seleccionado.general.peso / Math.pow(seleccionado.general.altura, 2))}
+                            {getBMIStatus(
+                              seleccionado.general.peso /
+                                Math.pow(seleccionado.general.altura, 2)
+                            )}
                           </div>
                         </div>
                       </div>
@@ -508,8 +692,12 @@ export default function FuncionarioHome() {
           {/* TDC (Dx→Cx) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-1">{seleccionado.general.tdc_dias}</div>
-              <div className="text-sm font-medium text-gray-900 mb-1">TDC (Dx→Cx)</div>
+              <div className="text-2xl font-bold text-blue-600 mb-1">
+                {seleccionado.general.tdc_dias}
+              </div>
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                TDC (Dx→Cx)
+              </div>
               <div className="text-xs text-gray-500">días</div>
             </div>
           </div>
@@ -517,8 +705,12 @@ export default function FuncionarioHome() {
           {/* TPO (Cx→Alta) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 mb-1">{seleccionado.general.tpo_dias}</div>
-              <div className="text-sm font-medium text-gray-900 mb-1">TPO (Cx→Alta)</div>
+              <div className="text-2xl font-bold text-green-600 mb-1">
+                {seleccionado.general.tpo_dias}
+              </div>
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                TPO (Cx→Alta)
+              </div>
               <div className="text-xs text-gray-500">días</div>
             </div>
           </div>
@@ -526,8 +718,12 @@ export default function FuncionarioHome() {
           {/* TTH (Dx→Alta) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600 mb-1">{seleccionado.general.tth_dias}</div>
-              <div className="text-sm font-medium text-gray-900 mb-1">TTH (Dx→Alta)</div>
+              <div className="text-2xl font-bold text-purple-600 mb-1">
+                {seleccionado.general.tth_dias}
+              </div>
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                TTH (Dx→Alta)
+              </div>
               <div className="text-xs text-gray-500">días</div>
             </div>
           </div>
@@ -535,9 +731,15 @@ export default function FuncionarioHome() {
           {/* Dx actual */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">
-              <div className="text-lg font-semibold text-red-600 mb-1">{seleccionado.general.dx_actual.cie10}</div>
-              <div className="text-sm font-medium text-gray-900 mb-1">Dx actual</div>
-              <div className="text-xs text-gray-500">{seleccionado.general.dx_actual.tipo_fractura}</div>
+              <div className="text-lg font-semibold text-red-600 mb-1">
+                {seleccionado.general.dx_actual?.cie10}
+              </div>
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                Dx actual
+              </div>
+              <div className="text-xs text-gray-500">
+                {seleccionado.general.dx_actual?.tipo_fractura}
+              </div>
             </div>
           </div>
         </div>
@@ -547,16 +749,36 @@ export default function FuncionarioHome() {
         </div>
 
         {/* Existing modals */}
-        <MinutaModal isOpen={showMinutaModal} onClose={() => setShowMinutaModal(false)} />
-        <BloodModal isOpen={showBloodModal} onClose={() => setShowBloodModal(false)} paciente={seleccionado} />
+        <MinutaModal
+          isOpen={showMinutaModal}
+          onClose={() => setShowMinutaModal(false)}
+        />
+        <BloodModal
+          isOpen={showBloodModal}
+          onClose={() => setShowBloodModal(false)}
+          paciente={seleccionado}
+        />
         <ParametersModal
           isOpen={showParametersModal}
           onClose={() => setShowParametersModal(false)}
           paciente={seleccionado}
         />
-        <HistoryModal isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} paciente={seleccionado} />
-        <AlertsModal isOpen={showAlertsModal} onClose={() => setShowAlertsModal(false)} paciente={seleccionado} />
+        <HistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          paciente={seleccionado}
+        />
+        <AlertsModal
+          isOpen={showAlertsModal}
+          onClose={() => setShowAlertsModal(false)}
+          paciente={seleccionado}
+        />
+        <IndicatorsModal
+          isOpen={showIndicatorsModal}
+          onClose={() => setShowIndicatorsModal(false)}
+          paciente={seleccionado}
+        />
       </div>
     </RoleGuard>
-  )
+  );
 }

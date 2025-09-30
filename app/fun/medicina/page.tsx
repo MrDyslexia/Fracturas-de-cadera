@@ -16,7 +16,7 @@ import {
   Clock,
   ChevronDown,
   X,
-  CircleCheck, 
+  CircleCheck,
   FileText,
 } from "lucide-react";
 import { Switch } from "@/components/ui/Switch";
@@ -52,7 +52,9 @@ const fmtCL = (iso?: string) =>
       })
     : "";
 const fmtDateInput = (iso?: string) =>
-  iso ? new Date(iso).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+  iso
+    ? new Date(iso).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
 
 /* ---------------- UI minis ---------------- */
 function Card({
@@ -60,7 +62,9 @@ function Card({
   className = "",
 }: Readonly<{ children: React.ReactNode; className?: string }>) {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden ${className}`}>
+    <div
+      className={`bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden ${className}`}
+    >
       {children}
     </div>
   );
@@ -83,7 +87,9 @@ function CardContent({
 function CardTitle({ children }: Readonly<{ children: React.ReactNode }>) {
   return <h3 className="text-lg font-semibold text-gray-900">{children}</h3>;
 }
-function CardDescription({ children }: Readonly<{ children: React.ReactNode }>) {
+function CardDescription({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return <p className="text-sm text-gray-600 mt-1">{children}</p>;
 }
 function Button({
@@ -103,11 +109,16 @@ function Button({
     "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2";
   const variants = {
     default: "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60",
-    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 disabled:opacity-60",
+    secondary:
+      "bg-gray-100 text-gray-900 hover:bg-gray-200 disabled:opacity-60",
     ghost: "text-gray-600 hover:bg-gray-100 disabled:opacity-60",
   };
   return (
-    <button onClick={onClick} disabled={disabled} className={`${base} ${variants[variant]} ${className}`}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} ${variants[variant]} ${className}`}
+    >
       {children}
     </button>
   );
@@ -173,8 +184,15 @@ function Textarea({
     />
   );
 }
-function Label({ children, className = "" }: Readonly<{ children: React.ReactNode; className?: string }>) {
-  return <label className={`text-sm font-medium text-gray-700 ${className}`}>{children}</label>;
+function Label({
+  children,
+  className = "",
+}: Readonly<{ children: React.ReactNode; className?: string }>) {
+  return (
+    <label className={`text-sm font-medium text-gray-700 ${className}`}>
+      {children}
+    </label>
+  );
 }
 function Select({
   value,
@@ -201,10 +219,16 @@ function Select({
     </div>
   );
 }
-function SelectItem({ value, children }: Readonly<{ value: string; children: React.ReactNode }>) {
+function SelectItem({
+  value,
+  children,
+}: Readonly<{ value: string; children: React.ReactNode }>) {
   return <option value={value}>{children}</option>;
 }
-function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
+function Field({
+  label,
+  children,
+}: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <div className="grid gap-2">
       <Label>{label}</Label>
@@ -231,7 +255,13 @@ function HabitRow({
         {icon}
         <Label>{label}</Label>
       </div>
-      <Switch checked={value} onCheckedChange={onChange} size="sm" color="primary" disabled={disabled} />
+      <Switch
+        checked={value}
+        onCheckedChange={onChange}
+        size="sm"
+        color="primary"
+        disabled={disabled}
+      />
     </div>
   );
 }
@@ -250,7 +280,9 @@ function CardHeaderWithIcon({
     <CardHeader>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-slate-100 p-2 text-slate-700">{icon}</div>
+          <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
+            {icon}
+          </div>
           <div>
             <CardTitle>{title}</CardTitle>
             <CardDescription>{subtitle}</CardDescription>
@@ -267,14 +299,18 @@ async function saveEpisodio(payload: any) {
   try {
     const user = localStorage.getItem("session_v1");
     const token = user ? JSON.parse(user).token : null;
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/episodios/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify(payload),
-    });
+    console.log("Saving episodio with payload:", payload);
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE}/episodios/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
     if (!response.ok) {
       console.error("Error al guardar episodio:", response.statusText);
       alert("No se pudo guardar el episodio. Revisa la consola.");
@@ -289,14 +325,18 @@ async function saveControl(payload: any) {
   try {
     const user = localStorage.getItem("session_v1");
     const token = user ? JSON.parse(user).token : null;
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/controles/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify(payload),
-    });
+    console.log("Saving episodio with payload:", payload);
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE}/controles/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
     if (!response.ok) {
       console.error("Error al guardar control:", response.statusText);
       alert("No se pudo guardar el control. Revisa la consola.");
@@ -311,31 +351,35 @@ async function saveControl(payload: any) {
 /* ---------------- Main ---------------- */
 export default function MedicinaPage() {
   const { seleccionado } = useFuncionario();
-
   const episodios = useMemo<any[]>(
-    () => (((seleccionado?.general as any)?.episodios) ?? []) as any[],
+    () => ((seleccionado?.general as any)?.episodios ?? []) as any[],
     [seleccionado]
   );
-
-  // preferimos dx_actual; si no, primer ACTIVO
-  const episodioActual = useMemo<any>(
-    () => seleccionado?.general?.dx_actual ?? episodios?.find((e) => e?.estado === "ACTIVO") ?? null,
-    [seleccionado, episodios]
-  );
-
+  const episodioActual = seleccionado?.general.dx_actual;
+  const ESTADO = seleccionado?.general.dx_actual.es_episodio;
   // UI: estados auxiliares
   const [showNuevoControl, setShowNuevoControl] = useState(false);
 
   // diagnóstico (controlado)
   const [dx, setDx] = useState<any>(() => {
-    const base =
-      episodioActual ?? {
+    let base: any = {};
+    if (ESTADO) {
+      base = episodioActual ?? {
         cie10: "S72.1",
         lado: "Derecho",
         procedencia: "Urgencia",
         fecha_diagnostico: new Date().toISOString().split("T")[0],
         notas_clinicas: "",
       };
+    } else {
+      base = {
+        cie10: "S72.1",
+        lado: "Derecho",
+        procedencia: "Urgencia",
+        fecha_diagnostico: new Date().toISOString().split("T")[0],
+        notas_clinicas: "",
+      };
+    }
     return { ...base, tipo_fractura: cieToTipo(base.cie10 ?? "S72.1") };
   });
   useEffect(() => {
@@ -344,25 +388,46 @@ export default function MedicinaPage() {
 
   // controles (sólo lectura aquí)
   const controles = seleccionado?.registro_controles ?? [];
-  const ordenados = [...controles].sort((a, b) => b.fecha_hora.localeCompare(a.fecha_hora));
-
-  const isEpisodeClosed = episodioActual?.estado === "CERRADO";
-  const readOnly = isEpisodeClosed;
-
-  const comorbOptions = ["DM2", "EPOC", "ERC", "ECV/ACV", "Parkinson", "Epilepsia"];
+  const ordenados = [...controles].sort((a, b) =>
+    b.fecha_hora.localeCompare(a.fecha_hora)
+  );
+  const comorbOptions = [
+    "DM2",
+    "EPOC",
+    "ERC",
+    "ECV/ACV",
+    "Parkinson",
+    "Epilepsia",
+  ];
   const toggleIn = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
 
   // “Agregar control” (UI)
-  type ControlTipo = "Inicial" | "Revisión" | "Interconsulta" | "Reingreso" | "Alta";
-  const CONTROL_TIPOS: ControlTipo[] = ["Inicial", "Revisión", "Interconsulta", "Reingreso", "Alta"];
+  type ControlTipo =
+    | "Inicial"
+    | "Seguimiento"
+    | "Interconsulta"
+    | "Alta"
+    | "otro";
+  const CONTROL_TIPOS: ControlTipo[] = [
+    "Inicial",
+    "Seguimiento",
+    "Interconsulta",
+    "Alta",
+    "otro",
+  ];
 
   const [nuevo, setNuevo] = useState<any>({
     tipo: "Revisión" as ControlTipo,
     notas: "",
     proximo_control: "",
     // secciones dentro del modal
-    habitos: { tabaco: false, alcohol: false, corticoides_cronicos: false, taco: false },
+    habitos: {
+      tabaco: false,
+      alcohol: false,
+      corticoides_cronicos: false,
+      taco: false,
+    },
     prequirurgicas: "",
     postquirurgicas: "",
     evolucion_coment: "",
@@ -370,62 +435,74 @@ export default function MedicinaPage() {
     reingreso30: false,
     comorbilidades: [] as string[],
   });
-
-  function cambiosBadge(c: any) {
-    const out: string[] = [];
-    if (c?.habitos && Object.values(c.habitos).some(Boolean)) out.push("Hábitos");
-    if (c?.prequirurgicas || c?.postquirurgicas) out.push("Complicaciones");
-    if (c?.evolucion_coment || c?.transfusion || c?.reingreso30) out.push("Evolución");
-    if (Array.isArray(c?.comorbilidades) && c.comorbilidades.length) out.push("Comorbilidades");
-    return out;
-  }
-
   /* ---------------- render ---------------- */
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">Antecedentes Médicos</h1>
-        <p className="text-slate-600 mt-2">Registro del diagnóstico y controles del paciente</p>
+        <h1 className="text-3xl font-bold text-slate-900">
+          Antecedentes Médicos
+        </h1>
+        <p className="text-slate-600 mt-2">
+          Registro del diagnóstico y controles del paciente
+        </p>
       </div>
 
       {/* Barra superior: Episodio en curso */}
       <div className="mb-4">
-      <Card>
-        <CardContent className="px-4 py-3 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <Card>
+          <CardContent className="px-4 py-3 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span
                   className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-white ${
-                    isEpisodeClosed ? "bg-slate-500" : "bg-emerald-600"
+                    ESTADO ? "bg-emerald-600" : "bg-slate-500"
                   }`}
                 >
                   <span className="h-2 w-2 rounded-full bg-white/90" />
-                  {isEpisodeClosed ? "Episodio CERRADO" : "Episodio ACTIVO"}
-                  {episodioActual?.id ? ` · #${episodioActual.id}` : ""}
+                  Episodio {ESTADO ? "Activo" : "Cerrado"}
+                  {episodioActual?.episodio_id
+                    ? ` · #${episodioActual.episodio_id}`
+                    : ""}
                 </span>
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-700">
                   <span>
-                    <span className="text-slate-500">CIE-10:</span> <b>{episodioActual?.cie10 ?? dx.cie10}</b>
+                    <span className="text-slate-500">CIE-10:</span>{" "}
+                    <b>{episodioActual?.cie10 ?? dx.cie10}</b>
                   </span>
                   <span className="text-slate-400">•</span>
                   <span>
-                    <span className="text-slate-500">Lado:</span> <b>{episodioActual?.lado ?? dx.lado}</b>
+                    <span className="text-slate-500">Lado:</span>{" "}
+                    <b>{episodioActual?.lado ?? dx.lado}</b>
                   </span>
                   <span className="text-slate-400">•</span>
                   <span>
                     <span className="text-slate-500">Fecha:</span>{" "}
-                    <b>{fmtCL(episodioActual?.fecha_diagnostico ?? dx.fecha_diagnostico)}</b>
+                    <b>
+                      {fmtCL(
+                        episodioActual?.fecha_diagnostico ??
+                          dx.fecha_diagnostico
+                      )}
+                    </b>
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button variant="secondary" onClick={() => setShowNuevoControl(true)} disabled={readOnly}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowNuevoControl(true)}
+                  disabled={
+                    seleccionado?.general.dx_actual?.episodio_id === null
+                  }
+                >
                   + Agregar control
                 </Button>
-                <Button onClick={() => alert("Implementa cierre en backend")} disabled={readOnly}>
+                <Button
+                  onClick={() => alert("Implementa cierre en backend")}
+                  disabled={episodioActual?.episodio_id === null}
+                >
                   Cerrar episodio
                 </Button>
               </div>
@@ -442,19 +519,31 @@ export default function MedicinaPage() {
             icon={<ClipboardList className="h-5 w-5" />}
             title="Diagnóstico"
             subtitle="Registrar/actualizar el diagnóstico y notas clínicas de admisión"
-            right={<span className="text-xs text-slate-500">Tipo: {dx.tipo_fractura}</span>}
+            right={
+              <span className="text-xs text-slate-500">
+                Tipo: {dx.tipo_fractura}
+              </span>
+            }
           />
           <CardContent>
             <div className="grid md:grid-cols-2 gap-4">
               <Field label="CIE-10 (tipo de fractura)">
-                <Select value={dx.cie10} onValueChange={(v) => setDx({ ...dx, cie10: v })} disabled={readOnly}>
+                <Select
+                  value={dx.cie10}
+                  onValueChange={(v) => setDx({ ...dx, cie10: v })}
+                  disabled={ESTADO}
+                >
                   <SelectItem value="S72.0">S72.0 — Intracapsular</SelectItem>
                   <SelectItem value="S72.1">S72.1 — Pertrocantérica</SelectItem>
                   <SelectItem value="S72.2">S72.2 — Subtrocantérica</SelectItem>
                 </Select>
               </Field>
               <Field label="Lado de la fractura">
-                <Select value={dx.lado} onValueChange={(v) => setDx({ ...dx, lado: v })} disabled={readOnly}>
+                <Select
+                  value={dx.lado}
+                  onValueChange={(v) => setDx({ ...dx, lado: v })}
+                  disabled={ESTADO}
+                >
                   <SelectItem value="Derecho">Derecho</SelectItem>
                   <SelectItem value="Izquierdo">Izquierdo</SelectItem>
                   <SelectItem value="Bilateral">Bilateral</SelectItem>
@@ -464,7 +553,7 @@ export default function MedicinaPage() {
                 <Select
                   value={dx.procedencia}
                   onValueChange={(v) => setDx({ ...dx, procedencia: v })}
-                  disabled={readOnly}
+                  disabled={ESTADO}
                 >
                   <SelectItem value="Urgencia">Urgencia</SelectItem>
                   <SelectItem value="Derivación APS">Derivación APS</SelectItem>
@@ -475,17 +564,21 @@ export default function MedicinaPage() {
                 <Input
                   type="date"
                   value={fmtDateInput(dx.fecha_diagnostico)}
-                  onChange={(e) => setDx({ ...dx, fecha_diagnostico: e.target.value })}
-                  disabled={readOnly}
+                  onChange={(e) =>
+                    setDx({ ...dx, fecha_diagnostico: e.target.value })
+                  }
+                  disabled={ESTADO}
                 />
               </Field>
               <div className="md:col-span-2">
                 <Field label="Notas clínicas">
                   <Textarea
                     value={dx.notas_clinicas}
-                    onChange={(e) => setDx({ ...dx, notas_clinicas: e.target.value })}
+                    onChange={(e) =>
+                      setDx({ ...dx, notas_clinicas: e.target.value })
+                    }
                     placeholder="Hallazgos relevantes al ingreso, dolor, movilidad, riesgo..."
-                    disabled={readOnly}
+                    disabled={ESTADO}
                   />
                 </Field>
               </div>
@@ -493,11 +586,14 @@ export default function MedicinaPage() {
 
             {/* Historial compacto del diagnóstico (si existe) */}
             {(() => {
-              const hist = ((seleccionado?.general as any)?.historial_diagnosticos ?? []) as any[];
+              const hist = ((seleccionado?.general as any)
+                ?.historial_diagnosticos ?? []) as any[];
               if (!Array.isArray(hist) || hist.length === 0) return null;
               return (
                 <div className="mt-4">
-                  <Label className="mb-2 block">Historial de diagnósticos</Label>
+                  <Label className="mb-2 block">
+                    Historial de diagnósticos
+                  </Label>
                   <div className="overflow-x-auto rounded-lg border">
                     <table className="min-w-full text-sm">
                       <thead>
@@ -511,7 +607,9 @@ export default function MedicinaPage() {
                       <tbody>
                         {hist.map((d) => (
                           <tr key={d.id} className="border-t">
-                            <td className="px-3 py-2">{fmtCL(d.fecha_diagnostico)}</td>
+                            <td className="px-3 py-2">
+                              {fmtCL(d.fecha_diagnostico)}
+                            </td>
                             <td className="px-3 py-2">{d.cie10}</td>
                             <td className="px-3 py-2">{d.lado}</td>
                             <td className="px-3 py-2">
@@ -542,7 +640,7 @@ export default function MedicinaPage() {
                 onClick={() =>
                   saveEpisodio({
                     paciente_id: seleccionado?.general?.paciente_id,
-                    episodio_id: episodioActual?.id ?? null,
+                    episodio_id: episodioActual?.episodio_id ?? null,
                     cie10: dx.cie10,
                     tipo_fractura: dx.tipo_fractura,
                     lado: (dx.lado ?? "").toUpperCase(),
@@ -551,13 +649,12 @@ export default function MedicinaPage() {
                     notas_clinicas: dx.notas_clinicas,
                   })
                 }
-                disabled={readOnly}
+                disabled={ESTADO}
               >
                 <CircleCheck className="h-4 w-4" />
                 Guardar diagnóstico
               </Button>
             </div>
-
           </CardContent>
         </Card>
 
@@ -574,20 +671,21 @@ export default function MedicinaPage() {
                 <thead>
                   <tr className="bg-slate-100 text-slate-700">
                     <th className="px-3 py-2 text-left">Fecha y hora</th>
-                    <th className="px-3 py-2 text-left">Tipo</th>
+                    <th className="px-3 py-2 text-left">Diagnóstico</th>
+                    <th className="px-3 py-2 text-left">Tipo de control</th>
                     <th className="px-3 py-2 text-left">Profesional</th>
-                    <th className="px-3 py-2 text-left">Origen</th>
-                    <th className="px-3 py-2 text-left">Resumen</th>
-                    <th className="px-3 py-2 text-left">Cambios</th>
-                    <th className="px-3 py-2 text-left">Próximo control</th>
                     <th className="px-3 py-2 text-left">Días desde previo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ordenados.map((c: any, i: number, arr: any[]) => {
                     const prev = arr[i + 1];
-                    const dias = prev ? diffDays(c.fecha_hora, prev.fecha_hora) : "—";
-                    const chips = cambiosBadge(c.cambios ?? {});
+                    const dias = prev
+                      ? diffDays(c.fecha_hora, prev.fecha_hora)
+                      : "—";
+                    const diagLabel = `${
+                      episodioActual?.cie10 ?? dx.cie10
+                    } — ${cieToTipo(episodioActual?.cie10 ?? dx.cie10)}`;
                     return (
                       <tr key={`${c.episodio_id}-${i}`} className="border-b">
                         <td className="px-3 py-2">
@@ -599,24 +697,9 @@ export default function MedicinaPage() {
                             minute: "2-digit",
                           })}
                         </td>
+                        <td className="px-3 py-2">{diagLabel}</td>
                         <td className="px-3 py-2">{c.tipo ?? "Revisión"}</td>
                         <td className="px-3 py-2">{c.doctor}</td>
-                        <td className="px-3 py-2">{c.origen}</td>
-                        <td className="px-3 py-2">{c.notas_clinicas}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-wrap gap-1">
-                            {chips.length === 0 ? (
-                              <span className="text-slate-400">—</span>
-                            ) : (
-                              chips.map((t) => (
-                                <span key={t} className="px-2 py-0.5 rounded-full text-xs bg-sky-100 text-sky-800">
-                                  {t}
-                                </span>
-                              ))
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2">{c.proximo_control ? fmtCL(c.proximo_control) : "—"}</td>
                         <td className="px-3 py-2">{dias}</td>
                       </tr>
                     );
@@ -627,254 +710,319 @@ export default function MedicinaPage() {
           </CardContent>
         </Card>
 
-      {/* -------- Modal: Nuevo control (con TODO dentro) -------- */}
-      {showNuevoControl && (
-        <div
-          className="fixed inset-0 z-50 bg-black/30 p-4 overflow-y-auto"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowNuevoControl(false); // clic fuera cierra
-          }}
-        >
-          <Card className="mx-auto my-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <CardHeader className="flex items-center justify-between">
-              <div>
-                <CardTitle>Nuevo control</CardTitle>
-                <CardDescription>Registra la revisión y los cambios</CardDescription>
-              </div>
-              <button
-                className="p-2 rounded-md hover:bg-slate-100"
-                onClick={() => setShowNuevoControl(false)}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </CardHeader>
+        {/* -------- Modal: Nuevo control -------- */}
+        {showNuevoControl && (
+          <div
+            className="fixed inset-0 z-50 bg-black/30 p-4 overflow-y-auto"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowNuevoControl(false); // clic fuera cierra
+            }}
+          >
+            <Card className="mx-auto my-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
+              <CardHeader className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Nuevo control</CardTitle>
+                  <CardDescription>
+                    Registra la revisión y los cambios
+                  </CardDescription>
+                </div>
+                <button
+                  className="p-2 rounded-md hover:bg-slate-100"
+                  onClick={() => setShowNuevoControl(false)}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </CardHeader>
 
-            {/* Contenido scrollable del modal */}
-            <CardContent className="flex-1 overflow-y-auto">
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
-                <Field label="Peso">
-                  <Input
-                    type="number"
-                    value={nuevo.peso ?? ""}
-                    onChange={(e) => setNuevo({ ...nuevo, peso: e.target.value })}
-                    placeholder="kg"
-                  />
-                </Field>
+              {/* Contenido scrollable del modal */}
+              <CardContent className="flex-1 overflow-y-auto">
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <Field label="Peso">
+                    <Input
+                      type="number"
+                      value={nuevo.peso ?? ""}
+                      onChange={(e) =>
+                        setNuevo({ ...nuevo, peso: e.target.value })
+                      }
+                      placeholder="kg"
+                    />
+                  </Field>
 
-                <Field label="Altura">
-                  <Input
-                    type="number"
-                    value={nuevo.altura ?? ""}
-                    onChange={(e) => setNuevo({ ...nuevo, altura: e.target.value })}
-                    placeholder="cm"
-                  />
-                </Field>
-              </div>
-              {/* cabecera */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Tipo de control">
-                  <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
-                    {CONTROL_TIPOS.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </Select>
-                </Field>
-
-                <Field label="Próximo control (opcional)">
-                  <Input
-                    type="datetime-local"
-                    value={nuevo.proximo_control ?? ""}
-                    onChange={(e) => setNuevo({ ...nuevo, proximo_control: e.target.value })}
-                  />
-                </Field>
-
-                <div className="md:col-span-2">
-                  <Field label="Resumen de la atención">
-                    <Textarea
-                      value={nuevo.notas}
-                      onChange={(e) => setNuevo({ ...nuevo, notas: e.target.value })}
-                      placeholder="Dolor controlado, ajustar analgésicos, iniciar rehabilitación..."
+                  <Field label="Altura">
+                    <Input
+                      type="number"
+                      value={nuevo.altura ?? ""}
+                      onChange={(e) =>
+                        setNuevo({ ...nuevo, altura: e.target.value })
+                      }
+                      placeholder="cm"
                     />
                   </Field>
                 </div>
-              </div>
+                {/* cabecera */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Field label="Tipo de control">
+                    <Select
+                      value={nuevo.tipo}
+                      onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}
+                    >
+                      {seleccionado?.general?.dx_actual?.habitos?.tabaco == null
+                        ? (
+                            <SelectItem key="Inicial" value="Inicial">
+                              Inicial
+                            </SelectItem>
+                          )
+                        : (
+                            CONTROL_TIPOS.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))
+                          )
+                      }
+                    </Select>
+                  </Field>
 
-              {/* secciones trasladadas */}
-              <div className="mt-6 grid lg:grid-cols-2 gap-4">
-                {/* Hábitos */}
-                <Card className="border-slate-200">
-                  <CardHeaderWithIcon
-                    icon={<Activity className="h-5 w-5" />}
-                    title="Hábitos"
-                    subtitle="Cambios relevantes"
-                  />
-                  <CardContent>
-                    <div className="grid gap-2">
-                      <HabitRow
-                        icon={<Cigarette size={20} />}
-                        label="Tabaco"
-                        value={nuevo.habitos.tabaco}
-                        onChange={(v) => setNuevo({ ...nuevo, habitos: { ...nuevo.habitos, tabaco: v } })}
-                      />
-                      <HabitRow
-                        icon={<Wine size={20} />}
-                        label="Alcohol"
-                        value={nuevo.habitos.alcohol}
-                        onChange={(v) => setNuevo({ ...nuevo, habitos: { ...nuevo.habitos, alcohol: v } })}
-                      />
-                      <HabitRow
-                        icon={<Pill size={20} />}
-                        label="Corticoides crónicos"
-                        value={nuevo.habitos.corticoides_cronicos}
-                        onChange={(v) =>
-                          setNuevo({
-                            ...nuevo,
-                            habitos: { ...nuevo.habitos, corticoides_cronicos: v },
-                          })
+                  <Field label="Próximo control (opcional)">
+                    <Input
+                      type="datetime-local"
+                      value={nuevo.proximo_control ?? ""}
+                      onChange={(e) =>
+                        setNuevo({ ...nuevo, proximo_control: e.target.value })
+                      }
+                    />
+                  </Field>
+
+                  <div className="md:col-span-2">
+                    <Field label="Resumen de la atención">
+                      <Textarea
+                        value={nuevo.notas}
+                        onChange={(e) =>
+                          setNuevo({ ...nuevo, notas: e.target.value })
                         }
-                      />
-                      <HabitRow
-                        icon={<Droplet size={20} />}
-                        label="Anticoagulantes orales (TACO)"
-                        value={nuevo.habitos.taco}
-                        onChange={(v) => setNuevo({ ...nuevo, habitos: { ...nuevo.habitos, taco: v } })}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Complicaciones */}
-                <Card className="border-slate-200">
-                  <CardHeaderWithIcon
-                    icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
-                    title="Complicaciones"
-                    subtitle="Registro binario y descripción clínica"
-                  />
-                  <CardContent>
-                    <Field label="Prequirúrgicas">
-                      <Textarea
-                        value={nuevo.prequirurgicas}
-                        onChange={(e) => setNuevo({ ...nuevo, prequirurgicas: e.target.value })}
-                        placeholder="Ej.: anemia, INR elevado, infección urinaria..."
+                        placeholder="Dolor controlado, ajustar analgésicos, iniciar rehabilitación..."
                       />
                     </Field>
-                    <div className="mt-3" />
-                    <Field label="Postquirúrgicas">
-                      <Textarea
-                        value={nuevo.postquirurgicas}
-                        onChange={(e) => setNuevo({ ...nuevo, postquirurgicas: e.target.value })}
-                        placeholder="Ej.: infección de herida, neumonía, TVP..."
-                      />
-                    </Field>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
-                {/* Evolución post-cirugía (a lo ancho) */}
-                <Card className="border-slate-200 lg:col-span-2">
-                  <CardHeaderWithIcon
-                    icon={<Hospital className="h-5 w-5" />}
-                    title="Evolución post-cirugía"
-                    subtitle="Eventos clave durante la estancia y al alta"
-                  />
-                  <CardContent>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <HabitRow
-                        icon={<Droplet className="h-4 w-4" />}
-                        label="Transfusión requerida"
-                        value={nuevo.transfusion}
-                        onChange={(v) => setNuevo({ ...nuevo, transfusion: v })}
-                      />
-                      <HabitRow
-                        icon={<Clock className="h-4 w-4" />}
-                        label="Reingreso en 30 días"
-                        value={nuevo.reingreso30}
-                        onChange={(v) => setNuevo({ ...nuevo, reingreso30: v })}
-                      />
-                    </div>
-                    <div className="mt-3">
-                      <Field label="Comentarios de evolución">
+                {/* secciones trasladadas */}
+                <div className="mt-6 grid lg:grid-cols-2 gap-4">
+                  {/* Hábitos */}
+                  <Card className="border-slate-200">
+                    <CardHeaderWithIcon
+                      icon={<Activity className="h-5 w-5" />}
+                      title="Hábitos"
+                      subtitle="Cambios relevantes"
+                    />
+                    <CardContent>
+                      <div className="grid gap-2">
+                        <HabitRow
+                          icon={<Cigarette size={20} />}
+                          label="Tabaco"
+                          value={nuevo.habitos.tabaco}
+                          onChange={(v) =>
+                            setNuevo({
+                              ...nuevo,
+                              habitos: { ...nuevo.habitos, tabaco: v },
+                            })
+                          }
+                        />
+                        <HabitRow
+                          icon={<Wine size={20} />}
+                          label="Alcohol"
+                          value={nuevo.habitos.alcohol}
+                          onChange={(v) =>
+                            setNuevo({
+                              ...nuevo,
+                              habitos: { ...nuevo.habitos, alcohol: v },
+                            })
+                          }
+                        />
+                        <HabitRow
+                          icon={<Pill size={20} />}
+                          label="Corticoides crónicos"
+                          value={nuevo.habitos.corticoides_cronicos}
+                          onChange={(v) =>
+                            setNuevo({
+                              ...nuevo,
+                              habitos: {
+                                ...nuevo.habitos,
+                                corticoides_cronicos: v,
+                              },
+                            })
+                          }
+                        />
+                        <HabitRow
+                          icon={<Droplet size={20} />}
+                          label="Anticoagulantes orales (TACO)"
+                          value={nuevo.habitos.taco}
+                          onChange={(v) =>
+                            setNuevo({
+                              ...nuevo,
+                              habitos: { ...nuevo.habitos, taco: v },
+                            })
+                          }
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Complicaciones */}
+                  <Card className="border-slate-200">
+                    <CardHeaderWithIcon
+                      icon={
+                        <AlertTriangle className="h-5 w-5 text-amber-600" />
+                      }
+                      title="Complicaciones"
+                      subtitle="Registro binario y descripción clínica"
+                    />
+                    <CardContent>
+                      <Field label="Prequirúrgicas">
                         <Textarea
-                          value={nuevo.evolucion_coment}
-                          onChange={(e) => setNuevo({ ...nuevo, evolucion_coment: e.target.value })}
-                          placeholder="Dolor controlado, deambulación con asistencia, iniciar rehabilitación..."
+                          value={nuevo.prequirurgicas}
+                          onChange={(e) =>
+                            setNuevo({
+                              ...nuevo,
+                              prequirurgicas: e.target.value,
+                            })
+                          }
+                          placeholder="Ej.: anemia, INR elevado, infección urinaria..."
                         />
                       </Field>
+                      <div className="mt-3" />
+                      <Field label="Postquirúrgicas">
+                        <Textarea
+                          value={nuevo.postquirurgicas}
+                          onChange={(e) =>
+                            setNuevo({
+                              ...nuevo,
+                              postquirurgicas: e.target.value,
+                            })
+                          }
+                          placeholder="Ej.: infección de herida, neumonía, TVP..."
+                        />
+                      </Field>
+                    </CardContent>
+                  </Card>
+
+                  {/* Evolución post-cirugía (a lo ancho) */}
+                  <Card className="border-slate-200 lg:col-span-2">
+                    <CardHeaderWithIcon
+                      icon={<Hospital className="h-5 w-5" />}
+                      title="Evolución post-cirugía"
+                      subtitle="Eventos clave durante la estancia y al alta"
+                    />
+                    <CardContent>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <HabitRow
+                          icon={<Droplet className="h-4 w-4" />}
+                          label="Transfusión requerida"
+                          value={nuevo.transfusion}
+                          onChange={(v) =>
+                            setNuevo({ ...nuevo, transfusion: v })
+                          }
+                        />
+                        <HabitRow
+                          icon={<Clock className="h-4 w-4" />}
+                          label="Reingreso en 30 días"
+                          value={nuevo.reingreso30}
+                          onChange={(v) =>
+                            setNuevo({ ...nuevo, reingreso30: v })
+                          }
+                        />
+                      </div>
+                      <div className="mt-3">
+                        <Field label="Comentarios de evolución">
+                          <Textarea
+                            value={nuevo.evolucion_coment}
+                            onChange={(e) =>
+                              setNuevo({
+                                ...nuevo,
+                                evolucion_coment: e.target.value,
+                              })
+                            }
+                            placeholder="Dolor controlado, deambulación con asistencia, iniciar rehabilitación..."
+                          />
+                        </Field>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Comorbilidades */}
+                <Card className="mt-4 border-slate-200">
+                  <CardHeaderWithIcon
+                    icon={<HeartPulse className="h-5 w-5" />}
+                    title="Comorbilidades crónicas"
+                    subtitle="Selecciona todas las que apliquen"
+                  />
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {comorbOptions.map((key) => {
+                        const active = (
+                          nuevo.comorbilidades as string[]
+                        ).includes(key);
+                        return (
+                          <button
+                            key={key}
+                            onClick={() =>
+                              setNuevo((n: any) => ({
+                                ...n,
+                                comorbilidades: toggleIn(
+                                  n.comorbilidades as string[],
+                                  key
+                                ),
+                              }))
+                            }
+                            className={`px-3 py-1.5 rounded-full text-sm border transition ${
+                              active
+                                ? "bg-sky-600 text-white border-sky-600"
+                                : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                            }`}
+                          >
+                            {key}
+                          </button>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
+              </CardContent>
+
+              {/* Footer fijo del modal */}
+              <div className="p-6 border-t flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowNuevoControl(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={async () => {
+                    const payload = {
+                      episodio_id: episodioActual?.episodio_id ?? null,
+                      cambios: {
+                        habitos: nuevo.habitos,
+                        prequirurgicas: nuevo.prequirurgicas?.trim() || "",
+                        postquirurgicas: nuevo.postquirurgicas?.trim() || "",
+                        evolucion_coment: nuevo.evolucion_coment?.trim() || "",
+                        transfusion: !!nuevo.transfusion,
+                        reingreso30: !!nuevo.reingreso30,
+                        comorbilidades: nuevo.comorbilidades,
+                      },
+                    };
+                    await saveControl(payload);
+                    setShowNuevoControl(false);
+                  }}
+                >
+                  Guardar control
+                </Button>
               </div>
-
-              {/* Comorbilidades */}
-              <Card className="mt-4 border-slate-200">
-                <CardHeaderWithIcon
-                  icon={<HeartPulse className="h-5 w-5" />}
-                  title="Comorbilidades crónicas"
-                  subtitle="Selecciona todas las que apliquen"
-                />
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {comorbOptions.map((key) => {
-                      const active = (nuevo.comorbilidades as string[]).includes(key);
-                      return (
-                        <button
-                          key={key}
-                          onClick={() =>
-                            setNuevo((n: any) => ({
-                              ...n,
-                              comorbilidades: toggleIn(n.comorbilidades as string[], key),
-                            }))
-                          }
-                          className={`px-3 py-1.5 rounded-full text-sm border transition ${
-                            active
-                              ? "bg-sky-600 text-white border-sky-600"
-                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                          }`}
-                        >
-                          {key}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </CardContent>
-
-            {/* Footer fijo del modal */}
-            <div className="p-6 border-t flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setShowNuevoControl(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={async () => {
-                  const payload = {
-                    episodio_id: episodioActual?.id ?? null,
-                    paciente_id: seleccionado?.general?.paciente_id,
-                    tipo: nuevo.tipo,
-                    notas_clinicas: nuevo.notas,
-                    proximo_control: nuevo.proximo_control || null,
-                    cambios: {
-                      habitos: nuevo.habitos,
-                      prequirurgicas: nuevo.prequirurgicas?.trim() || "",
-                      postquirurgicas: nuevo.postquirurgicas?.trim() || "",
-                      evolucion_coment: nuevo.evolucion_coment?.trim() || "",
-                      transfusion: !!nuevo.transfusion,
-                      reingreso30: !!nuevo.reingreso30,
-                      comorbilidades: nuevo.comorbilidades,
-                    },
-                  };
-                  await saveControl(payload);
-                  setShowNuevoControl(false);
-                }}
-              >
-                Guardar control
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+            </Card>
+          </div>
+        )}
       </div>
-    </div> 
+    </div>
   );
 }

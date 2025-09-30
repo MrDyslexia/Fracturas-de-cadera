@@ -62,6 +62,7 @@ export interface DiagnosticoActual {
   reingreso: boolean
   fallecimiento: boolean
   comentario_evolucion: string | null
+  es_episodio:boolean
 }
 
 export interface General {
@@ -100,6 +101,7 @@ export interface RegistroControl {
 }
 
 export interface SuspensionQuirofano {
+  suspension_id: number
   episodio_id: number
   fecha: string
   tipo: string
@@ -108,8 +110,20 @@ export interface SuspensionQuirofano {
 
 export interface Quirofano {
   suspensiones: SuspensionQuirofano[]
+  cirugias: Cirugia[]
 }
-
+export interface Cirugia {
+  cirugia_id: number
+  episodio_id: number
+  fecha: string
+  hora_inicio: string
+  hora_fin: string
+  tecnica: string
+  lado: string
+  reoperacion: boolean
+  complicacion_intraop: string
+  operador_id: number
+}
 export interface ResultadoLaboratorio {
   resultado_id: number
   nombre: string
@@ -160,4 +174,15 @@ export interface DetallesPaciente {
   quirofano: Quirofano
   laboratorio: Laboratorio
   alertas_medicas: AlertaMedica[]
+  indicadores: Indicadores
+}
+
+export interface Indicador {
+  nombre: string
+  valor: number
+}
+export interface Indicadores {
+  suma : number
+  nivel : string
+  indicadores: Indicador[]
 }

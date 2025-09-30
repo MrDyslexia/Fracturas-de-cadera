@@ -5,8 +5,6 @@ import React from "react"
 import { useState, useMemo } from "react"
 import { useInvestigator } from "@/contexts/InvestigatorContext"
 import { Search, Filter, Download, FileText, Database, Table, Eye, EyeOff } from "lucide-react"
-
-// === UI helpers iguales al estilo Paciente ===
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>{children}</div>
 }

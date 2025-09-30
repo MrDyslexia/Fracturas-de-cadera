@@ -66,7 +66,6 @@ export default function Page() {
   const removeFile = () => {
     setSelectedFile(null);
   };
-
   return (
     <RoleGuard allow={["tecnologo"]}>
       <div className="mb-6">

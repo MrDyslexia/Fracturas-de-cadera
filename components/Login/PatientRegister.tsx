@@ -6,7 +6,6 @@ import { ArrowLeft, UserPlus, User, Mail, Lock, AlertCircle, CheckCircle2 } from
 import { useRut } from "react-rut-formatter";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
-
 function isValidRut(rutRaw: string) {
   if (!rutRaw) return false;
   const rut = rutRaw.replace(/\./g, '').replace(/-/g, '').toUpperCase();
@@ -35,6 +34,8 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
   const [fechaNac, setFechaNac] = useState('');
 
   const [showPass, setShowPass] = useState(false); 
+  const [passTouched, setPassTouched] = useState(false);
+  const [pass2Touched, setPass2Touched] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -54,10 +55,19 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
     return !Number.isNaN(d.getTime()) && d <= today; 
   }, [fechaNac]);
 
+  // Determinar si mostrar error en los campos de contraseña
+  const showPassError = passTouched && !passOk;
+  const showPass2Error = pass2Touched && !passMatch;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
     setOk(null);
+    
+    // Marcar los campos como tocados al enviar
+    setPassTouched(true);
+    setPass2Touched(true);
+    
     if (!passOk) {
       setErr('La contraseña debe tener al menos 8 caracteres, 1 mayúscula y 1 número.');
       return;
@@ -94,7 +104,6 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
 
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'No se pudo registrar');
-
 
       setOk('Cuenta creada. Te enviamos un correo para activar tu cuenta. Revisa tu bandeja (y spam).');
 
@@ -136,7 +145,7 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
               maxLength={12}
             />
           </div>
-          {!!rut && isValid && <p className="text-xs mt-1 text-blue-700">RUT no válido.</p>}
+          {!!rut && !isValid && <p className="text-xs mt-1 text-blue-700">RUT no válido.</p>}
         </div>
 
         {/* Nombres */}
@@ -233,8 +242,13 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
               type={showPass ? "text" : "password"}
               value={pass}
               onChange={(e) => setPass(e.target.value)}
+              onBlur={() => setPassTouched(true)}
               placeholder="********"
-              className="text-blue-600 w-full pl-10 pr-12 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500"
+              className={`text-blue-600 w-full pl-10 pr-12 py-3 rounded-lg border focus:ring-2 ${
+                showPassError 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-blue-300 focus:ring-blue-500'
+              }`}
               required
             />
             {/* Botón para mostrar/ocultar */}
@@ -246,12 +260,14 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
               {showPass ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
-          <p className={`text-xs mt-1 ${passOk ? 'text-green-700' : 'text-blue-700'}`}>
+          <p className={`text-xs mt-1 ${
+            passTouched 
+              ? (passOk ? 'text-green-700' : 'text-red-700') 
+              : 'text-blue-700'
+          }`}>
             Mínimo 8 caracteres, al menos 1 mayúscula y 1 número.
           </p>
         </div>
-
-
 
         {/* Confirmación de contraseña */}
         <div>
@@ -260,12 +276,17 @@ export default function PatientRegister({ onBack }: { onBack: () => void }) {
             type="password"
             value={pass2}
             onChange={(e) => setPass2(e.target.value)}
+            onBlur={() => setPass2Touched(true)}
             placeholder="********"
-            className="text-blue-600 w-full px-3 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500"
+            className={`text-blue-600 w-full px-3 py-3 rounded-lg border focus:ring-2 ${
+              showPass2Error 
+                ? 'border-red-500 focus:ring-red-500' 
+                : 'border-blue-300 focus:ring-blue-500'
+            }`}
             required
           />
-          {!!pass2 && !passMatch && (
-            <p className="text-xs mt-1 text-blue-700">Las contraseñas no coinciden.</p>
+          {pass2Touched && !passMatch && (
+            <p className="text-xs mt-1 text-red-700">Las contraseñas no coinciden.</p>
           )}
         </div>
 

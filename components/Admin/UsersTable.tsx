@@ -17,6 +17,15 @@ const CARGO_LABEL: Record<string, string> = {
   ADMINISTRADOR: 'Administrador(a)',
 };
 
+const CARGO_FILTER_OPTIONS = [
+  { value: '', label: 'Todos los cargos' },
+  { value: 'PACIENTE', label: 'Paciente' },
+  { value: 'TECNOLOGO', label: 'Tecnólogo(a) Médico' },
+  { value: 'INVESTIGADOR', label: 'Investigador(a)' },
+  { value: 'FUNCIONARIO', label: 'Funcionario(a)' },
+  { value: 'ADMINISTRADOR', label: 'Administrador(a)' },
+];
+
 function getProfile(u: any) {
   return (
     u?.profile ??
@@ -66,26 +75,47 @@ function roleClass(cargo?: string) {
 export function UsersTable() {
   const { users, fetchUsers, addRole, removeRole, updateProfile, loading } = useAdminUsers();
   const [q, setQ] = useState('');
+  const [cargoFilter, setCargoFilter] = useState('');
 
   const filtered = useMemo(() => {
-    const K = q.trim().toLowerCase();
-    if (!K) return users;
-    return users.filter((u) => {
-      const p = getProfile(u);
-      const cargoKey = (p?.cargo ?? '').toLowerCase();
-      const cargoLabel = (p?.cargo ? (CARGO_LABEL[p.cargo] ?? p.cargo) : '').toLowerCase();
-      const roles = (u?.roles || []).join(' ').toLowerCase();
-      return (
-        u.rut?.toLowerCase().includes(K) ||
-        u.correo?.toLowerCase().includes(K) ||
-        `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`.toLowerCase().includes(K) ||
-        p?.rut_profesional?.toLowerCase().includes(K) ||
-        cargoKey.includes(K) ||
-        cargoLabel.includes(K) ||
-        roles.includes(K)
-      );
-    });
-  }, [q, users]);
+    let filteredUsers = users;
+    
+    // Aplicar filtro de búsqueda por texto
+    if (q.trim()) {
+      const K = q.trim().toLowerCase();
+      filteredUsers = filteredUsers.filter((u) => {
+        const p = getProfile(u);
+        const cargoKey = (p?.cargo ?? '').toLowerCase();
+        const cargoLabel = (p?.cargo ? (CARGO_LABEL[p.cargo] ?? p.cargo) : '').toLowerCase();
+        const roles = (u?.roles || []).join(' ').toLowerCase();
+        return (
+          u.rut?.toLowerCase().includes(K) ||
+          u.correo?.toLowerCase().includes(K) ||
+          `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`.toLowerCase().includes(K) ||
+          p?.rut_profesional?.toLowerCase().includes(K) ||
+          cargoKey.includes(K) ||
+          cargoLabel.includes(K) ||
+          roles.includes(K)
+        );
+      });
+    }
+    
+    // Aplicar filtro por cargo
+    if (cargoFilter) {
+      filteredUsers = filteredUsers.filter((u) => {
+        if (cargoFilter === 'PACIENTE') {
+          return isPaciente(u);
+        } else if (cargoFilter === 'ADMINISTRADOR') {
+          return hasAdminRole(u);
+        } else {
+          const p = getProfile(u);
+          return p?.cargo === cargoFilter && !hasAdminRole(u);
+        }
+      });
+    }
+    
+    return filteredUsers;
+  }, [q, cargoFilter, users]);
 
   function askCargo(defaultValue: string) {
     return (prompt(
@@ -128,12 +158,26 @@ export function UsersTable() {
           <div className="relative h-10">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <input
-              className="input-base input-search w-96"
+              className="input-base input-search w-80"
               placeholder="Buscar por nombre, RUT, correo o cargo…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
+          
+          {/* Select para filtrar por cargo */}
+          <select
+            value={cargoFilter}
+            onChange={(e) => setCargoFilter(e.target.value)}
+            className="h-10 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          >
+            {CARGO_FILTER_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
           <button
             onClick={() => fetchUsers()}
             className="rounded-xl px-4 py-2 font-medium text-white transition bg-blue-600 hover:bg-blue-700 active:bg-blue-600 shadow-sm hover:shadow-lg active:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
@@ -146,16 +190,15 @@ export function UsersTable() {
       </div>
 
       <div className="users-table__wrap">
-        <table className="users-table">
-          <thead>
+        <table className="users-table w-full">
+          <thead className='text-center'>
             <tr>
-              <th className="th sticky-head">Nombre</th>
-              <th className="th sticky-head">RUT</th>
-              <th className="th sticky-head">Correo</th>
-              <th className="th sticky-head">Cargo</th>
-              <th className="th sticky-head">RUT Profesional</th>
-              {/* Columna Estado eliminada */}
-              <th className="th sticky-head w-56">Acciones</th>
+              <th className="th sticky-head align-middle text-center">Nombre</th>
+              <th className="th sticky-head align-middle text-center">RUT</th>
+              <th className="th sticky-head align-middle text-center">Correo</th>
+              <th className="th sticky-head align-middle text-center">Cargo</th>
+              <th className="th sticky-head align-middle text-center">RUT Profesional</th>
+              <th className="th sticky-head w-56 align-middle text-center">Acciones</th>
             </tr>
           </thead>
 
@@ -166,18 +209,18 @@ export function UsersTable() {
 
               return (
                 <tr key={u.rut} className="users-row">
-                  <td className="td">
-                    <div className="font-medium text-heading">
+                  <td className="td align-middle">
+                    <div className="font-medium text-heading ">
                       {u.nombres} {u.apellido_paterno} {u.apellido_materno}
                     </div>
                     {u.telefono && <div className="cell-sub">{u.telefono}</div>}
                   </td>
 
-                  <td className="td text-body">{u.rut || <span className="placeholder-dash">—</span>}</td>
-                  <td className="td text-body">{u.correo || <span className="placeholder-dash">—</span>}</td>
+                  <td className="td text-body align-middle">{u.rut || <span className="placeholder-dash">—</span>}</td>
+                  <td className="td text-body align-middle">{u.correo || <span className="placeholder-dash">—</span>}</td>
 
-                  <td className="td">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <td className="td align-middle text-center">
+                    <div className="flex flex-wrap items-center gap-2 justify-center">
                       {(() => {
                         if (isAdmin) {
                           return <span className="badge badge--admin">Administrador(a)</span>;
@@ -200,7 +243,7 @@ export function UsersTable() {
                     </div>
                   </td>
 
-                  <td className="td text-body">
+                  <td className="td text-body align-middle text-center">
                     {(() => {
                       let rutContent;
                       if (isAdmin) {
@@ -220,10 +263,8 @@ export function UsersTable() {
                     })()}
                   </td>
 
-                  {/* Columna Estado eliminada */}
-
-                  <td className="td">
-                    <div className="flex justify-start items-center gap-2">
+                  <td className="td align-middle text-center">
+                    <div className="flex justify-center items-center gap-2">
                       {isAdmin ? (
                         <button
                           onClick={() => removeRole(u.id, 'ADMIN')}
@@ -249,8 +290,7 @@ export function UsersTable() {
 
             {filtered.length === 0 && (
               <tr>
-                {/* Antes: colSpan={7}. Se reduce en 1 porque se eliminó “Estado” */}
-                <td colSpan={6} className="py-10 text-center text-muted">Sin resultados…</td>
+                <td colSpan={6} className="py-10 text-center text-muted align-middle">Sin resultados…</td>
               </tr>
             )}
           </tbody>

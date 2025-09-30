@@ -64,7 +64,7 @@ export default function PacienteSelectorModalView({
       aria-modal="true"
     >
       {/* Overlay clickeable */}
-      <div className="absolute inset-0 bg-black/30" onClick={onCancel} />
+      <div className="absolute inset-0 bg-white" onClick={onCancel} />
 
       {/* Panel */}
       <div
