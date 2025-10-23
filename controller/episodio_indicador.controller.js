@@ -1,6 +1,7 @@
 // controller/episodio_indicador.controller.js
 const models = require('../model/initModels');
 const { idParam } = require('./_crud');
+const riesgoService = require('../services/riesgoRefracturaService');
 
 function parseDate(input) {
   if (!input) return null;
@@ -33,12 +34,35 @@ async function getOne(req, res) {
 
 async function create(req, res) {
   try {
-    const { episodio_id, tipo, valor, nivel, detalles, calculado_en } = req.body || {};
-    if (!episodio_id || !tipo) return res.status(400).json({ error: 'episodio_id y tipo son obligatorios' });
-    const epi = await models.Episodio.findByPk(episodio_id);
+    const { episodio_id, control_id, tipo, valor, nivel, detalles, calculado_en } = req.body || {};
+    let episodioId = episodio_id ? Number(episodio_id) : null;
+    let controlId = control_id ? Number(control_id) : null;
+
+    let control = null;
+    if (controlId) {
+      if (!Number.isInteger(controlId) || controlId <= 0) {
+        return res.status(400).json({ error: 'control_id inválido' });
+      }
+      control = await models.ControlClinico.findByPk(controlId);
+      if (!control) return res.status(400).json({ error: 'control_id no existe' });
+      if (!episodioId) episodioId = control.episodio_id;
+    }
+
+    if (!episodioId || !Number.isInteger(episodioId) || episodioId <= 0) {
+      return res.status(400).json({ error: 'episodio_id es obligatorio' });
+    }
+
+    const epi = await models.Episodio.findByPk(episodioId);
     if (!epi) return res.status(400).json({ error: 'episodio_id no existe' });
+
+    if (control && control.episodio_id !== episodioId) {
+      return res.status(400).json({ error: 'control_id no pertenece al episodio indicado' });
+    }
+
+    if (!tipo) return res.status(400).json({ error: 'tipo es obligatorio' });
     const created = await models.EpisodioIndicador.create({
-      episodio_id,
+      episodio_id: episodioId,
+      control_id: controlId ?? null,
       tipo,
       valor: valor ?? null,
       nivel: nivel ?? null,
@@ -60,9 +84,35 @@ async function update(req, res) {
     if (!row) return res.status(404).json({ error: 'No encontrado' });
     const body = req.body || {};
     if (body.episodio_id !== undefined) {
-      const epi = await models.Episodio.findByPk(body.episodio_id);
+      const episodioId = Number(body.episodio_id);
+      if (!Number.isInteger(episodioId) || episodioId <= 0) {
+        return res.status(400).json({ error: 'episodio_id inválido' });
+      }
+      const epi = await models.Episodio.findByPk(episodioId);
       if (!epi) return res.status(400).json({ error: 'episodio_id no existe' });
-      row.episodio_id = body.episodio_id;
+      if (row.control_id) {
+        const control = await models.ControlClinico.findByPk(row.control_id);
+        if (control && control.episodio_id !== episodioId) {
+          return res.status(400).json({ error: 'control_id existente no pertenece al nuevo episodio' });
+        }
+      }
+      row.episodio_id = episodioId;
+    }
+    if (body.control_id !== undefined) {
+      if (body.control_id === null) {
+        row.control_id = null;
+      } else {
+        const controlId = Number(body.control_id);
+        if (!Number.isInteger(controlId) || controlId <= 0) {
+          return res.status(400).json({ error: 'control_id inválido' });
+        }
+        const control = await models.ControlClinico.findByPk(controlId);
+        if (!control) return res.status(400).json({ error: 'control_id no existe' });
+        if (row.episodio_id && control.episodio_id !== row.episodio_id) {
+          return res.status(400).json({ error: 'control_id no pertenece al episodio indicado' });
+        }
+        row.control_id = controlId;
+      }
     }
     if (body.tipo !== undefined) row.tipo = body.tipo;
     if (body.valor !== undefined) row.valor = body.valor ?? null;
@@ -91,5 +141,41 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { list, getOne, create, update, remove };
+async function recalculate(req, res) {
+  try {
+    const controlRaw = req.params.controlId || req.body?.control_id;
+    const overrides = req.body?.overrides || req.body?.contexto || {};
+    const mensajeAlerta = req.body?.mensajeAlerta;
 
+    if (controlRaw !== undefined) {
+      const controlId = Number(controlRaw);
+      if (!Number.isInteger(controlId) || controlId <= 0) {
+        return res.status(400).json({ error: 'control_id inválido' });
+      }
+      const data = await riesgoService.recalcularIndicadoresControl(controlId, {
+        overrides,
+        mensajeAlerta,
+      });
+      return res.json(data);
+    }
+
+    const rawId = req.params.episodioId || req.params.id || req.body?.episodio_id;
+    const episodioId = Number(rawId);
+    if (!Number.isInteger(episodioId) || episodioId <= 0) {
+      return res.status(400).json({ error: 'episodio_id inválido' });
+    }
+
+    const data = await riesgoService.recalcularIndicadores(episodioId, {
+      overrides,
+      mensajeAlerta,
+    });
+
+    res.json(data);
+  } catch (e) {
+    const status = e.statusCode || e.status || 500;
+    if (status >= 500) console.error('recalculate episodio_indicador error', e);
+    res.status(status).json({ error: e.message || 'Error al recalcular indicadores de episodio' });
+  }
+}
+
+module.exports = { list, getOne, create, update, remove, recalculate };

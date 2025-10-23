@@ -18,7 +18,16 @@ module.exports = (sequelize) => {
     reoperacion: { type: DataTypes.BOOLEAN, defaultValue: false },
     complicacion_intraop: { type: DataTypes.STRING, allowNull: true },
 
-    operador_id: { type: DataTypes.INTEGER, allowNull: true }, // → professional_profiles.id (opcional)
+    operador_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: "professional_profiles", key: "id" },
+      onUpdate: "CASCADE",
+      onDelete: "SET NULL",
+    }, // → professional_profiles.id (opcional)
+    terminada: {type: DataTypes.VIRTUAL(DataTypes.BOOLEAN, ["hora_fin"]),
+      get() { return !!this.hora_fin; }
+    },
   }, {
     tableName: "cirugia",
     timestamps: false,

@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 
 const { connectDB, sequelize } = require('./model/db');
+const { Op } = require('sequelize');
 const modelos = require('./model/initModels');
 
 const { initRoutes } = require('./routes/initRoutes');
@@ -23,21 +24,36 @@ app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
 // CORS (Next.js en 3000)
+const allowedOrigins = [
+  FRONT_ORIGIN,
+  'http://localhost:3000',
+  'https://provider.blocktype.cl',
+  'https://editor.swagger.io',
+  'null',
+].filter(Boolean);
 const corsOptions = {
-  origin: [FRONT_ORIGIN],
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
   credentials: true,
 };
 app.use(cors(corsOptions));
 app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (allowedOrigins.includes(origin) || origin === 'null')) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Origin', req.headers.origin || FRONT_ORIGIN);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
 
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   }
   next();
 });
@@ -72,27 +88,27 @@ app.use((err, _req, res, _next) => {
     await connectDB({ alter: ALTER });
     const Usuario = modelos.User; // <-- Usa el modelo correcto según tu initModels.js
     const adminEmail = process.env.ADMIN_EMAIL || 'Admin@admin.com';
-    const pass=await bcrypt.hash('Clave123', 10)
-    const [admin, created] = await Usuario.findOrCreate({
-      where: { correo: adminEmail }, // <-- Asegúrate de que el campo coincida con tu modelo
-      defaults: {
-        nombres: "Admin",
-        apellido_paterno: "Admin",
-        apellido_materno: "Admin",
+    const adminRut = process.env.ADMIN_RUT || '111111111';
+    const pass = await bcrypt.hash('Clave123', 10);
+    // Evita violaciones de unicidad buscando por correo O rut
+    let admin = await Usuario.findOne({ where: { [Op.or]: [{ correo: adminEmail }, { rut: adminRut }] } });
+    let created = false;
+    if (!admin) {
+      admin = await Usuario.create({
+        nombres: 'Admin',
+        apellido_paterno: 'Admin',
+        apellido_materno: 'Admin',
         correo: adminEmail,
-        rut: "111111111",
+        rut: adminRut,
         password_hash: pass,
-        telefono: 12341234,
-        sexo: "M",
-        fecha_nacimiento: "2001-01-01",
-      },
-    });
-
-    if (created) {
-      console.log(`✅ Usuario administrador creado: ${adminEmail}`);
-    } else {
-      console.log(`ℹ️ Usuario administrador ya existe: ${adminEmail}`);
+        telefono: '12341234',
+        sexo: 'M',
+        fecha_nacimiento: '2001-01-01',
+      });
+      created = true;
     }
+
+    console.log(created ? `✅ Usuario administrador creado: ${adminEmail}` : `ℹ️ Usuario administrador ya existe: ${adminEmail}`);
 
     const AdminModel = modelos.Administrador; // <-- Usa el modelo correcto según tu initModels.js
     const [adminProfile, profCreated] = await AdminModel.findOrCreate({

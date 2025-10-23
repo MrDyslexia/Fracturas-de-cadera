@@ -1,5 +1,7 @@
 const models = require("../model/initModels");
 const { idParam } = require("./_crud");
+const riesgoService = require("../services/riesgoRefracturaService");
+const labAlertService = require("../services/labAlertService");
 
 function parseDate(input) {
   if (!input) return null;
@@ -30,9 +32,9 @@ async function getOne(req, res) {
 
 async function create(req, res) {
   try {
-    const { episodio_id, parametro, valor, unidad, fecha_resultado, muestra_id, examen_id } = req.body || {};
-    if (!episodio_id || !parametro || valor === undefined || !fecha_resultado)
-      return res.status(400).json({ error: "episodio_id, parametro, valor y fecha_resultado son obligatorios" });
+    const {paciente_id,parametro, valor, unidad, fecha_resultado, muestra_id, examen_id } = req.body || {};
+    if (!parametro || valor === undefined )
+      return res.status(400).json({ error: "parametro, valor y fecha_resultado son obligatorios" });
 
     const epi = await models.Episodio.findByPk(episodio_id);
     if (!epi) return res.status(400).json({ error: "episodio_id no existe" });
@@ -50,6 +52,20 @@ async function create(req, res) {
         // no interrumpimos, pero podríamos advertir; para CRUD básico dejamos pasar
       }
     }
+    
+    let episodio_id;
+    if (paciente_id) {
+      const ultimoEpisodio = await models.Episodio.findOne({
+        where: { paciente_id },
+        order: [["episodio_id", "DESC"]],
+      });
+      if (!ultimoEpisodio) {
+        return res.status(400).json({ error: "No se encontró un episodio para el paciente_id proporcionado" });
+      }
+      episodio_id = ultimoEpisodio.episodio_id;
+    } else {
+      return res.status(400).json({ error: "paciente_id es obligatorio" });
+    }
 
     const created = await models.Resultado.create({
       episodio_id,
@@ -60,6 +76,16 @@ async function create(req, res) {
       muestra_id: muestra_id ?? null,
       examen_id: examen_id ?? null,
     });
+    try {
+      await riesgoService.recalcularIndicadores(episodio_id);
+    } catch (recalcError) {
+      console.error('recalculo riesgo post-resultado', recalcError);
+    }
+    try {
+      await labAlertService.syncAlertForResultado(created);
+    } catch (alertError) {
+      console.error('alerta laboratorio post-resultado', alertError);
+    }
     res.status(201).json(created);
   } catch (e) {
     console.error('create resultado error', e);
@@ -92,7 +118,18 @@ async function update(req, res) {
         row.examen_id = examen_id;
       }
     }
-    await row.save(); res.json(row);
+    await row.save();
+    try {
+      await riesgoService.recalcularIndicadores(row.episodio_id);
+    } catch (recalcError) {
+      console.error('recalculo riesgo post-resultado update', recalcError);
+    }
+    try {
+      await labAlertService.syncAlertForResultado(row);
+    } catch (alertError) {
+      console.error('alerta laboratorio post-resultado update', alertError);
+    }
+    res.json(row);
   } catch (e) {
     console.error('update resultado error', e);
     res.status(500).json({ error: "Error al actualizar resultado" });

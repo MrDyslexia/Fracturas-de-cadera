@@ -14,13 +14,14 @@ exports.me = async (req, res) => {
   try {
     // Ajusta según lo que ponga tu middleware auth en req.user
     const userId = req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Usuario no autenticado' });
 
-    const user = await models.user.findByPk(userId, {
-      attributes: ['id','rut','nombre','correo'],
+    const user = await models.User.findByPk(userId, {
+      attributes: ['id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno', 'correo'],
       include: [{
-        model: models.professional_profile,
+        model: models.ProfessionalProfile,
         as: 'professional_profile',
-        attributes: ['cargo','hospital','activo']
+        attributes: ['cargo', 'hospital']
       }]
     });
 

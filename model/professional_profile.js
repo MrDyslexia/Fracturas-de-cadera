@@ -9,7 +9,6 @@ module.exports = (sequelize) => {
       references: { model: "users", key: "id" },
       onUpdate: "CASCADE", onDelete: "CASCADE",
     },
-    rut: { type: DataTypes.STRING(16), allowNull: true, unique: true },
     rut_profesional: { type: DataTypes.STRING(16), allowNull: true, unique: true },
     especialidad: { type: DataTypes.STRING(120), allowNull: true },
     cargo: {
@@ -30,7 +29,6 @@ module.exports = (sequelize) => {
     underscored: true,
     indexes: [
       { fields: ["user_id"], unique: true },
-      { fields: ["rut"], unique: true },
       { fields: ["rut_profesional"], unique: true },
       { fields: ["cargo"] },
     ],

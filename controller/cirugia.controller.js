@@ -1,5 +1,6 @@
 // controller/cirugia.controller.js
 const models = require('../model/initModels');
+const { Op } = require('sequelize');
 const { idParam } = require('./_crud');
 
 function parseDateOnly(input) {
@@ -23,9 +24,22 @@ async function getOne(req, res) {
   try {
     const id = idParam(req);
     if (!id) return res.status(400).json({ error: 'id inválido' });
-    const row = await models.Cirugia.findByPk(id);
-    if (!row) return res.status(404).json({ error: 'No encontrado' });
-    res.json(row);
+    const paciente = await models.Paciente.findByPk(id);
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' });
+
+    const episodios = await models.Episodio.findAll({
+      attributes: ['episodio_id'],
+      where: { paciente_id: id },
+    });
+    if (!episodios.length) return res.json([]);
+
+    const episodioIds = episodios.map((epi) => epi.episodio_id);
+    const cirugias = await models.Cirugia.findAll({
+      where: { episodio_id: { [Op.in]: episodioIds } },
+      order: [['fecha', 'ASC'], ['cirugia_id', 'ASC']],
+    });
+
+    res.json(cirugias);
   } catch (e) {
     console.error('getOne cirugia error', e);
     res.status(500).json({ error: 'Error al obtener cirugía' });
@@ -35,7 +49,7 @@ async function getOne(req, res) {
 async function create(req, res) {
   try {
     const {
-      episodio_id,
+      paciente_id,
       fecha,
       hora_inicio,
       hora_fin,
@@ -46,12 +60,29 @@ async function create(req, res) {
       operador_id,
     } = req.body || {};
 
-    if (!episodio_id || !fecha) return res.status(400).json({ error: 'episodio_id y fecha son obligatorios' });
-    const epi = await models.Episodio.findByPk(episodio_id);
-    if (!epi) return res.status(400).json({ error: 'episodio_id no existe' });
+    if (!paciente_id || !fecha) {
+      console.error('Invalid input', { paciente_id, fecha });
+      return res.status(400).json({ error: 'paciente_id y fecha son obligatorios' });
+    }
+
+    const paciente = await models.Paciente.findByPk(paciente_id);
+    if (!paciente) return res.status(400).json({ error: 'paciente_id no existe' });
+
+    const episodio = await models.Episodio.findOne({
+      where: { paciente_id },
+      order: [['episodio_id', 'DESC']],
+    });
+    if (!episodio) {
+      return res.status(400).json({ error: 'El paciente no tiene episodios registrados' });
+    }
+
+    const profesional = await models.ProfessionalProfile.findByPk(operador_id);
+    if (operador_id && !profesional) {
+      return res.status(400).json({ error: 'operador_id no existe' });
+    }
 
     const created = await models.Cirugia.create({
-      episodio_id,
+      episodio_id: episodio.episodio_id,
       fecha: parseDateOnly(fecha) || new Date(),
       hora_inicio: hora_inicio ?? null,
       hora_fin: hora_fin ?? null,
@@ -59,7 +90,7 @@ async function create(req, res) {
       lado: lado ?? null,
       reoperacion: !!reoperacion,
       complicacion_intraop: complicacion_intraop ?? null,
-      operador_id: operador_id ?? null,
+      operador_id: profesional.id,
     });
     res.status(201).json(created);
   } catch (e) {
@@ -76,19 +107,21 @@ async function update(req, res) {
     if (!row) return res.status(404).json({ error: 'No encontrado' });
 
     const body = req.body || {};
+    const assign = (key, value, transform) => {
+      if (value === undefined) return;
+      row[key] = transform ? transform(value) : value ?? null;
+    };
     if (body.episodio_id !== undefined) {
       const epi = await models.Episodio.findByPk(body.episodio_id);
       if (!epi) return res.status(400).json({ error: 'episodio_id no existe' });
       row.episodio_id = body.episodio_id;
     }
-    if (body.fecha !== undefined) row.fecha = body.fecha ? parseDateOnly(body.fecha) : row.fecha;
-    if (body.hora_inicio !== undefined) row.hora_inicio = body.hora_inicio ?? null;
-    if (body.hora_fin !== undefined) row.hora_fin = body.hora_fin ?? null;
-    if (body.tecnica !== undefined) row.tecnica = body.tecnica ?? null;
-    if (body.lado !== undefined) row.lado = body.lado ?? null;
+    assign('hora_fin', body.hora_fin);
+    assign('tecnica', body.tecnica);
+    assign('lado', body.lado);
     if (body.reoperacion !== undefined) row.reoperacion = !!body.reoperacion;
-    if (body.complicacion_intraop !== undefined) row.complicacion_intraop = body.complicacion_intraop ?? null;
-    if (body.operador_id !== undefined) row.operador_id = body.operador_id ?? null;
+    assign('complicacion_intraop', body.complicacion_intraop);
+    assign('operador_id', body.operador_id ?? null);
 
     await row.save();
     res.json(row);
@@ -113,4 +146,3 @@ async function remove(req, res) {
 }
 
 module.exports = { list, getOne, create, update, remove };
-

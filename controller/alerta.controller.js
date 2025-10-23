@@ -6,6 +6,8 @@ async function getOne(req, res) { try {
   const id = idParam(req); if (!id) return res.status(400).json({ error: "id inválido" });
   const row = await models.Alerta.findByPk(id); if (!row) return res.status(404).json({ error: "No encontrado" }); res.json(row);
 } catch { res.status(500).json({ error: "Error al obtener alerta" }); } }
+
+
 async function create(req, res) { try {
   const { tipo, mensaje, indicador_id } = req.body;
   if (!tipo || !indicador_id) return res.status(400).json({ error: "tipo e indicador_id obligatorios" });
@@ -13,6 +15,8 @@ async function create(req, res) { try {
   const created = await models.Alerta.create({ tipo, mensaje, indicador_id });
   res.status(201).json(created);
 } catch { res.status(500).json({ error: "Error al crear alerta" }); } }
+
+
 async function update(req, res) { try {
   const id = idParam(req); if (!id) return res.status(400).json({ error: "id inválido" });
   const row = await models.Alerta.findByPk(id); if (!row) return res.status(404).json({ error: "No encontrado" });
@@ -25,6 +29,8 @@ async function update(req, res) { try {
   }
   await row.save(); res.json(row);
 } catch { res.status(500).json({ error: "Error al actualizar alerta" }); } }
+
+
 async function remove(req, res) { try {
   const id = idParam(req); if (!id) return res.status(400).json({ error: "id inválido" });
   const row = await models.Alerta.findByPk(id); if (!row) return res.status(404).json({ error: "No encontrado" });

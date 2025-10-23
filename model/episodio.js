@@ -15,8 +15,10 @@ module.exports = (sequelize) => {
       allowNull: false 
     },
     lado: { type: DataTypes.ENUM("DERECHO","IZQUIERDO","BILATERAL"), allowNull: true },
-    procedencia: { type: DataTypes.ENUM("URGENCIA","APS","OTRO_CENTRO"), allowNull: true },
+    procedencia: { type: DataTypes.ENUM("URGENCIA","APS","OTRO_CENTRO","Derivación APS"), allowNull: true },
 
+    comorbilidades: { type: DataTypes.JSONB, allowNull: true }, // array de strings en JSON
+    
     // fechas clave
     fecha_diagnostico: { type: DataTypes.DATE, allowNull: false },
     fecha_ingreso_quirurgico: { type: DataTypes.DATE, allowNull: true }, // para DHNQ
@@ -41,8 +43,22 @@ module.exports = (sequelize) => {
     fecha_fallecimiento: { type: DataTypes.DATE, allowNull: true },
 
     // notas libres
-    notas_ingreso: { type: DataTypes.TEXT, allowNull: true },
 
+    transfusion: { type: DataTypes.BOOLEAN, allowNull: true }, // nueva
+    reingreso: { type: DataTypes.BOOLEAN, allowNull: true },   // nueva
+
+    comentario_evolucion: { type: DataTypes.TEXT, allowNull: true }, // nueva
+
+    notas_clinicas: { type: DataTypes.TEXT, allowNull: true },
+
+    prequirurgicas: { type: DataTypes.TEXT, allowNull: true },
+    
+    postquirurgicas: { type: DataTypes.TEXT, allowNull: true },
+
+    //tipo de control 
+    // tipo_control: { type: DataTypes.ENUM("inicial","revision","interconsulta", "alta"), allowNull: true },
+
+    inicial: { type: DataTypes.INTEGER, allowNull: true},
     // virtuales (derivados)
     tdc_dias: { 
       type: DataTypes.VIRTUAL(DataTypes.INTEGER, ["fecha_diagnostico"]),

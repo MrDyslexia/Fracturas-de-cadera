@@ -1,17 +1,27 @@
 // controller/register.js
-const models = require('../model/initModels');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
+// Permite inyectar dependencias en tests
+let dbModels = require('../model/initModels');
+let mailer = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: false, // STARTTLS
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+});
+
+// === Utils ===
 const normEmail = (s) => (s || '').trim().toLowerCase();
 const strongPwd = (s) => s?.length >= 8 && /[A-Z]/.test(s) && /\d/.test(s);
 const isValidSexo = (s) => ['M', 'F', 'O'].includes(String(s || '').toUpperCase());
 const isValidISODate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 
-
-const REQUIRE_VERIFY =
-  String(process.env.EMAIL_VERIFICATION_REQUIRED ?? "true").toLowerCase() !== "false";
+// Evaluada en runtime (útil para tests/entornos distintos)
+function REQUIRE_VERIFY() {
+  return String(process.env.EMAIL_VERIFICATION_REQUIRED ?? 'true').toLowerCase() !== 'false';
+}
 
 // --- Validación de RUT chileno ---
 function isValidRut(rutRaw) {
@@ -49,17 +59,9 @@ function calcEdadYM(isoDate) {
   return { anios, meses };
 }
 
-// --- Mailer (usa tus variables de entorno) ---
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: false, // STARTTLS
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
-
 async function sendVerifyMail(to, nombre, verifyUrl) {
   const from = process.env.MAIL_FROM || process.env.SMTP_USER;
-  return transporter.sendMail({
+  return mailer.sendMail({
     from,
     to,
     subject: 'Verifica tu correo — Portal Fractura de Cadera',
@@ -114,9 +116,9 @@ async function registerPaciente(req, res) {
 
     // Duplicados
     const rutNorm = rut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
-    const dupCorreo = await models.User.findOne({ where: { correo } });
+    const dupCorreo = await dbModels.User.findOne({ where: { correo } });
     if (dupCorreo) return res.status(409).json({ error: 'El correo ya está registrado' });
-    const dupRut = await models.User.findOne({ where: { rut: rutNorm } });
+    const dupRut = await dbModels.User.findOne({ where: { rut: rutNorm } });
     if (dupRut) return res.status(409).json({ error: 'El RUT ya está registrado' });
 
     // Crear usuario (según bandera)
@@ -126,13 +128,13 @@ async function registerPaciente(req, res) {
     let email_verify_token = null;
     let email_verify_expires = null;
 
-    if (REQUIRE_VERIFY) {
+    if (REQUIRE_VERIFY()) {
       email_verified = false;
       email_verify_token = genToken(24);
       email_verify_expires = new Date(Date.now() + VERIFY_TTL_HOURS * 60 * 60 * 1000);
     }
 
-    const user = await models.User.create({
+    const user = await dbModels.User.create({
       rut: rutNorm,
       nombres: String(nombres).trim(),
       apellido_paterno: String(apellido_paterno).trim(),
@@ -146,17 +148,16 @@ async function registerPaciente(req, res) {
       email_verify_expires,
     });
 
-
     // Calcular edad y crear perfil Paciente
     const { anios, meses } = calcEdadYM(fecha_nacimiento);
-    await models.Paciente.create({
+    await dbModels.Paciente.create({
       user_id: user.id,
       edad_anios: anios,
       edad_meses: meses,
     });
 
     // Enviar correo de verificación SOLO si está activado
-    if (REQUIRE_VERIFY) {
+    if (REQUIRE_VERIFY()) {
       const nombre = [user.nombres, user.apellido_paterno, user.apellido_materno]
         .filter(Boolean).join(' ').trim();
       const verifyUrl = `${process.env.FRONT_ORIGIN || 'http://localhost:3000'}/verify?token=${user.email_verify_token}`;
@@ -167,9 +168,8 @@ async function registerPaciente(req, res) {
       }
     }
 
-
     return res.status(201).json({
-      message: REQUIRE_VERIFY
+      message: REQUIRE_VERIFY()
         ? 'Cuenta creada. Revisa tu correo para verificarla.'
         : 'Cuenta creada. Ya puedes iniciar sesión.',
     });
@@ -192,7 +192,7 @@ async function verifyEmail(req, res) {
     const token = String(req.query.token || '').trim();
     if (!token) return res.status(400).json({ error: 'Token faltante' });
 
-    const user = await models.User.findOne({ where: { email_verify_token: token } });
+    const user = await dbModels.User.findOne({ where: { email_verify_token: token } });
     if (!user) return res.status(400).json({ error: 'Token inválido' });
     if (!user.email_verify_expires || user.email_verify_expires < new Date()) {
       return res.status(400).json({ error: 'Token expirado' });
@@ -212,3 +212,7 @@ async function verifyEmail(req, res) {
 }
 
 module.exports = { registerPaciente, verifyEmail };
+
+// === SOLO TESTS: inyección de dependencias ===
+module.exports.__setModelsForTest = function setModels(m) { dbModels = m; };
+module.exports.__setMailerForTest = function setMailer(t) { mailer = t; };

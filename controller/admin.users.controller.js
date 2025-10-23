@@ -213,7 +213,7 @@ async function listUsers(_req, res) {
       order: [['id', 'DESC']],
       include: [
         { model: models.ProfessionalProfile, as: 'professional_profile', required: false,
-          attributes: ['id','rut_profesional','cargo','especialidad','hospital','departamento','activo'] },
+          attributes: ['id','rut_profesional','cargo','especialidad','hospital','departamento'] },
         { model: models.Administrador, as: 'administrador', required: false, attributes: ['nivel_acceso']},
       ],
     });
@@ -238,7 +238,7 @@ async function getUser(req, res) {
     const user = await models.User.findByPk(id, {
       include: [
         { model: models.ProfessionalProfile, as: 'professional_profile', required: false,
-          attributes: ['id','rut_profesional','cargo','especialidad','hospital','departamento','activo'] },
+          attributes: ['id','rut_profesional','cargo','especialidad','hospital','departamento'] },
         { model: models.Administrador, as: 'administrador', required: false, attributes: ['nivel_acceso'] },
       ],
     });
