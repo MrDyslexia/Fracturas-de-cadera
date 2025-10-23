@@ -73,6 +73,7 @@ export interface General {
   edad: number
   edad_meses: number
   sexo: string
+  IMC: number
   tipo_sangre: string
   altura: number
   peso: number
@@ -98,6 +99,8 @@ export interface RegistroControl {
   origen: string
   dias_desde_previo: number | null
   notas_clinicas: string
+  resumen: string
+  tipo_fractura: string
 }
 
 export interface SuspensionQuirofano {

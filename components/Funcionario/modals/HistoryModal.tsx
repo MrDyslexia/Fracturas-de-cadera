@@ -141,6 +141,11 @@ export default function HistoryModal({ isOpen, onClose, paciente }: Readonly<His
                           </span>
                         )}
                       </div>
+                      {control.tipo_fractura && (
+                          <span className="text-xs text-gray-400">
+                            {control.tipo_fractura}
+                          </span>
+                        )}
                     </div>
                   )
                 })

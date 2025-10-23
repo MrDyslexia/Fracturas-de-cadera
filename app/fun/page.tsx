@@ -11,7 +11,7 @@ import {
   UserSearch,
   TrendingUp,
 } from "lucide-react";
-import MinutaModal from "@/components/Funcionario/modals/MinutaModal";
+// import MinutaModal from "@/components/Funcionario/modals/MinutaModal";
 import BloodModal from "@/components/Funcionario/modals/BloodModal";
 import ParametersModal from "@/components/Funcionario/modals/ParametersModal";
 import HistoryModal from "@/components/Funcionario/modals/HistoryModal";
@@ -22,14 +22,15 @@ import Body from "@/components/Funcionario/body";
 import { useFuncionario } from "@/contexts/FuncionarioContext";
 import type { DetallesPaciente } from "@/types/interfaces";
 import * as echarts from "echarts";
-
+import { generarMinutaPDF } from "@/components/Funcionario/modals/MinutaModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function FuncionarioHome() {
   const { seleccionado, setSeleccionado } = useFuncionario() as {
     seleccionado: DetallesPaciente | undefined;
     setSeleccionado: (paciente: DetallesPaciente | undefined) => void;
   };
-  const [showMinutaModal, setShowMinutaModal] = useState(false);
+  // const [showMinutaModal, setShowMinutaModal] = useState(false);
   const [showBloodModal, setShowBloodModal] = useState(false);
   const [showParametersModal, setShowParametersModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -400,7 +401,35 @@ export default function FuncionarioHome() {
 
   const alertStyles = getAlertButtonStyles();
   const indicatorsStyles = getIndicatorsButtonStyles();
+  
+  // quién está logueado (si no tienes user, igual funciona con fallbacks)
+const { user } = useAuth() as any;
 
+const onGenerarMinuta = async () => {
+  if (!seleccionado) return;
+
+  const autor = {
+    nombre: user?.name || user?.nombre || user?.fullName || "Funcionario",
+    cargo:  user?.cargo || user?.role || "Funcionario",
+    rut:    user?.rut || undefined,
+    unidad: user?.unidad || user?.department || undefined,
+  };
+
+  // si no usas modal para escribir texto, deja los bloques vacíos (o usa prompts)
+  const blocks = {
+    motivo: "",              // por ejemplo: window.prompt("Motivo de consulta") ?? ""
+    diagnosticoLibre: "",    // si quieres sobreescribir el dx actual
+    tratamiento: "",         // por ejemplo: window.prompt("Tratamiento") ?? ""
+  };
+
+  try {
+    await generarMinutaPDF(seleccionado, autor, blocks, { maxExamenes: 5 });
+  } catch (err) {
+    console.error(err);
+    alert("No se pudo generar la minuta.");
+  }
+};
+ 
   return (
     <RoleGuard allow={["funcionario"]}>
       <div className="min-h-screen bg-gray-50 p-6">
@@ -460,7 +489,7 @@ export default function FuncionarioHome() {
               </div>
             </div>
             <button
-              onClick={() => setShowMinutaModal(true)}
+              onClick={onGenerarMinuta}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-100 hover:text-blue-600 hover:border-2 border-2 border-blue-600 transition-colors flex items-center space-x-2"
             >
               <FileText size={24} />
@@ -588,7 +617,7 @@ export default function FuncionarioHome() {
                     {/* Compact version - only value and unit */}
                     <div className="group-hover:hidden px-4 py-2">
                       <div className="text-lg font-bold text-blue-900">
-                        {Math.round(seleccionado.general.altura * 100)}cm
+                        {Math.round(seleccionado.general.altura? seleccionado.general.altura : 0)}cm
                       </div>
                     </div>
                     {/* Expanded version on hover */}
@@ -602,7 +631,7 @@ export default function FuncionarioHome() {
                             Altura
                           </div>
                           <div className="text-xl font-bold text-blue-900">
-                            {Math.round(seleccionado.general.altura * 100)}
+                            {Math.round(seleccionado.general.altura? seleccionado.general.altura : 0)}
                           </div>
                           <div className="text-xs text-blue-600">
                             centímetros
@@ -619,7 +648,7 @@ export default function FuncionarioHome() {
                     {/* Compact version - only value and unit */}
                     <div className="group-hover:hidden px-4 py-2">
                       <div className="text-lg font-bold text-green-900">
-                        {seleccionado.general.peso}kg
+                        {seleccionado.general.peso? seleccionado.general.peso : 0}kg
                       </div>
                     </div>
                     {/* Expanded version on hover */}
@@ -633,7 +662,7 @@ export default function FuncionarioHome() {
                             Peso
                           </div>
                           <div className="text-xl font-bold text-green-900">
-                            {seleccionado.general.peso}
+                            {seleccionado.general.peso? seleccionado.general.peso : 0}
                           </div>
                           <div className="text-xs text-green-600">
                             kilogramos
@@ -651,8 +680,7 @@ export default function FuncionarioHome() {
                     <div className="group-hover:hidden px-4 py-2">
                       <div className="text-lg font-bold text-purple-900">
                         {(
-                          seleccionado.general.peso /
-                          Math.pow(seleccionado.general.altura, 2)
+                          seleccionado.general.IMC? seleccionado.general.IMC : 0
                         ).toFixed(1)}
                       </div>
                     </div>
@@ -668,14 +696,12 @@ export default function FuncionarioHome() {
                           </div>
                           <div className="text-xl font-bold text-purple-900">
                             {(
-                              seleccionado.general.peso /
-                              Math.pow(seleccionado.general.altura, 2)
+                              seleccionado.general.IMC? seleccionado.general.IMC : 0
                             ).toFixed(1)}
                           </div>
                           <div className="text-xs text-purple-600">
                             {getBMIStatus(
-                              seleccionado.general.peso /
-                                Math.pow(seleccionado.general.altura, 2)
+                              seleccionado.general.IMC? seleccionado.general.IMC : 0
                             )}
                           </div>
                         </div>
@@ -749,10 +775,6 @@ export default function FuncionarioHome() {
         </div>
 
         {/* Existing modals */}
-        <MinutaModal
-          isOpen={showMinutaModal}
-          onClose={() => setShowMinutaModal(false)}
-        />
         <BloodModal
           isOpen={showBloodModal}
           onClose={() => setShowBloodModal(false)}

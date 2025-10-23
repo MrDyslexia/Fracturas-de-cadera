@@ -4,26 +4,28 @@ import { Fragment, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useInvestigator } from "@/contexts/InvestigatorContext";
 
-function format(dateIso: string) {
-  return dateIso?.slice(0, 10) ?? "";
+function fmtDate(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "—" : d.toISOString().slice(0, 10);
 }
 
 export default function RecordsTable() {
   const {
-    filtered,
+    filtered,        // Array<Muestra>
     loading,
     error,
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
     selectedIds,
     toggleSelect,
     selectAllFiltered,
     clearSelection,
   } = useInvestigator();
 
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // ✅ Paginación local (NO desde el contexto)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageData = useMemo(() => {
@@ -31,26 +33,25 @@ export default function RecordsTable() {
     return filtered.slice(start, start + pageSize);
   }, [filtered, page, pageSize]);
 
+  // Si cambian los filtros y quedas en una página alta, vuelve a 1
+  // (evita quedarse "sin filas" por estar fuera de rango)
+  if (page > totalPages && totalPages !== 0) {
+    // esto es seguro porque React re-renderiza
+    setPage(1);
+  }
+
   if (error) {
-    return (
-      <div className="rounded-2xl border bg-white p-4 text-red-600">Error: {error}</div>
-    );
+    return <div className="rounded-2xl border bg-white p-4 text-red-600">Error: {error}</div>;
   }
 
   return (
     <div className="rounded-2xl border bg-white shadow-sm">
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
         <div className="flex items-center gap-2 text-sm">
-          <button
-            onClick={selectAllFiltered}
-            className="rounded-lg border px-2 py-1 hover:bg-slate-50"
-          >
+          <button onClick={selectAllFiltered} className="rounded-lg border px-2 py-1 hover:bg-slate-50">
             Seleccionar página/total
           </button>
-          <button
-            onClick={clearSelection}
-            className="rounded-lg border px-2 py-1 hover:bg-slate-50"
-          >
+          <button onClick={clearSelection} className="rounded-lg border px-2 py-1 hover:bg-slate-50">
             Limpiar selección
           </button>
           <span className="text-slate-500">Seleccionados: {selectedIds.size}</span>
@@ -59,7 +60,10 @@ export default function RecordsTable() {
           <label className="text-xs text-slate-500">Filas por página</label>
           <select
             value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
             className="rounded-lg border px-2 py-1 text-sm"
           >
             {[10, 20, 50, 100].map((n) => (
@@ -77,97 +81,93 @@ export default function RecordsTable() {
             <tr className="bg-slate-100 text-slate-700">
               <th className="px-3 py-2" />
               <th className="px-3 py-2">Sel.</th>
-              <th className="px-3 py-2 text-left">Solicitud</th>
+              <th className="px-3 py-2 text-left">ID Muestra</th>
               <th className="px-3 py-2 text-left">Tipo de Muestra</th>
-              <th className="px-3 py-2 text-left">Procedencia</th>
-              <th className="px-3 py-2 text-left">Tipo de Ingreso</th>
-              <th className="px-3 py-2 text-left">Fecha de ingreso</th>
-              <th className="px-3 py-2 text-left">Sexo</th>
-              <th className="px-3 py-2 text-left">Edad</th>
-              <th className="px-3 py-2 text-left">CIE-10</th>
+              <th className="px-3 py-2 text-left">Fecha extracción</th>
+              <th className="px-3 py-2 text-left">Fecha recepción</th>
+              <th className="px-3 py-2 text-left">Profesional</th>
+              <th className="px-3 py-2 text-left">Examen</th>
+              <th className="px-3 py-2 text-left">Resultados</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
                   Cargando…
                 </td>
               </tr>
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
                   Sin resultados para los filtros actuales.
                 </td>
               </tr>
             ) : (
-              pageData.map((record) => {
-                const isOpen = expanded.has(record.id);
+              pageData.map((m) => {
+                const isOpen = expanded.has(m.muestra_id);
                 return (
-                  <Fragment key={record.id}>
+                  <Fragment key={m.muestra_id}>
                     <tr className="border-t">
                       <td className="px-2 py-2">
                         <button
                           onClick={() =>
                             setExpanded((prev) => {
                               const next = new Set(prev);
-                              if (next.has(record.id)) next.delete(record.id);
-                              else next.add(record.id);
+                              if (next.has(m.muestra_id)) next.delete(m.muestra_id);
+                              else next.add(m.muestra_id);
                               return next;
                             })
                           }
                           className="rounded-lg border p-1 hover:bg-slate-50"
                           aria-label={isOpen ? "Contraer" : "Expandir"}
                         >
-                          {isOpen ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
+                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                         </button>
                       </td>
                       <td className="px-2 py-2">
                         <input
                           type="checkbox"
-                          checked={selectedIds.has(record.id)}
-                          onChange={() => toggleSelect(record.id)}
+                          checked={selectedIds.has(m.muestra_id)}
+                          onChange={() => toggleSelect(m.muestra_id)}
                         />
                       </td>
-                      <td className="px-3 py-2 font-medium">{record.solicitud}</td>
-                      <td className="px-3 py-2">{record.tipoMuestra}</td>
-                      <td className="px-3 py-2">{record.procedencia}</td>
-                      <td className="px-3 py-2">{record.tipoIngreso}</td>
-                      <td className="px-3 py-2">{format(record.fechaIngreso)}</td>
-                      <td className="px-3 py-2">{record.sexo}</td>
-                      <td className="px-3 py-2">{record.edad}</td>
-                      <td className="px-3 py-2">{record.cie10}</td>
+                      <td className="px-3 py-2 font-mono text-blue-600">{m.muestra_id}</td>
+                      <td className="px-3 py-2">{m.tipo_muestra}</td>
+                      <td className="px-3 py-2">{fmtDate(m.fecha_extraccion)}</td>
+                      <td className="px-3 py-2">{fmtDate(m.fecha_recepcion)}</td>
+                      <td className="px-3 py-2">{m.profesional_id}</td>
+                      <td className="px-3 py-2">{m.examen_id}</td>
+                      <td className="px-3 py-2">{m.Resultados?.length ?? 0}</td>
                     </tr>
 
                     {isOpen && (
                       <tr className="bg-slate-50">
                         <td />
-                        <td colSpan={9} className="px-3 pb-4">
+                        <td colSpan={8} className="px-3 pb-4">
                           <div className="rounded-xl border bg-white">
                             <div className="border-b px-3 py-2 text-xs font-semibold text-slate-600">
-                              Exámenes realizados
+                              Resultados de la muestra
                             </div>
                             <div className="overflow-x-auto">
                               <table className="min-w-full text-sm">
                                 <thead>
                                   <tr className="bg-slate-100 text-slate-700">
-                                    <th className="px-3 py-2 text-left">Examen</th>
-                                    <th className="px-3 py-2 text-left">Fecha de recepción</th>
-                                    <th className="px-3 py-2 text-left">Validado por</th>
+                                    <th className="px-3 py-2 text-left">ID Resultado</th>
+                                    <th className="px-3 py-2 text-left">Parámetro</th>
+                                    <th className="px-3 py-2 text-left">Valor</th>
+                                    <th className="px-3 py-2 text-left">Unidad</th>
                                     <th className="px-3 py-2 text-left">Fecha</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {record.examenes.map((examen, idx) => (
-                                    <tr key={idx} className="border-t">
-                                      <td className="px-3 py-2">{examen.nombre}</td>
-                                      <td className="px-3 py-2">{format(examen.fechaRecepcion)}</td>
-                                      <td className="px-3 py-2">{examen.validadoPor}</td>
-                                      <td className="px-3 py-2">{format(examen.fechaResultado)}</td>
+                                  {(m.Resultados ?? []).map((r) => (
+                                    <tr key={r.resultado_id} className="border-t">
+                                      <td className="px-3 py-2 font-mono text-blue-600">{r.resultado_id}</td>
+                                      <td className="px-3 py-2">{r.parametro}</td>
+                                      <td className="px-3 py-2 font-mono">{r.valor}</td>
+                                      <td className="px-3 py-2">{r.unidad}</td>
+                                      <td className="px-3 py-2">{fmtDate(r.fecha_resultado)}</td>
                                     </tr>
                                   ))}
                                 </tbody>

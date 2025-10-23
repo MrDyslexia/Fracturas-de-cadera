@@ -2,102 +2,56 @@
 
 import { useMemo } from "react";
 import { useInvestigator } from "@/contexts/InvestigatorContext";
-import type { AnonRecord } from "@/contexts/InvestigatorContext";
 
-export default function FiltersBar() {
+export default function FiltersBarTable() {
   const { data, filters, setFilters, clearFilters } = useInvestigator();
 
   const options = useMemo(() => {
     const years = new Set<number>();
-    const procedencias = new Set<string>();
-    const tiposIngreso = new Set<AnonRecord["tipoIngreso"]>();
     const tiposMuestra = new Set<string>();
-    const sexos = new Set<AnonRecord["sexo"]>();
+    const sexos = new Set<string>();
+    const fracturas = new Set<string>();
 
-    data.forEach((record) => {
-      const year = new Date(record.fechaIngreso).getFullYear();
-      if (!Number.isNaN(year)) years.add(year);
-      if (record.procedencia) procedencias.add(record.procedencia);
-      if (record.tipoIngreso) tiposIngreso.add(record.tipoIngreso);
-      if (record.tipoMuestra) tiposMuestra.add(record.tipoMuestra);
-      if (record.sexo) sexos.add(record.sexo);
+    data.forEach((m: any) => {
+      const y = new Date(m.fechaIngreso ?? m.fecha_extraccion ?? m.fecha_recepcion ?? "").getFullYear();
+      if (!Number.isNaN(y)) years.add(y);
+      if (m.tipoMuestra || m.tipo_muestra) tiposMuestra.add(m.tipoMuestra ?? m.tipo_muestra);
+      if (m.sexo) sexos.add(m.sexo);
+      if (m.tipo_fractura) fracturas.add(m.tipo_fractura);
     });
 
     return {
       years: Array.from(years).sort((a, b) => b - a),
-      procedencias: Array.from(procedencias).sort(),
-      tiposIngreso: Array.from(tiposIngreso).sort(),
       tiposMuestra: Array.from(tiposMuestra).sort(),
       sexos: Array.from(sexos).sort(),
+      fracturas: Array.from(fracturas).sort(),
     };
   }, [data]);
 
   return (
     <form
-      className="grid grid-cols-1 gap-3 rounded-2xl border bg-white p-4 shadow-sm md:grid-cols-2 lg:grid-cols-4"
-      onSubmit={(evt) => evt.preventDefault()}
+      className="grid grid-cols-1 gap-3 rounded-2xl border bg-white p-4 shadow-sm md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6"
+      onSubmit={(e) => e.preventDefault()}
     >
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-xs font-semibold uppercase text-slate-500">Buscar</span>
         <input
-          value={filters.q}
+          value={filters.q ?? ""}
           onChange={(e) => setFilters({ q: e.target.value })}
-          placeholder="Solicitud, CIE-10, procedencia…"
+          placeholder="ID, parámetro, observación, CIE-10…"
           className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-xs font-semibold uppercase text-slate-500">Año ingreso</span>
+        <span className="text-xs font-semibold uppercase text-slate-500">Año</span>
         <select
           value={filters.year ?? ""}
           onChange={(e) => setFilters({ year: e.target.value ? Number(e.target.value) : undefined })}
           className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Todos</option>
-          {options.years.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-xs font-semibold uppercase text-slate-500">Procedencia</span>
-        <select
-          value={filters.procedencia ?? ""}
-          onChange={(e) => setFilters({ procedencia: e.target.value || undefined })}
-          className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Todas</option>
-          {options.procedencias.map((proc) => (
-            <option key={proc} value={proc}>
-              {proc}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-xs font-semibold uppercase text-slate-500">Tipo ingreso</span>
-        <select
-          value={filters.tipoIngreso ?? ""}
-          onChange={(e) =>
-            setFilters({
-              tipoIngreso: e.target.value
-                ? (e.target.value as AnonRecord["tipoIngreso"])
-                : undefined,
-            })
-          }
-          className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Todos</option>
-          {options.tiposIngreso.map((tipo) => (
-            <option key={tipo} value={tipo}>
-              {tipo}
-            </option>
-          ))}
+          {options.years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
       </label>
 
@@ -109,11 +63,7 @@ export default function FiltersBar() {
           className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Todas</option>
-          {options.tiposMuestra.map((tipo) => (
-            <option key={tipo} value={tipo}>
-              {tipo}
-            </option>
-          ))}
+          {options.tiposMuestra.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
       </label>
 
@@ -121,21 +71,23 @@ export default function FiltersBar() {
         <span className="text-xs font-semibold uppercase text-slate-500">Sexo</span>
         <select
           value={filters.sexo ?? ""}
-          onChange={(e) =>
-            setFilters({
-              sexo: e.target.value
-                ? (e.target.value as AnonRecord["sexo"])
-                : undefined,
-            })
-          }
+          onChange={(e) => setFilters({ sexo: e.target.value || undefined })}
           className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Todos</option>
-          {options.sexos.map((sexo) => (
-            <option key={sexo} value={sexo}>
-              {sexo}
-            </option>
-          ))}
+          {options.sexos.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-xs font-semibold uppercase text-slate-500">Tipo de fractura</span>
+        <select
+          value={(filters as any).fractura ?? ""}
+          onChange={(e) => setFilters({ ...(filters as any), fractura: e.target.value || undefined })}
+          className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Todas</option>
+          {options.fracturas.map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
       </label>
 
@@ -145,18 +97,14 @@ export default function FiltersBar() {
           <input
             type="number"
             value={filters.edadMin ?? ""}
-            onChange={(e) =>
-              setFilters({ edadMin: e.target.value ? Number(e.target.value) : undefined })
-            }
+            onChange={(e) => setFilters({ edadMin: e.target.value ? Number(e.target.value) : undefined })}
             className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             min={0}
           />
           <input
             type="number"
             value={filters.edadMax ?? ""}
-            onChange={(e) =>
-              setFilters({ edadMax: e.target.value ? Number(e.target.value) : undefined })
-            }
+            onChange={(e) => setFilters({ edadMax: e.target.value ? Number(e.target.value) : undefined })}
             className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             min={0}
           />

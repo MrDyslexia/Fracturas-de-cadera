@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  useEffect,
-} from "react";
+import { createContext, useContext, useMemo, useState, useEffect } from "react";
 import PacienteSelectorModal from "@/components/Funcionario/PacienteSelectorModal";
 import { DetallesPaciente, Paciente } from "@/types/interfaces";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +12,7 @@ type Ctx = {
   filtrados: Paciente[];
   seleccionado?: DetallesPaciente;
   setSeleccionado: (p?: DetallesPaciente) => void;
+  reloadPacientes: () => void;
 };
 
 const FuncionarioCtx = createContext<Ctx | null>(null);
@@ -29,17 +24,53 @@ export function FuncionarioProvider({
 }) {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [query, setQuery] = useState("");
-  const [seleccionado, setSeleccionado] = useState<DetallesPaciente | undefined>();
+  const [seleccionado, setSeleccionado] = useState<
+    DetallesPaciente | undefined
+  >();
   const router = useRouter();
   const { logout } = useAuth();
-
+  const fetchPacientes = async () => {
+    try {
+      const user = localStorage.getItem("session_v1");
+      const token = user ? JSON.parse(user).token : null;
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/pacientes/`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
+      if (response.status === 401) {
+        logout();
+        router.push("/login");
+        console.error(
+          "No autorizado: sesión expirada o credenciales inválidas."
+        );
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Error fetching pacientes");
+      }
+      const data = await response.json();
+      setPacientes(data);
+    } catch (error) {
+      console.error("Failed to fetch pacientes:", error);
+    }
+  };
   useEffect(() => {
-    const fetchPacientes = async () => {
+    fetchPacientes();
+  }, []);
+  const reloadPacientes = () => {
+    const fetchSelectPaciente = async () => {
       try {
         const user = localStorage.getItem("session_v1");
         const token = user ? JSON.parse(user).token : null;
+        console.log("User ID:", user);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/pacientes/`,
+          `${process.env.NEXT_PUBLIC_API_BASE}/pacientes/${seleccionado?.general.paciente_id}/resumen`,
           {
         method: "GET",
         headers: {
@@ -48,25 +79,18 @@ export function FuncionarioProvider({
         },
           }
         );
-        if (response.status === 401) {
-          logout();
-          router.push('/login');
-          console.error(
-        "No autorizado: sesión expirada o credenciales inválidas."
-          );
+        if (!response.ok) {
+          console.error("Error al seleccionar paciente:", response.statusText);
           return;
         }
-        if (!response.ok) {
-          throw new Error("Error fetching pacientes");
-        }
         const data = await response.json();
-        setPacientes(data);
+        setSeleccionado(data);
       } catch (error) {
         console.error("Failed to fetch pacientes:", error);
       }
     };
-    fetchPacientes();
-  }, []);
+    fetchSelectPaciente();
+  };
   const filtrados = useMemo(() => {
     const s = query.trim().toLowerCase();
     if (!s) return pacientes;
@@ -84,6 +108,7 @@ export function FuncionarioProvider({
       filtrados,
       seleccionado,
       setSeleccionado,
+      reloadPacientes,
     }),
     [pacientes, query, setQuery, filtrados, seleccionado, setSeleccionado]
   );

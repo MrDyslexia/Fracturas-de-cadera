@@ -271,7 +271,6 @@ export default function PerfilPage() {
   function handleSavePerfil(e: React.FormEvent) {
     e.preventDefault();
     // solo enviaremos email (y opcionalmente teléfono si quieres)
-    console.log("Guardar perfil (solo email):", { email: perfil.email });
     alert("Correo actualizado");
   }
   function handleSaveSeguridad(e: React.FormEvent) {
@@ -280,18 +279,15 @@ export default function PerfilPage() {
       alert("Las contraseñas no coinciden");
       return;
     }
-    console.log("Actualizar seguridad:", seg);
     alert("Seguridad actualizada");
     setSeg((s) => ({ ...s, actual: "", nueva: "", confirmar: "" }));
   }
   function handleSavePreferencias(e: React.FormEvent) {
     e.preventDefault();
-    console.log("Preferencias:", prefs);
     alert("Preferencias guardadas");
   }
   function handleSaveNotifs(e: React.FormEvent) {
     e.preventDefault();
-    console.log("Notificaciones simples:", notifs);
     alert("Preferencia de correos actualizada");
   }
   function handleCerrarSesiones() {

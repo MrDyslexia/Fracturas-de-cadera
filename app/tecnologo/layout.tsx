@@ -9,10 +9,8 @@ import {
   House,
   Settings,
   LogOut,
-  FlaskConical,   // laboratorio
-  Image as ImageIcon, // imágenes diagnósticas
-  Microscope,     // biopsia / anato pato
-  Stethoscope,    // datos clínicos básicos
+  FlaskConical,
+  Image as ImageIcon,
 } from "lucide-react";
 import React from "react";
 
@@ -24,14 +22,10 @@ type NavItem = {
   group?: "main" | "upload";
 };
 
-// Ítems de navegación
 const navItems: NavItem[] = [
   { href: "/tecnologo", icon: House, label: "Panel del tecnólogo", group: "main" },
-
-  // Grupo: Carga de datos/exámenes
   { href: "/tecnologo/laboratorio", icon: FlaskConical, label: "Subir laboratorio", requiresPatient: true, group: "upload" },
   { href: "/tecnologo/imagenes",    icon: ImageIcon,    label: "Subir imágenes",   requiresPatient: true, group: "upload" },
-  { href: "/tecnologo/biopsia",      icon: Microscope,   label: "Subir biopsia",    requiresPatient: true, group: "upload" },
 ];
 
 export default function TecnologoLayout({ children }: { readonly children: React.ReactNode }) {
@@ -48,24 +42,32 @@ function Shell({ children }: { readonly children: React.ReactNode }) {
   const { logout } = useAuth();
   const { paciente } = useTecnologo();
 
-  // Si el usuario navega hacia atrás, cerramos sesión y limpiamos la selección
   useConfirmBackToLogin(() => {
     try { sessionStorage.removeItem("tec_selectedPatient"); } catch {}
     logout();
   });
 
-  // Marca activo si la ruta coincide o es subruta
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/") || (href === "/tecnologo" && pathname === "/tecnologo");
 
   const onLogout = async () => {
+    // Cierra modales abiertas antes de confirmar
+    try { window.dispatchEvent(new Event("tecnologo:close-modals")); } catch {}
+
+    const ok = window.confirm("¿Deseas cerrar sesión y volver al login?");
+    if (!ok) return;
+
+    try { sessionStorage.removeItem("tec_selectedPatient"); } catch {}
     try {
-      const ok = window.confirm("¿Deseas cerrar sesión y volver al login?");
-      if (!ok) return;
-      try { sessionStorage.removeItem("tec_selectedPatient"); } catch {}
       await logout();
     } finally {
-      router.replace("/login");
+      // Navegación “dura” para desmontar por completo el árbol y evitar overlays residuales
+      window.location.href = "/login";
+      setTimeout(() => {
+        if (!/\/login$/.test(window.location.pathname)) {
+          window.location.assign("/login");
+        }
+      }, 0);
     }
   };
 
@@ -124,7 +126,7 @@ function Shell({ children }: { readonly children: React.ReactNode }) {
               })}
           </div>
 
-          {/* Configuración (no requiere paciente) */}
+          {/* Configuración */}
           <button
             onClick={() => router.push("/tecnologo/configuracion")}
             title="Configuración"

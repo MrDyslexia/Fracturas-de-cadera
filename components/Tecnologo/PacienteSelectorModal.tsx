@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import PacienteSearch from "@/components/Funcionario/PacienteSearch";
 import PacienteTable from "@/components/Funcionario/PacienteTable";
 
@@ -18,7 +19,6 @@ type Props = {
   onClear: () => void;
   onSelectUserId: (user_id: number) => void;
 
-  // NUEVO
   open?: boolean;                  // default: true
   onCancel?: () => void;           // cerrar modal
 };
@@ -33,7 +33,9 @@ export default function PacienteSelectorModalView({
   onCancel,
 }: Props) {
   const [q, setQ] = useState("");
+  const pathname = usePathname();
 
+  // Debounce búsqueda
   useEffect(() => {
     const t = setTimeout(() => {
       if (q.trim()) onSearch(q.trim());
@@ -50,6 +52,27 @@ export default function PacienteSelectorModalView({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onCancel]);
 
+  // ⛔ Cierra si cambia la ruta
+  useEffect(() => {
+    if (!open) return;
+    onCancel?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  // ⛔ Cierra al recibir evento global (antes de logout)
+  useEffect(() => {
+    const close = () => onCancel?.();
+    window.addEventListener("tecnologo:close-modals", close);
+    return () => window.removeEventListener("tecnologo:close-modals", close);
+  }, [onCancel]);
+
+  // ⛔ Cierra si cambian storage (token removido, etc.)
+  useEffect(() => {
+    const onStorage = () => onCancel?.();
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [onCancel]);
+
   const handleOpenByRut = (rut: string) => {
     const item = results.find((x) => x.rut === rut);
     if (item) onSelectUserId(item.user_id);
@@ -63,8 +86,11 @@ export default function PacienteSelectorModalView({
       role="dialog"
       aria-modal="true"
     >
-      {/* Overlay clickeable */}
-      <div className="absolute inset-0 bg-white" onClick={onCancel} />
+      {/* Overlay clickeable — semitransparente para no parecer “pantalla en blanco” */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
+        onClick={onCancel}
+      />
 
       {/* Panel */}
       <div

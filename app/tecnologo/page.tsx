@@ -5,6 +5,7 @@ import { User, UserSearch, Calendar, ChevronDown, Download, Filter, Search } fro
 import RoleGuard from "@/components/RoleGuard";
 import { useTecnologo } from "@/contexts/TecnologoContext";
 import type { DetallesPaciente } from "@/types/interfaces";
+import BloodTypeSetter from "@/components/Tecnologo/BloodTypeSetter";
 
 /* ==============================
    Helpers básicos
@@ -160,7 +161,7 @@ function LabExamsPanel() {
     setAbiertas(s);
   };
 
-  // Descarga igual que en Portal Paciente (ajusta endpoint si tu backend para tecnólogo es otro)
+  // Descarga
   const descargarExamenCompleto = async (examen: ExamenUI) => {
     try {
       const user = localStorage.getItem("session_v1");
@@ -380,9 +381,15 @@ export function TecnologoDashboard() {
       ? `${general.edad} años${general?.edad_meses ? ` ${general.edad_meses} meses` : ""}`
       : "—";
 
+  // Cálculo SEGURO del ID de paciente (evita TS errors si no existen en el tipo)
+  const pacienteId =
+    (("user_id" in (general ?? {})) && (general as any).user_id) ??
+    (("paciente_id" in (general ?? {})) && (general as any).paciente_id) ??
+    ((seleccionado as any)?.user_id ?? 0);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header + ficha básica (lo que ya tenías) */}
+      {/* Header + ficha básica */}
       <div className="flex justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Vista general del paciente</h1>
@@ -413,13 +420,23 @@ export function TecnologoDashboard() {
               <div className="w-px h-4 bg-gray-300" />
               <div className="text-gray-800"><span className="font-medium">Sexo: </span>{general?.sexo ?? "—"}</div>
               <div className="w-px h-4 bg-gray-300" />
-              <span className="px-3 py-1 rounded-full bg-red-50 text-red-600 text-sm font-medium">{general?.tipo_sangre ?? "—"}</span>
+              {/* Tipo de sangre: editable una sola vez si está vacío */}
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Tipo de sangre:</span>
+                <BloodTypeSetter
+                  pacienteId={pacienteId}
+                  initialValue={general?.tipo_sangre ?? null}
+                  onSaved={(nuevo) => {
+                    if (general) (general as any).tipo_sangre = nuevo;
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Panel de exámenes (replicado del portal Paciente) */}
+      {/* Panel de exámenes */}
       <LabExamsPanel />
     </div>
   );

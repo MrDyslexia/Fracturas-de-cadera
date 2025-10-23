@@ -1,33 +1,46 @@
-"use client"
+"use client";
 
-import React from "react"
+import React, { useState, useMemo } from "react";
+import { useInvestigator } from "@/contexts/InvestigatorContext";
+import {
+  Search,
+  Filter,
+  Download,
+  FileText,
+  Database,
+  Table,
+  Eye,
+  EyeOff,
+  Activity,
+} from "lucide-react";
+import ChartsPanel from "@/components/Investigador/ChartsPanel";
 
-import { useState, useMemo } from "react"
-import { useInvestigator } from "@/contexts/InvestigatorContext"
-import { Search, Filter, Download, FileText, Database, Table, Eye, EyeOff } from "lucide-react"
+/* ==============================
+   UI helpers
+============================== */
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>{children}</div>
+  return <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>{children}</div>;
 }
 function CardHeader({ children }: { children: React.ReactNode }) {
-  return <div className="p-6 pb-4">{children}</div>
+  return <div className="p-6 pb-4">{children}</div>;
 }
 function CardContent({ children }: { children: React.ReactNode }) {
-  return <div className="px-6 pb-6">{children}</div>
+  return <div className="px-6 pb-6">{children}</div>;
 }
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-lg font-semibold text-gray-900">{children}</h3>
+  return <h3 className="text-lg font-semibold text-gray-900">{children}</h3>;
 }
 function CardDescription({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-gray-600 mt-1">{children}</p>
+  return <p className="text-sm text-gray-600 mt-1">{children}</p>;
 }
 function CardHeaderWithIcon({
   icon,
   title,
   subtitle,
 }: {
-  icon: React.ReactNode
-  title: string
-  subtitle: string
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
 }) {
   return (
     <CardHeader>
@@ -39,8 +52,9 @@ function CardHeaderWithIcon({
         </div>
       </div>
     </CardHeader>
-  )
+  );
 }
+
 function Button({
   children,
   onClick,
@@ -48,27 +62,30 @@ function Button({
   className = "",
   disabled = false,
 }: {
-  children: React.ReactNode
-  onClick?: () => void
-  variant?: "default" | "secondary" | "ghost" | "outline"
-  className?: string
-  disabled?: boolean
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: "default" | "secondary" | "ghost" | "outline";
+  className?: string;
+  disabled?: boolean;
 }) {
   const base =
-    "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+    "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
   const styles = {
     default: "bg-blue-600 text-white hover:bg-blue-700",
     secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
     ghost: "text-gray-600 hover:bg-gray-100",
     outline: "border border-gray-300 text-gray-700 hover:bg-gray-50",
-  } as const
+  } as const;
   return (
     <button onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]} ${className}`}>
       {children}
     </button>
-  )
+  );
 }
 
+/* ==============================
+   Página Investigador
+============================== */
 export default function InvestigadorHome() {
   const {
     loading,
@@ -82,43 +99,43 @@ export default function InvestigadorHome() {
     downloadCSV,
     downloadJSON,
     downloadExcel,
-  } = useInvestigator()
+  } = useInvestigator();
 
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const toggleRow = (id: number) => {
     setExpandedRows((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id)
-      else n.add(id)
-      return n
-    })
-  }
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
 
-  const años = useMemo(() => {
-    const s = new Set<number>()
-    filtered.forEach((m) => s.add(new Date(m.fecha_extraccion).getFullYear()))
-    return Array.from(s).sort((a, b) => a - b)
-  }, [filtered])
+  const anios = useMemo(() => {
+    const s = new Set<number>();
+    filtered.forEach((m) => s.add(new Date(m.fecha_extraccion).getFullYear()));
+    return Array.from(s).sort((a, b) => a - b);
+  }, [filtered]);
 
   const tiposMuestra = useMemo(() => {
-    const s = new Set<string>()
-    filtered.forEach((m) => s.add(m.tipo_muestra))
-    return Array.from(s).sort()
-  }, [filtered])
+    const s = new Set<string>();
+    filtered.forEach((m) => s.add(m.tipo_muestra));
+    return Array.from(s).sort();
+  }, [filtered]);
 
   const parametros = useMemo(() => {
-    const s = new Set<string>()
-    filtered.forEach((m) => m.Resultados.forEach((r) => s.add(r.parametro)))
-    return Array.from(s).sort()
-  }, [filtered])
+    const s = new Set<string>();
+    filtered.forEach((m) => m.Resultados.forEach((r) => s.add(r.parametro)));
+    return Array.from(s).sort();
+  }, [filtered]);
 
-  const format = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("es-CL") : "—")
-  const formatDateTime = (iso?: string) => (iso ? new Date(iso).toLocaleString("es-CL") : "—")
+  const format = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("es-CL") : "—");
+  const formatDateTime = (iso?: string) => (iso ? new Date(iso).toLocaleString("es-CL") : "—");
 
   const totalResultados = useMemo(() => {
-    return filtered.reduce((acc, m) => acc + m.Resultados.length, 0)
-  }, [filtered])
+    return filtered.reduce((acc, m) => acc + m.Resultados.length, 0);
+  }, [filtered]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto relative">
@@ -127,23 +144,38 @@ export default function InvestigadorHome() {
         <p className="text-slate-600 mt-2">
           Exploración, filtros y descarga de datos de laboratorio para investigación científica.
         </p>
-        <div className="flex gap-4 mt-4 text-sm text-slate-600">
-          <span className="flex items-center gap-1">
-            <Database className="h-4 w-4" />
-            {filtered.length} muestras
-          </span>
-          <span className="flex items-center gap-1">
-            <Table className="h-4 w-4" />
-            {totalResultados} resultados
-          </span>
-          <span className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            {seleccion.size} seleccionadas
-          </span>
-        </div>
       </div>
 
-      {/* Filtros */}
+      {/* === AHORA PRIMERO: Panel de gráficos === */}
+      <Card className="mb-6">
+        <CardHeaderWithIcon
+          icon={<Activity className="h-5 w-5" />}
+          title="Análisis visual"
+          subtitle="Gráficos que se actualizan con los filtros aplicados"
+        />
+        <CardContent>
+          <ChartsPanel />
+        </CardContent>
+      </Card>
+
+      {/* Resumen con iconos */}
+      <div className="mb-3 flex flex-wrap items-center gap-6 text-sm text-slate-600">
+        <span className="flex items-center gap-2">
+          <Database className="h-4 w-4" />
+          {filtered.length} muestras
+        </span>
+        <span className="flex items-center gap-2">
+          <Table className="h-4 w-4" />
+          {totalResultados} resultados
+        </span>
+        <span className="flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          {seleccion.size} seleccionadas
+        </span>
+      </div>
+
+
+      {/* === LUEGO: Filtros y búsqueda === */}
       <Card className="mb-6">
         <CardHeaderWithIcon
           icon={<Filter className="h-5 w-5" />}
@@ -195,7 +227,7 @@ export default function InvestigadorHome() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Año</option>
-              {años.map((a) => (
+              {anios.map((a) => (
                 <option key={a} value={String(a)}>
                   {a}
                 </option>
@@ -322,11 +354,7 @@ export default function InvestigadorHome() {
                         </td>
                         <td className="p-3">
                           <Button variant="ghost" onClick={() => toggleRow(muestra.muestra_id)} className="p-1 h-8 w-8">
-                            {expandedRows.has(muestra.muestra_id) ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
+                            {expandedRows.has(muestra.muestra_id) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </td>
                       </tr>
@@ -359,10 +387,7 @@ export default function InvestigadorHome() {
                                       </thead>
                                       <tbody>
                                         {muestra.Resultados.map((resultado) => (
-                                          <tr
-                                            key={resultado.resultado_id}
-                                            className="border-b border-gray-200 bg-white"
-                                          >
+                                          <tr key={resultado.resultado_id} className="border-b border-gray-200 bg-white">
                                             <td className="p-2 font-mono text-blue-600">{resultado.resultado_id}</td>
                                             <td className="p-2 font-mono text-gray-600">{resultado.episodio_id}</td>
                                             <td className="p-2">
@@ -370,13 +395,9 @@ export default function InvestigadorHome() {
                                                 {resultado.parametro}
                                               </span>
                                             </td>
-                                            <td className="p-2 font-mono font-semibold text-gray-900">
-                                              {resultado.valor}
-                                            </td>
+                                            <td className="p-2 font-mono font-semibold text-gray-900">{resultado.valor}</td>
                                             <td className="p-2 text-gray-600">{resultado.unidad}</td>
-                                            <td className="p-2 text-gray-600">
-                                              {formatDateTime(resultado.fecha_resultado)}
-                                            </td>
+                                            <td className="p-2 text-gray-600">{formatDateTime(resultado.fecha_resultado)}</td>
                                           </tr>
                                         ))}
                                       </tbody>
@@ -397,5 +418,5 @@ export default function InvestigadorHome() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

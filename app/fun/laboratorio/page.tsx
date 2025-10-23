@@ -81,7 +81,6 @@ function Button({
 
 const LaboratorioPage = () => {
   const { seleccionado } = useFuncionario()
-  console.log("Paciente seleccionado en LaboratorioPage:", seleccionado)
   const examenes = seleccionado?.laboratorio.solicitudes || []
   const paciente = seleccionado?.general
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set())
