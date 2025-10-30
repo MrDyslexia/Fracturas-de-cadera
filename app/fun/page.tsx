@@ -11,7 +11,6 @@ import {
     UserSearch,
     TrendingUp,
 } from 'lucide-react';
-// import MinutaModal from "@/components/Funcionario/modals/MinutaModal";
 import BloodModal from '@/components/Funcionario/modals/BloodModal';
 import ParametersModal from '@/components/Funcionario/modals/ParametersModal';
 import HistoryModal from '@/components/Funcionario/modals/HistoryModal';
@@ -20,51 +19,53 @@ import AlertsModal from '@/components/Funcionario/modals/AlertsModal';
 import RoleGuard from '@/components/RoleGuard';
 import Body from '@/components/Funcionario/body';
 import { useFuncionario } from '@/contexts/FuncionarioContext';
-import type { DetallesPaciente } from '@/types/interfaces';
+import type { DetallesPaciente, MuestraLaboratorio } from '@/types/interfaces';
 import * as echarts from 'echarts';
 import { generarMinutaPDF } from '@/components/Funcionario/modals/MinutaModal';
 import { useAuth } from '@/contexts/AuthContext';
+
+type SerieLab = {
+    label: string;
+    unit: string;
+    dates: string[]; // 'YYYY-MM-DD' ISO (solo fecha)
+    ticks: string[]; // etiqueta bonita (p.ej., '17 jun')
+    values: number[];
+};
 
 export default function FuncionarioHome() {
     const { seleccionado, setSeleccionado } = useFuncionario() as {
         seleccionado: DetallesPaciente | undefined;
         setSeleccionado: (paciente: DetallesPaciente | undefined) => void;
     };
-    // const [showMinutaModal, setShowMinutaModal] = useState(false);
     const [showBloodModal, setShowBloodModal] = useState(false);
     const [showParametersModal, setShowParametersModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [showAlertsModal, setShowAlertsModal] = useState(false);
     const [showIndicatorsModal, setShowIndicatorsModal] = useState(false);
+
     const chartRef = useRef<HTMLDivElement>(null);
     const chartInstance = useRef<echarts.ECharts | null>(null);
 
-    // Función para determinar la severidad máxima de las alertas activas
+    // === Alertas (sin cambios) ===
     const getMaxAlertSeverity = () => {
         if (!seleccionado?.general?.alertas_medicas?.length) return null;
-
         const activeAlerts = seleccionado.general.alertas_medicas.filter(
-            (alerta) => alerta.activa
+            (a) => a.activa
         );
-        if (activeAlerts.length === 0) return null;
-
-        const severityOrder = { ALTA: 3, MEDIA: 2, BAJA: 1 };
-
-        const maxSeverity = activeAlerts.reduce((max, alerta) => {
-            return severityOrder[
-                alerta.severidad as keyof typeof severityOrder
-            ] > severityOrder[max as keyof typeof severityOrder]
-                ? alerta.severidad
-                : max;
-        }, activeAlerts[0].severidad);
-
-        return maxSeverity;
+        if (!activeAlerts.length) return null;
+        const severityOrder = { ALTA: 3, MEDIA: 2, BAJA: 1 } as const;
+        return activeAlerts.reduce(
+            (max, a) =>
+                severityOrder[a.severidad as keyof typeof severityOrder] >
+                severityOrder[max as keyof typeof severityOrder]
+                    ? a.severidad
+                    : max,
+            activeAlerts[0].severidad
+        );
     };
 
-    // Función para obtener los estilos según la severidad de alertas
     const getAlertButtonStyles = () => {
         const maxSeverity = getMaxAlertSeverity();
-
         switch (maxSeverity) {
             case 'ALTA':
                 return {
@@ -89,10 +90,8 @@ export default function FuncionarioHome() {
         }
     };
 
-    // Función para obtener los estilos según el nivel de indicadores
     const getIndicatorsButtonStyles = () => {
         const nivel = seleccionado?.indicadores?.nivel;
-
         switch (nivel) {
             case 'ALTO':
                 return {
@@ -117,255 +116,570 @@ export default function FuncionarioHome() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-ES');
+    const formatDate = (dateString: string) =>
+        new Date(dateString).toLocaleDateString('es-ES');
+    const getBMIStatus = (bmi: number) =>
+        bmi < 18.5
+            ? 'Bajo peso'
+            : bmi < 25
+            ? 'Normal'
+            : bmi < 30
+            ? 'Sobrepeso'
+            : 'Obesidad';
+
+    // === Metadatos por parámetro (código -> etiqueta y unidad) ===
+    // Agrega aquí si necesitas más códigos
+    const PARAM_META: Record<string, { label: string; unit: string }> = {
+        // Hemoglobina y variantes
+        HB: { label: 'Hemoglobina', unit: 'g/dL' },
+        HEMOGLOBINA: { label: 'Hemoglobina', unit: 'g/dL' },
+        HGB: { label: 'Hemoglobina', unit: 'g/dL' },
+
+        // Hematocrito y variantes
+        HTO: { label: 'Hematocrito', unit: '%' },
+        HCT: { label: 'Hematocrito', unit: '%' },
+        HEMATOCRITO: { label: 'Hematocrito', unit: '%' },
+
+        // Plaquetas y variantes
+        PLT: { label: 'Plaquetas', unit: '10^3/µL' },
+        PLAQUETAS: { label: 'Plaquetas', unit: '10^3/µL' },
+
+        // Creatinina y variantes
+        CREA: { label: 'Creatinina', unit: 'mg/dL' },
+        CREATININA: { label: 'Creatinina', unit: 'mg/dL' },
+        CREAT: { label: 'Creatinina', unit: 'mg/dL' },
+
+        // Urea y variantes
+        UREA: { label: 'Urea', unit: 'mg/dL' },
+        BUN: { label: 'Urea', unit: 'mg/dL' },
+
+        // Electrolitos
+        NA: { label: 'Sodio', unit: 'mmol/L' },
+        SODIO: { label: 'Sodio', unit: 'mmol/L' },
+        K: { label: 'Potasio', unit: 'mmol/L' },
+        POTASIO: { label: 'Potasio', unit: 'mmol/L' },
+        MG: { label: 'Magnesio', unit: 'mg/dL' },
+        MAGNESIO: { label: 'Magnesio', unit: 'mg/dL' },
+        PHOS: { label: 'Fósforo', unit: 'mg/dL' },
+        FOSFORO: { label: 'Fósforo', unit: 'mg/dL' },
+        P: { label: 'Fósforo', unit: 'mg/dL' },
+
+        // Proteínas
+        ALB: { label: 'Albúmina', unit: 'g/dL' },
+        ALBUMINA: { label: 'Albúmina', unit: 'g/dL' },
+
+        // Coagulación
+        INR: { label: 'INR', unit: 'sin_unidad' },
+        PROT: { label: 'Protrombina', unit: '%' },
+        PROTROMBINA: { label: 'Protrombina', unit: '%' },
+        TP: { label: 'Protrombina', unit: '%' },
+
+        // Vitaminas y minerales
+        VITD: { label: 'Vitamina D', unit: 'ng/mL' },
+        VITAMINA_D: { label: 'Vitamina D', unit: 'ng/mL' },
+        VIT_D: { label: 'Vitamina D', unit: 'ng/mL' },
+        FE: { label: 'Hierro', unit: 'µg/dL' },
+        HIERRO: { label: 'Hierro', unit: 'µg/dL' },
+        IRON: { label: 'Hierro', unit: 'µg/dL' },
+
+        // Transferrina
+        TRANSF: { label: 'Transferrina', unit: 'mg/dL' },
+        TRANSFERRINA: { label: 'Transferrina', unit: 'mg/dL' },
+        SAT_TRF: { label: 'Saturación Transf.', unit: '%' },
+
+        // Tiroides
+        TSH: { label: 'TSH', unit: 'µIU/mL' },
+        T4L: { label: 'T4 Libre', unit: 'ng/dL' },
+        T4_LIBRE: { label: 'T4 Libre', unit: 'ng/dL' },
+
+        // Glucosa y lípidos
+        GLUCOSA: { label: 'Glucosa', unit: 'mg/dL' },
+        GLICEMIA: { label: 'Glucosa', unit: 'mg/dL' },
+        GLUCOSE: { label: 'Glucosa', unit: 'mg/dL' },
+        COLESTEROL_TOTAL: { label: 'Colesterol Total', unit: 'mg/dL' },
+        COLESTEROL: { label: 'Colesterol Total', unit: 'mg/dL' },
+        CT: { label: 'Colesterol Total', unit: 'mg/dL' },
+        TRIGLICERIDOS: { label: 'Triglicéridos', unit: 'mg/dL' },
+        TG: { label: 'Triglicéridos', unit: 'mg/dL' },
     };
 
-    const getBMIStatus = (bmi: number) => {
-        if (bmi < 18.5) return 'Bajo peso';
-        if (bmi < 25) return 'Normal';
-        if (bmi < 30) return 'Sobrepeso';
-        return 'Obesidad';
-    };
+    // Orden de prioridad clínica (los no listados quedan al final)
+    const PRIORITY_ORDER = [
+        'HB',
+        'HEMOGLOBINA',
+        'HGB',
+        'HTO',
+        'HEMATOCRITO',
+        'HCT',
+        'CREA',
+        'CREATININA',
+        'UREA',
+        'BUN',
+        'NA',
+        'SODIO',
+        'K',
+        'POTASIO',
+        'ALB',
+        'ALBUMINA',
+        'INR',
+        'VITD',
+        'VITAMINA_D',
+        'VIT_D',
+        'FE',
+        'HIERRO',
+        'PHOS',
+        'FOSFORO',
+        'P',
+        'MG',
+        'MAGNESIO',
+        'TSH',
+        'T4L',
+        'T4_LIBRE',
+        'PLT',
+        'PLAQUETAS',
+        'PROT',
+        'PROTROMBINA',
+        'TP',
+        'TRANSF',
+        'TRANSFERRINA',
+        'SAT_TRF',
+        'GLUCOSA',
+        'GLICEMIA',
+        'COLESTEROL_TOTAL',
+        'COLESTEROL',
+        'TRIGLICERIDOS',
+        'TG',
+    ];
 
-    const processLabData = () => {
-        if (!seleccionado?.laboratorio?.solicitudes?.[0]?.muestras) return null;
+    // Prepara series por parámetro (solo los que existan)
+    const processLabData = (): Record<string, SerieLab> | null => {
+        // Obtener TODAS las solicitudes (exámenes) del paciente
+        const solicitudes = seleccionado?.laboratorio?.solicitudes;
+        if (!solicitudes || solicitudes.length === 0) {
+            console.log('No hay solicitudes de laboratorio');
+            return null;
+        }
 
-        const muestras = seleccionado.laboratorio.solicitudes[0].muestras;
-        const dates: string[] = [];
-        const hemoglobina: number[] = [];
-        const glucosa: number[] = [];
-        const colesterol: number[] = [];
-        const trigliceridos: number[] = [];
+        // Recopilar TODAS las muestras de TODOS los exámenes
+        const todasLasMuestras: MuestraLaboratorio[] = [];
+        for (const solicitud of solicitudes) {
+            if (solicitud.muestras && solicitud.muestras.length > 0) {
+                todasLasMuestras.push(...solicitud.muestras);
+            }
+        }
 
-        // Sort samples by date
-        const sortedMuestras = [...muestras].sort(
-            (a, b) =>
-                new Date(a.fecha_recepcion).getTime() -
-                new Date(b.fecha_recepcion).getTime()
+        if (todasLasMuestras.length === 0) {
+            console.log('No hay muestras en las solicitudes');
+            return null;
+        }
+
+        console.log(
+            `Procesando ${todasLasMuestras.length} muestras de ${solicitudes.length} exámenes`
         );
 
-        sortedMuestras.forEach((muestra) => {
-            const date = new Date(muestra.fecha_recepcion).toLocaleDateString(
-                'es-ES',
-                {
-                    month: 'short',
-                    day: 'numeric',
-                }
-            );
-            dates.push(date);
+        // Debug: mostrar estructura de la primera muestra con resultados
+        const primeraConResultados = todasLasMuestras.find(
+            (m) => m.resultados && m.resultados.length > 0
+        );
+        if (primeraConResultados) {
+            console.log('🔍 Ejemplo de muestra con resultados:', {
+                muestra_id: primeraConResultados.muestra_id,
+                fecha_recepcion: primeraConResultados.fecha_recepcion,
+                fecha_extraccion: primeraConResultados.fecha_extraccion,
+                num_resultados: primeraConResultados.resultados?.length || 0,
+                primer_resultado: primeraConResultados.resultados?.[0],
+                todos_resultados: primeraConResultados.resultados,
+            });
+        }
 
-            muestra.resultados.forEach(
-                (resultado: { parametro: any; valor: number }) => {
-                    switch (resultado.parametro) {
-                        case 'HB':
-                            hemoglobina.push(resultado.valor);
-                            break;
-                        case 'GLUCOSA':
-                            glucosa.push(resultado.valor);
-                            break;
-                        case 'COLESTEROL_TOTAL':
-                            colesterol.push(resultado.valor);
-                            break;
-                        case 'TRIGLICERIDOS':
-                            trigliceridos.push(resultado.valor);
-                            break;
-                    }
-                }
-            );
+        // Ordena por fecha (prioriza fecha_recepcion, usa fecha_extraccion como fallback)
+        const sorted = [...todasLasMuestras].sort((a, b) => {
+            const fechaA = a.fecha_recepcion || a.fecha_extraccion;
+            const fechaB = b.fecha_recepcion || b.fecha_extraccion;
+            if (!fechaA) return 1;
+            if (!fechaB) return -1;
+            return new Date(fechaA).getTime() - new Date(fechaB).getTime();
         });
 
-        return { dates, hemoglobina, glucosa, colesterol, trigliceridos };
+        // Mapa param -> { dateISO -> valor }
+        const byParam: Record<string, Map<string, number>> = {};
+        const parametrosEncontrados = new Set<string>();
+        const parametrosIgnorados = new Set<string>();
+
+        for (const m of sorted) {
+            // Usar fecha_recepcion o fecha_extraccion como fallback
+            const fecha = m.fecha_recepcion || m.fecha_extraccion;
+            if (!fecha) {
+                console.warn('⚠️ Muestra sin fecha:', m.muestra_id);
+                continue; // saltar si no tiene fecha
+            }
+
+            const d = new Date(fecha);
+            if (isNaN(d.getTime())) {
+                console.warn(
+                    '⚠️ Fecha inválida:',
+                    fecha,
+                    'en muestra',
+                    m.muestra_id
+                );
+                continue; // saltar fechas inválidas
+            }
+
+            const iso = d.toISOString().slice(0, 10); // YYYY-MM-DD solo fecha
+
+            // Debug: mostrar cuántos resultados tiene esta muestra
+            if (m.resultados && m.resultados.length > 0) {
+                console.log(
+                    `📋 Muestra ${m.muestra_id} tiene ${m.resultados.length} resultados en fecha ${iso}`
+                );
+            }
+
+            for (const r of m.resultados || []) {
+                const code = String(r.parametro || '')
+                    .trim()
+                    .toUpperCase();
+
+                console.log(
+                    `  → Procesando resultado: parametro="${r.parametro}", valor="${r.valor}", code_upper="${code}"`
+                );
+
+                // Registrar TODOS los parámetros que llegan
+                if (code) {
+                    parametrosEncontrados.add(code);
+                }
+
+                if (!PARAM_META[code]) {
+                    parametrosIgnorados.add(code);
+                    console.log(
+                        `    ❌ Parámetro "${code}" NO está en PARAM_META`
+                    );
+                    continue; // ignorar parámetros no mapeados
+                }
+
+                console.log(
+                    `    ✅ Parámetro "${code}" reconocido: ${PARAM_META[code].label}`
+                );
+                if (!byParam[code]) byParam[code] = new Map();
+                // Si hay múltiples resultados el mismo día, conserva el último
+                byParam[code].set(iso, Number(r.valor));
+            }
+        }
+
+        console.log(
+            '📊 TODOS los parámetros recibidos desde el backend:',
+            Array.from(parametrosEncontrados)
+        );
+        console.log(
+            '✅ Parámetros mapeados (reconocidos):',
+            Object.keys(byParam)
+        );
+        console.log(
+            '❌ Parámetros NO mapeados (ignorados):',
+            Array.from(parametrosIgnorados)
+        );
+
+        console.log(
+            '📊 TODOS los parámetros recibidos desde el backend:',
+            Array.from(parametrosEncontrados)
+        );
+        console.log(
+            '✅ Parámetros mapeados (reconocidos):',
+            Object.keys(byParam)
+        );
+        console.log(
+            '❌ Parámetros NO mapeados (ignorados):',
+            Array.from(parametrosIgnorados)
+        );
+
+        // Fechas eje X común (union de todas las fechas)
+        const allDates = new Set<string>();
+        Object.values(byParam).forEach((map) =>
+            map.forEach((_v, date) => allDates.add(date))
+        );
+        const datesSorted = Array.from(allDates).sort();
+
+        // Construir series completas por parámetro
+        const series: Record<string, SerieLab> = {};
+        for (const [code, map] of Object.entries(byParam)) {
+            const meta = PARAM_META[code];
+            const values: number[] = datesSorted.map((d) =>
+                map.has(d) ? (map.get(d) as number) : NaN
+            );
+            const ticks = datesSorted.map((d) => {
+                const [y, m, day] = d.split('-').map(Number);
+                return new Date(y, m - 1, day).toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: 'short',
+                });
+            });
+            series[code] = {
+                label: meta.label,
+                unit: meta.unit,
+                dates: datesSorted,
+                ticks,
+                values,
+            };
+        }
+
+        console.log(`Series construidas: ${Object.keys(series).length}`);
+        return Object.keys(series).length ? series : null;
     };
 
+    // Construye opción ECharts agrupando parámetros por unidad
+    const buildSparklineOption = (
+        seriesMap: Record<string, SerieLab>
+    ): echarts.EChartsOption => {
+        // Agrupar parámetros por unidad
+        const byUnit: Record<string, string[]> = {};
+        for (const [code, s] of Object.entries(seriesMap)) {
+            const unit = s.unit;
+            if (!byUnit[unit]) byUnit[unit] = [];
+            byUnit[unit].push(code);
+        }
+
+        console.log('📊 Agrupación de parámetros por unidad:', byUnit);
+
+        // Ordenar cada grupo por prioridad
+        for (const unit in byUnit) {
+            byUnit[unit].sort((a, b) => {
+                const pa = PRIORITY_ORDER.indexOf(a);
+                const pb = PRIORITY_ORDER.indexOf(b);
+                const ra = pa === -1 ? 999 : pa;
+                const rb = pb === -1 ? 999 : pb;
+                if (ra !== rb) return ra - rb;
+                // desempate: más puntos no NaN
+                const va = seriesMap[a].values.filter(
+                    (v) => !Number.isNaN(v)
+                ).length;
+                const vb = seriesMap[b].values.filter(
+                    (v) => !Number.isNaN(v)
+                ).length;
+                return vb - va;
+            });
+        }
+
+        // Ordenar las unidades por importancia clínica (primero las más importantes)
+        const unitPriority: Record<string, number> = {
+            'g/dL': 1, // Hemoglobina, Albúmina
+            '%': 2, // Hematocrito, Saturación
+            'mg/dL': 3, // Glucosa, Creatinina, Urea, Colesterol
+            'mmol/L': 4, // Sodio, Potasio
+            '10^3/µL': 5, // Plaquetas, Leucocitos
+            'µg/dL': 6, // Hierro
+            'ng/mL': 7, // Vitamina D
+            'µIU/mL': 8, // TSH
+            sin_unidad: 9, // INR
+        };
+
+        const units = Object.keys(byUnit).sort((a, b) => {
+            const pa = unitPriority[a] || 999;
+            const pb = unitPriority[b] || 999;
+            return pa - pb;
+        });
+
+        const gridHeight = 200; // alto por gráfico (forma más cuadrada)
+        const topOffset = 30;
+        const vgap = 40; // más espacio entre gráficos
+
+        const option: echarts.EChartsOption = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'line' },
+                formatter: (params: any) => {
+                    if (!params?.length) return '';
+                    const axisLabel = params[0].axisValue;
+                    let s = `<div style="margin-bottom:4px;"><strong>${axisLabel}</strong></div>`;
+                    for (const p of params) {
+                        const unit = p.seriesName.split(' · ').pop();
+                        s += `${p.marker} ${p.seriesName.replace(
+                            ` · ${unit}`,
+                            ''
+                        )}: ${p.value ?? '-'} ${
+                            unit === 'sin_unidad' ? '' : unit
+                        }<br/>`;
+                    }
+                    return s;
+                },
+            },
+            grid: [] as any[],
+            xAxis: [] as any[],
+            yAxis: [] as any[],
+            series: [] as any[],
+            dataZoom: units.length
+                ? [
+                      {
+                          type: 'slider',
+                          xAxisIndex: units.map((_, i) => i),
+                          bottom: 0,
+                          height: 16,
+                      },
+                      { type: 'inside', xAxisIndex: units.map((_, i) => i) },
+                  ]
+                : [],
+        };
+
+        // Obtener todas las fechas únicas de todas las series
+        const allDates = new Set<string>();
+        const allTicks: string[] = [];
+        for (const code in seriesMap) {
+            const s = seriesMap[code];
+            s.dates.forEach((d, idx) => {
+                if (!allDates.has(d)) {
+                    allDates.add(d);
+                    allTicks.push(s.ticks[idx]);
+                }
+            });
+        }
+        const datesSorted = Array.from(allDates).sort();
+        const ticksSorted = datesSorted.map((d) => {
+            const [y, m, day] = d.split('-').map(Number);
+            return new Date(y, m - 1, day).toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: 'short',
+            });
+        });
+
+        // Crear un gráfico por unidad
+        units.forEach((unit, i) => {
+            const codes = byUnit[unit];
+            const top = topOffset + i * (gridHeight + vgap);
+
+            // grid / axes por fila
+            (option.grid as any[]).push({
+                left: 80,
+                right: 20,
+                top,
+                height: gridHeight,
+                containLabel: true,
+            });
+
+            (option.xAxis as any[]).push({
+                type: 'category',
+                gridIndex: i,
+                boundaryGap: true,
+                data: ticksSorted,
+                axisLabel: { color: '#6B7280', fontSize: 12 },
+                axisTick: { show: false },
+            });
+
+            (option.yAxis as any[]).push({
+                type: 'value',
+                gridIndex: i,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                splitLine: { show: true, lineStyle: { color: '#F3F4F6' } },
+                axisLabel: {
+                    color: '#6B7280',
+                    fontSize: 12,
+                    formatter: (val: number) => `${val}`,
+                },
+                name: `${unit === 'sin_unidad' ? 'Valores' : unit}`,
+                nameLocation: 'start',
+                nameGap: 15,
+                nameTextStyle: {
+                    color: '#111827',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    align: 'right',
+                },
+            });
+
+            // Agregar una serie por cada parámetro de esta unidad
+            const colors = [
+                '#3b82f6',
+                '#10b981',
+                '#f59e0b',
+                '#ef4444',
+                '#8b5cf6',
+                '#ec4899',
+            ];
+            codes.forEach((code, seriesIdx) => {
+                const s = seriesMap[code];
+                // Alinear los valores con datesSorted
+                const alignedValues = datesSorted.map((d) => {
+                    const idx = s.dates.indexOf(d);
+                    return idx >= 0 ? s.values[idx] : NaN;
+                });
+
+                (option.series as any[]).push({
+                    name: `${s.label} · ${s.unit}`,
+                    type: 'line',
+                    xAxisIndex: i,
+                    yAxisIndex: i,
+                    data: alignedValues.map((v) =>
+                        Number.isNaN(v) ? null : v
+                    ),
+                    connectNulls: false,
+                    smooth: true,
+                    showSymbol: true,
+                    symbol: 'circle',
+                    symbolSize: 7,
+                    lineStyle: { width: 3 },
+                    itemStyle: { color: colors[seriesIdx % colors.length] },
+                    areaStyle: { opacity: 0.08 },
+                    emphasis: { focus: 'series' },
+                });
+            });
+        });
+
+        return option;
+    };
+
+    // Render del gráfico
     useEffect(() => {
         if (!chartRef.current || !seleccionado) return;
 
-        // Initialize chart if not exists
+        // Debug: verificar datos de laboratorio disponibles
+        console.log('Datos de laboratorio del paciente:', {
+            tiene_laboratorio: !!seleccionado.laboratorio,
+            num_solicitudes: seleccionado.laboratorio?.solicitudes?.length || 0,
+            resumen: seleccionado.laboratorio?.resumen_examenes,
+        });
+
         if (!chartInstance.current) {
             chartInstance.current = echarts.init(chartRef.current);
         }
 
-        const labData = processLabData();
-        if (!labData) return;
-
-        const option = {
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'cross',
-                },
-                formatter: (params: any) => {
-                    let result = `<strong>${params[0].axisValue}</strong><br/>`;
-                    params.forEach((param: any) => {
-                        const unit =
-                            param.seriesName === 'Hemoglobina'
-                                ? 'g/dL'
-                                : 'mg/dL';
-                        result += `${param.marker} ${param.seriesName}: ${param.value} ${unit}<br/>`;
-                    });
-                    return result;
-                },
-            },
-            legend: {
-                data: [
-                    'Hemoglobina',
-                    'Glucosa',
-                    'Colesterol Total',
-                    'Triglicéridos',
-                ],
-                top: 10,
-            },
-            grid: {
-                left: '12%',
-                right: '12%',
-                bottom: '8%',
-                top: '15%',
-                containLabel: true,
-            },
-            xAxis: {
-                type: 'category',
-                boundaryGap: false,
-                data: labData.dates,
-                axisLabel: {
-                    color: '#6B7280',
-                },
-            },
-            yAxis: [
-                {
-                    type: 'value',
-                    name: 'Hemoglobina (g/dL)',
-                    position: 'left',
-                    axisLabel: {
+        const seriesMap = processLabData();
+        if (!seriesMap || !Object.keys(seriesMap).length) {
+            // Si no hay datos, muestra un mensaje vacío
+            console.log('No se encontraron series de datos para el gráfico');
+            chartInstance.current.clear();
+            chartInstance.current.setOption({
+                title: {
+                    text: 'Sin resultados de laboratorio para mostrar',
+                    left: 'center',
+                    top: 'middle',
+                    textStyle: {
                         color: '#6B7280',
-                        formatter: '{value}',
-                    },
-                    nameTextStyle: {
-                        color: '#6B7280',
-                        fontSize: 12,
-                        padding: [0, 0, 0, 10],
-                    },
-                    splitLine: {
-                        show: true,
-                        lineStyle: {
-                            color: '#F3F4F6',
-                        },
+                        fontSize: 14,
+                        fontWeight: 500,
                     },
                 },
-                {
-                    type: 'value',
-                    name: 'Otros parámetros (mg/dL)',
-                    position: 'right',
-                    axisLabel: {
-                        color: '#6B7280',
-                        formatter: '{value}',
-                    },
-                    nameTextStyle: {
-                        color: '#6B7280',
-                        fontSize: 12,
-                        padding: [0, 10, 0, 0],
-                    },
-                },
-            ],
-            series: [
-                {
-                    name: 'Hemoglobina',
-                    type: 'line',
-                    yAxisIndex: 0,
-                    data: labData.hemoglobina,
-                    smooth: true,
-                    symbol: 'circle',
-                    symbolSize: 6,
-                    lineStyle: {
-                        width: 3,
-                        color: '#DC2626',
-                    },
-                    itemStyle: {
-                        color: '#DC2626',
-                    },
-                    areaStyle: {
-                        color: {
-                            type: 'linear',
-                            x: 0,
-                            y: 0,
-                            x2: 0,
-                            y2: 1,
-                            colorStops: [
-                                {
-                                    offset: 0,
-                                    color: 'rgba(220, 38, 38, 0.3)',
-                                },
-                                {
-                                    offset: 1,
-                                    color: 'rgba(220, 38, 38, 0.05)',
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    name: 'Glucosa',
-                    type: 'line',
-                    yAxisIndex: 1,
-                    data: labData.glucosa,
-                    smooth: true,
-                    symbol: 'circle',
-                    symbolSize: 6,
-                    lineStyle: {
-                        width: 3,
-                        color: '#2563EB',
-                    },
-                    itemStyle: {
-                        color: '#2563EB',
-                    },
-                },
-                {
-                    name: 'Colesterol Total',
-                    type: 'line',
-                    yAxisIndex: 1,
-                    data: labData.colesterol,
-                    smooth: true,
-                    symbol: 'circle',
-                    symbolSize: 6,
-                    lineStyle: {
-                        width: 3,
-                        color: '#059669',
-                    },
-                    itemStyle: {
-                        color: '#059669',
-                    },
-                },
-                {
-                    name: 'Triglicéridos',
-                    type: 'line',
-                    yAxisIndex: 1,
-                    data: labData.trigliceridos,
-                    smooth: true,
-                    symbol: 'circle',
-                    symbolSize: 6,
-                    lineStyle: {
-                        width: 3,
-                        color: '#7C3AED',
-                    },
-                    itemStyle: {
-                        color: '#7C3AED',
-                    },
-                },
-            ],
-        };
+            });
+            return;
+        }
 
-        chartInstance.current.setOption(option);
+        console.log('Configurando gráfico con series:', Object.keys(seriesMap));
+        const option = buildSparklineOption(seriesMap);
+        chartInstance.current.setOption(option, true);
 
-        // Handle resize
-        const handleResize = () => {
-            chartInstance.current?.resize();
-        };
-        window.addEventListener('resize', handleResize);
+        // Ajustar altura del contenedor según número de gráficos (unidades únicas)
+        const units = new Set(Object.values(seriesMap).map((s) => s.unit));
+        const numGraphs = units.size;
+        const graphHeight = 200; // debe coincidir con gridHeight
+        const gap = 40; // debe coincidir con vgap
+        const extraSpace = 80; // espacio para zoom y márgenes
+        const totalHeight =
+            numGraphs * graphHeight + (numGraphs - 1) * gap + extraSpace;
+        if (chartRef.current) {
+            chartRef.current.style.height = `${totalHeight}px`;
+            chartInstance.current.resize();
+        }
 
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
+        const onResize = () => chartInstance.current?.resize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
     }, [seleccionado]);
 
     useEffect(() => {
@@ -402,13 +716,10 @@ export default function FuncionarioHome() {
 
     const alertStyles = getAlertButtonStyles();
     const indicatorsStyles = getIndicatorsButtonStyles();
-
-    // quién está logueado (si no tienes user, igual funciona con fallbacks)
     const { user } = useAuth() as any;
 
     const onGenerarMinuta = async () => {
         if (!seleccionado) return;
-
         const autor = {
             nombre:
                 user?.name || user?.nombre || user?.fullName || 'Funcionario',
@@ -416,34 +727,22 @@ export default function FuncionarioHome() {
             rut: user?.rut || undefined,
             unidad: user?.unidad || user?.department || undefined,
         };
-
-        // si no usas modal para escribir texto, deja los bloques vacíos (o usa prompts)
-        const blocks = {
-            motivo: '', // por ejemplo: window.prompt("Motivo de consulta") ?? ""
-            diagnosticoLibre: '', // si quieres sobreescribir el dx actual
-            tratamiento: '', // por ejemplo: window.prompt("Tratamiento") ?? ""
-        };
+        const blocks = { motivo: '', diagnosticoLibre: '', tratamiento: '' };
 
         try {
-            // Generar PDF y obtener blob (no forzar descarga aquí)
             const blob = await generarMinutaPDF(seleccionado, autor, blocks, {
                 maxExamenes: 5,
                 download: false,
                 returnBlob: true,
             });
-            if (!blob) {
-                alert('No se pudo generar el PDF.');
-                return;
-            }
+            if (!blob) return alert('No se pudo generar el PDF.');
 
-            // Construir nombre de archivo seguro
             const nombrePaciente = (
                 seleccionado.general.nombre || 'paciente'
             ).toString();
             const safeName = nombrePaciente.toLowerCase().replace(/\s+/g, '_');
             const nombreArchivo = `minuta_${safeName}.pdf`;
 
-            // Subir el blob al backend
             const session = localStorage.getItem('session_v1');
             const token = session ? JSON.parse(session).token : null;
             const API_BASE =
@@ -458,9 +757,7 @@ export default function FuncionarioHome() {
 
             const uploadResp = await fetch(`${API_BASE}/uploads/minutas`, {
                 method: 'POST',
-                headers: {
-                    Authorization: token ? `Bearer ${token}` : '',
-                },
+                headers: { Authorization: token ? `Bearer ${token}` : '' },
                 body: form,
             });
 
@@ -469,24 +766,21 @@ export default function FuncionarioHome() {
                     .json()
                     .catch(() => ({ error: uploadResp.statusText }));
                 console.error('Error subiendo PDF:', err);
-                alert(
+                return alert(
                     'Minuta generada localmente pero no se pudo subir al servidor: ' +
                         (err?.error || uploadResp.statusText)
                 );
-                return;
             }
 
             const uploaded = await uploadResp.json();
             const ruta_pdf = uploaded?.ruta_pdf;
             if (!ruta_pdf) {
                 console.error('Respuesta inválida del upload:', uploaded);
-                alert(
+                return alert(
                     'Error al subir archivo: respuesta inválida del servidor'
                 );
-                return;
             }
 
-            // Registrar la minuta en la API usando la ruta devuelta
             const resp = await fetch(`${API_BASE}/minutas`, {
                 method: 'POST',
                 headers: {
@@ -521,6 +815,7 @@ export default function FuncionarioHome() {
         }
     };
 
+    // === UI principal (idéntico salvo el área del gráfico) ===
     return (
         <RoleGuard allow={['funcionario']}>
             <div className='min-h-screen bg-gray-50 p-6'>
@@ -542,6 +837,8 @@ export default function FuncionarioHome() {
                         <span>Seleccionar paciente</span>
                     </button>
                 </div>
+
+                {/* Header paciente */}
                 <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6'>
                     <div className='flex justify-between items-center p-6'>
                         <div className='flex items-start space-x-4'>
@@ -584,6 +881,7 @@ export default function FuncionarioHome() {
                                 </div>
                             </div>
                         </div>
+
                         <button
                             onClick={onGenerarMinuta}
                             className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-100 hover:text-blue-600 hover:border-2 border-2 border-blue-600 transition-colors flex items-center space-x-2'
@@ -595,20 +893,23 @@ export default function FuncionarioHome() {
                 </div>
 
                 <div className='grid grid-cols-3 gap-6 mb-6'>
-                    {/* Left column - Medical Actions Buttons */}
+                    {/* Acciones (igual) */}
                     <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
                         <h2 className='text-lg font-semibold text-gray-900 mb-4'>
                             Acciones Médicas
                         </h2>
                         <div className='flex flex-col space-y-4'>
-                            {/* Botón de Indicadores - CON COLOR DINÁMICO */}
                             <button
                                 onClick={() => setShowIndicatorsModal(true)}
-                                className={`p-4 rounded-lg transition-colors group text-left ${indicatorsStyles.border}`}
+                                className={`p-4 rounded-lg transition-colors group text-left ${
+                                    getIndicatorsButtonStyles().border
+                                }`}
                             >
                                 <div className='flex items-center space-x-3'>
                                     <TrendingUp
-                                        className={`w-8 h-8 ${indicatorsStyles.icon}`}
+                                        className={`w-8 h-8 ${
+                                            getIndicatorsButtonStyles().icon
+                                        }`}
                                     />
                                     <div>
                                         <div className='font-medium text-gray-900'>
@@ -622,7 +923,6 @@ export default function FuncionarioHome() {
                                 </div>
                             </button>
 
-                            {/* Botón 1: Información de sangre */}
                             <button
                                 onClick={() => setShowBloodModal(true)}
                                 className='p-4 border-2 border-red-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors group text-left'
@@ -641,7 +941,6 @@ export default function FuncionarioHome() {
                                 </div>
                             </button>
 
-                            {/* Botón 2: Parámetros */}
                             <button
                                 onClick={() => setShowParametersModal(true)}
                                 className='p-4 border-2 border-blue-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group text-left'
@@ -659,7 +958,6 @@ export default function FuncionarioHome() {
                                 </div>
                             </button>
 
-                            {/* Botón 3: Historial de diagnósticos */}
                             <button
                                 onClick={() => setShowHistoryModal(true)}
                                 className='p-4 border-2 border-green-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group text-left'
@@ -677,14 +975,17 @@ export default function FuncionarioHome() {
                                 </div>
                             </button>
 
-                            {/* Botón 4: Alertas - CON COLOR DINÁMICO */}
                             <button
                                 onClick={() => setShowAlertsModal(true)}
-                                className={`p-4 rounded-lg transition-colors group text-left ${alertStyles.border}`}
+                                className={`p-4 rounded-lg transition-colors group text-left ${
+                                    getAlertButtonStyles().border
+                                }`}
                             >
                                 <div className='flex items-center space-x-3'>
                                     <AlertTriangle
-                                        className={`w-8 h-8 ${alertStyles.icon}`}
+                                        className={`w-8 h-8 ${
+                                            getAlertButtonStyles().icon
+                                        }`}
                                     />
                                     <div>
                                         <div className='font-medium text-gray-900'>
@@ -699,23 +1000,19 @@ export default function FuncionarioHome() {
                         </div>
                     </div>
 
-                    {/* Resto del código permanece igual... */}
-                    {/* Right columns - Physical Data */}
+                    {/* Datos físicos (igual) */}
                     <div className='col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
                         <h2 className='text-lg font-semibold text-gray-900 mb-6 text-center'>
                             Datos Físicos del Paciente
                         </h2>
-
                         <div className='relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 rounded-2xl p-8 border-2 border-blue-200/50 shadow-inner min-h-[400px]'>
                             <div className='absolute inset-0 flex justify-center items-center pointer-events-none'>
                                 <Body className='w-56 h-96 text-blue-300/30' />
                             </div>
 
                             <div className='relative z-10 h-[400px] flex flex-col justify-between items-start py-4'>
-                                {/* Altura positioned at head level */}
                                 <div className='flex justify-center'>
                                     <div className='group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-blue-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer'>
-                                        {/* Compact version - only value and unit */}
                                         <div className='group-hover:hidden px-4 py-2'>
                                             <div className='text-lg font-bold text-blue-900'>
                                                 {Math.round(
@@ -727,7 +1024,6 @@ export default function FuncionarioHome() {
                                                 cm
                                             </div>
                                         </div>
-                                        {/* Expanded version on hover */}
                                         <div className='hidden group-hover:block px-6 py-4'>
                                             <div className='flex items-center space-x-3'>
                                                 <div className='p-2 bg-blue-100 rounded-full'>
@@ -756,10 +1052,8 @@ export default function FuncionarioHome() {
                                     </div>
                                 </div>
 
-                                {/* Peso positioned at torso level */}
                                 <div className='flex justify-start '>
                                     <div className='group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-green-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer'>
-                                        {/* Compact version - only value and unit */}
                                         <div className='group-hover:hidden px-4 py-2'>
                                             <div className='text-lg font-bold text-green-900'>
                                                 {seleccionado.general.peso
@@ -768,7 +1062,6 @@ export default function FuncionarioHome() {
                                                 kg
                                             </div>
                                         </div>
-                                        {/* Expanded version on hover */}
                                         <div className='hidden group-hover:block px-6 py-4'>
                                             <div className='flex items-center space-x-3'>
                                                 <div className='p-2 bg-green-100 rounded-full'>
@@ -794,10 +1087,8 @@ export default function FuncionarioHome() {
                                     </div>
                                 </div>
 
-                                {/* IMC positioned at lower torso level */}
                                 <div className='flex justify-end '>
                                     <div className='group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-purple-200/60 transform hover:scale-105 transition-all duration-300 cursor-pointer'>
-                                        {/* Compact version - only value and unit */}
                                         <div className='group-hover:hidden px-4 py-2'>
                                             <div className='text-lg font-bold text-purple-900'>
                                                 {(seleccionado.general.IMC
@@ -806,7 +1097,6 @@ export default function FuncionarioHome() {
                                                 ).toFixed(1)}
                                             </div>
                                         </div>
-                                        {/* Expanded version on hover */}
                                         <div className='hidden group-hover:block px-6 py-4'>
                                             <div className='flex items-center space-x-3'>
                                                 <div className='p-2 bg-purple-100 rounded-full'>
@@ -844,8 +1134,8 @@ export default function FuncionarioHome() {
                     </div>
                 </div>
 
+                {/* KPIs (igual) */}
                 <div className='grid grid-cols-4 gap-4 mb-6'>
-                    {/* TDC (Dx→Cx) */}
                     <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
                         <div className='text-center'>
                             <div className='text-2xl font-bold text-blue-600 mb-1'>
@@ -857,8 +1147,6 @@ export default function FuncionarioHome() {
                             <div className='text-xs text-gray-500'>días</div>
                         </div>
                     </div>
-
-                    {/* TPO (Cx→Alta) */}
                     <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
                         <div className='text-center'>
                             <div className='text-2xl font-bold text-green-600 mb-1'>
@@ -870,8 +1158,6 @@ export default function FuncionarioHome() {
                             <div className='text-xs text-gray-500'>días</div>
                         </div>
                     </div>
-
-                    {/* TTH (Dx→Alta) */}
                     <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
                         <div className='text-center'>
                             <div className='text-2xl font-bold text-purple-600 mb-1'>
@@ -883,8 +1169,6 @@ export default function FuncionarioHome() {
                             <div className='text-xs text-gray-500'>días</div>
                         </div>
                     </div>
-
-                    {/* Dx actual */}
                     <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
                         <div className='text-center'>
                             <div className='text-lg font-semibold text-red-600 mb-1'>
@@ -900,11 +1184,20 @@ export default function FuncionarioHome() {
                     </div>
                 </div>
 
+                {/* === Nuevo gráfico: Sparkline grid dinámico === */}
                 <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-                    <div ref={chartRef} className='h-96 w-full p-4'></div>
+                    <h3 className='text-base font-semibold text-gray-900 mb-2'>
+                        Tendencias de laboratorio (parámetros agrupados por
+                        unidad)
+                    </h3>
+                    <div
+                        ref={chartRef}
+                        className='w-full'
+                        style={{ minHeight: '300px' }}
+                    />
                 </div>
 
-                {/* Existing modals */}
+                {/* Modales */}
                 <BloodModal
                     isOpen={showBloodModal}
                     onClose={() => setShowBloodModal(false)}

@@ -62,7 +62,14 @@ export default function BloodTypeSetter({
         tipoSangre: string,
         token?: string | null
     ) => {
-        const resp = await fetch(`${apiBase}/pacientes/${userId}`, {
+        // Validar que userId sea un número válido
+        const numericId =
+            typeof userId === 'string' ? parseInt(userId, 10) : userId;
+        if (!numericId || numericId <= 0 || isNaN(numericId)) {
+            throw new Error('ID de paciente inválido');
+        }
+
+        const resp = await fetch(`${apiBase}/pacientes/${numericId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
