@@ -3,15 +3,16 @@
 import { useMemo, useState } from 'react';
 import { useAdminUsers } from '../../contexts/AdminUsersContext';
 import { Check, Loader2, Plus, UserPlus } from 'lucide-react';
-import { normEmail, strongPwd, isValidRutCl } from '../../utils/rut';
-import { useRut } from "react-rut-formatter";
- type CargoForm = 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO' | 'ADMINISTRADOR';
+import { normEmail, strongPwd, isValidRutCl, cleanRut } from '../../utils/rut';
+import { useRut } from 'react-rut-formatter';
 
+type CargoForm = 'TECNOLOGO' | 'INVESTIGADOR' | 'FUNCIONARIO' | 'ADMINISTRADOR';
 type Status = { type: 'ok' | 'err' | ''; msg: string };
 
 export function CreateUserCard() {
   const { createUser, addRole, fetchUsers, loading } = useAdminUsers();
   const { rut, updateRut, isValid } = useRut();
+
   const [nombres, setNombres] = useState('');
   const [apellidoPaterno, setApellidoPaterno] = useState('');
   const [apellidoMaterno, setApellidoMaterno] = useState('');
@@ -46,11 +47,10 @@ export function CreateUserCard() {
 
     // No se requiere RUT profesional para FUNCIONARIO ni ADMINISTRADOR
     const requiereRP = !(cargo === 'FUNCIONARIO' || cargo === 'ADMINISTRADOR');
-    const okProf = requiereRP ? isValidRutCl(rutProfesional) : true;
-
+    const okProf = requiereRP ? isValidRutCl(cleanRut(rutProfesional)) : true;
     return okBase && okProf;
   }, [
-    rut,
+    isValid,
     nombres,
     apellidoPaterno,
     apellidoMaterno,
@@ -60,17 +60,14 @@ export function CreateUserCard() {
     rutProfesional,
   ]);
 
-  function validarRut(r: string): boolean {
-    return isValidRutCl(r);
-  }
-
   function handleRutChange(e: React.ChangeEvent<HTMLInputElement>) {
     const inputRut = e.target.value;
     updateRut(inputRut);
 
-    if (validarRut(inputRut)) {
-      const clean = inputRut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
-      const cuerpo = clean.slice(0, -1);
+    // genera contraseña temporal si el RUT nacional es válido
+    const cleaned = cleanRut(inputRut);
+    if (isValidRutCl(cleaned)) {
+      const cuerpo = cleaned.slice(0, -1);
       const last4 = cuerpo.slice(-4).padStart(4, '0');
       const pwd = `${PWD_PREFIX}${last4}`;
       setPassword(pwd);
@@ -80,89 +77,91 @@ export function CreateUserCard() {
   }
 
   async function onSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  if (!puedeCrear) return;
+    e.preventDefault();
+    if (!puedeCrear) return;
 
-  setStatus({ type: '', msg: '' });
+    setStatus({ type: '', msg: '' });
 
-  try {
-    const isAdminNew = cargo === 'ADMINISTRADOR';
+    try {
+      const isAdminNew = cargo === 'ADMINISTRADOR';
 
-    // 👇 Si es ADMIN: mandamos role='ADMIN' y NO enviamos profile
-    const payload = isAdminNew
-      ? {
-          user: {
-            rut,
-            nombres,
-            apellido_paterno: apellidoPaterno,
-            apellido_materno: apellidoMaterno,
-            correo,
-            password,
-            telefono,
-            sexo,
-            fecha_nacimiento: fechaNac || undefined,
-          },
-          role: 'ADMIN' as const,
-        }
-      : {
-          user: {
-            rut,
-            nombres,
-            apellido_paterno: apellidoPaterno,
-            apellido_materno: apellidoMaterno,
-            correo,
-            password,
-            telefono,
-            sexo,
-            fecha_nacimiento: fechaNac || undefined,
-          },
-          profile: {
-            cargo: cargo,
-            rut_profesional: cargo === 'FUNCIONARIO' ? undefined : rutProfesional,
-            especialidad: especialidad || null,
-            hospital: hospital || null,
-            departamento: departamento || null,
-          },
-        };
+      // SIEMPRE strings limpios para enviar al backend
+      const rutStr = cleanRut(rut.formatted);
+      const rutProfStr = cleanRut(rutProfesional);
 
-    const resp = await createUser(payload as any);
+      const payload = isAdminNew
+        ? {
+            user: {
+              rut: rutStr, // ✅ string
+              nombres,
+              apellido_paterno: apellidoPaterno,
+              apellido_materno: apellidoMaterno,
+              correo,
+              password,
+              telefono,
+              sexo,
+              fecha_nacimiento: fechaNac || undefined,
+            },
+            role: 'ADMIN' as const,
+          }
+        : {
+            user: {
+              rut: rutStr, // ✅ string
+              nombres,
+              apellido_paterno: apellidoPaterno,
+              apellido_materno: apellidoMaterno,
+              correo,
+              password,
+              telefono,
+              sexo,
+              fecha_nacimiento: fechaNac || undefined,
+            },
+            profile: {
+              cargo,
+              rut_profesional: rutProfStr || null,
+              especialidad: especialidad || null,
+              hospital: hospital || null,
+              departamento: departamento || null,
+            },
+          };
 
-    const newId: number | undefined = resp?.user?.id ?? resp?.id;
-    if (isAdminNew && newId) {
-      await addRole(newId, 'ADMIN');
+      const resp = await createUser(payload);
+
+      const newId: number | undefined = (resp as any)?.user?.id ?? (resp as any)?.id;
+      if (isAdminNew && newId) {
+        await addRole(newId, 'ADMIN');
+      }
+
+      await fetchUsers();
+
+      setStatus({
+        type: 'ok',
+        msg: `Usuario "${nombres} ${apellidoPaterno}" creado correctamente.${isAdminNew ? ' (Rol ADMIN asignado)' : ''} Contraseña temporal: ${password}`,
+      });
+
+      // limpiar formulario
+      updateRut('');
+      setNombres('');
+      setApellidoPaterno('');
+      setApellidoMaterno('');
+      setCorreo('');
+      setTelefono('');
+      setSexo('');
+      setFechaNac('');
+      setPassword('');
+      setCargo('TECNOLOGO');
+      setRutProfesional('');
+      setEspecialidad('');
+      setHospital('');
+      setDepartamento('');
+    } catch (err: any) {
+      setStatus({
+        type: 'err',
+        msg: err?.message || 'No se pudo crear el usuario',
+      });
     }
-
-    await fetchUsers();
-
-    setStatus({
-      type: 'ok',
-      msg: `Usuario "${nombres} ${apellidoPaterno}" creado correctamente.${isAdminNew ? ' (Rol ADMIN asignado)' : ''} Contraseña temporal: ${password}`,
-    });
-
-    // limpiar formulario
-    updateRut('');
-    setNombres('');
-    setApellidoPaterno('');
-    setApellidoMaterno('');
-    setCorreo('');
-    setTelefono('');
-    setSexo('');
-    setFechaNac('');
-    setPassword('');
-    setCargo('TECNOLOGO');
-    setRutProfesional('');
-    setEspecialidad('');
-    setHospital('');
-    setDepartamento('');
-  } catch (err: any) {
-    setStatus({
-      type: 'err',
-      msg: err?.message || 'No se pudo crear el usuario',
-    });
   }
-}
 
- 
   return (
     <section className="create-user-card bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
       {/* Header */}
@@ -198,7 +197,7 @@ export function CreateUserCard() {
           value={rut.formatted}
           onChange={handleRutChange}
           maxLength={12}
-          required={true}
+          required
         />
         <input
           className="fc-input"

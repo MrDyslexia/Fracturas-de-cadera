@@ -375,6 +375,7 @@ export default function MedicinaPage() {
             alcohol: false,
             corticoides_cronicos: false,
             taco: false,
+            otro: '',
         },
         peso: seleccionado?.general?.peso ?? '',
         altura: seleccionado?.general?.altura ?? '',
@@ -1049,6 +1050,24 @@ export default function MedicinaPage() {
                                                         })
                                                     }
                                                 />
+                                                {/* Campo 'Otro' como cuadro de texto */}
+                                                <div className='pt-2'>
+                                                    <Field label='Otro'>
+                                                        <Textarea
+                                                            value={nuevo.habitos.otro}
+                                                            onChange={(e) =>
+                                                                setNuevo({
+                                                                    ...nuevo,
+                                                                    habitos: {
+                                                                        ...nuevo.habitos,
+                                                                        otro: e.target.value,
+                                                                    },
+                                                                })
+                                                            }
+                                                            placeholder='Describa otro hábito relevante...'
+                                                        />
+                                                    </Field>
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
