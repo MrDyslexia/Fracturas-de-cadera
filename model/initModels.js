@@ -225,11 +225,25 @@ Paciente.hasMany(Minuta, { foreignKey: 'paciente_id' });
 Minuta.belongsTo(Paciente, { foreignKey: 'paciente_id' });
 
 // Registro (auditoría)
-Administrador.hasMany(Registro, { foreignKey: 'administrador_id' });
-Registro.belongsTo(Administrador, { foreignKey: 'administrador_id' });
+// administrador_id: Usuario que realizó la acción (el actor/administrador)
+User.hasMany(Registro, {
+    foreignKey: 'administrador_id',
+    as: 'registros_como_administrador',
+});
+Registro.belongsTo(User, {
+    foreignKey: 'administrador_id',
+    as: 'administrador',
+});
 
-User.hasMany(Registro, { foreignKey: 'actor_user_id' });
-Registro.belongsTo(User, { foreignKey: 'actor_user_id' });
+// actor_user_id: Usuario sobre el que se realizó la acción (el afectado)
+User.hasMany(Registro, {
+    foreignKey: 'actor_user_id',
+    as: 'registros_como_afectado',
+});
+Registro.belongsTo(User, {
+    foreignKey: 'actor_user_id',
+    as: 'usuario_afectado',
+});
 
 module.exports = {
     sequelize,

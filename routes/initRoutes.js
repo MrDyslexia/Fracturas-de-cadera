@@ -28,6 +28,7 @@ const controlClinicoRoutes = require('./contro_clinico.routes');
 const publicRoutes = require('./public.routes');
 const tipoExamenRoutes = require('./tipo_examen.routes');
 const tipoMuestraRoutes = require('./tipo_muestra.routes');
+const uploadsRoutes = require('./uploads.routes');
 
 function initRoutes(app, basePath = '/api') {
     const api = express.Router();
@@ -61,6 +62,7 @@ function initRoutes(app, basePath = '/api') {
     api.use('/controles', controlClinicoRoutes); // nueva ruta
     api.use('/tipos-examen', tipoExamenRoutes); // nueva ruta
     api.use('/tipos-muestra', tipoMuestraRoutes); // nueva ruta
+    api.use('/uploads', uploadsRoutes); // subida de archivos (minutas)
 
     app.use(basePath, api);
 

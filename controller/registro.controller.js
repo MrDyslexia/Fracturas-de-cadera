@@ -2,161 +2,194 @@
 const models = require('../model/initModels');
 
 function parseIdParam(req) {
-  const raw = req.params.id ?? req.query.id;
-  const id = Number(raw);
-  return Number.isInteger(id) && id > 0 ? id : null;
+    const raw = req.params.id ?? req.query.id;
+    const id = Number(raw);
+    return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 function parseDateOrNull(input) {
-  if (!input) return null;
-  const t = Date.parse(input);
-  return Number.isNaN(t) ? null : new Date(t);
+    if (!input) return null;
+    const t = Date.parse(input);
+    return Number.isNaN(t) ? null : new Date(t);
 }
 
 // GET /registros?limit=20&offset=0&accion=ALTA
 async function list(req, res) {
-  try {
-    const limit = Math.min(Number(req.query.limit) || 20, 100);
-    const offset = Number(req.query.offset) || 0;
-    const where = {};
-    if (req.query.accion) where.accion = String(req.query.accion).trim();
+    try {
+        const limit = Math.min(Number(req.query.limit) || 20, 100);
+        const offset = Number(req.query.offset) || 0;
+        const where = {};
+        if (req.query.accion) where.accion = String(req.query.accion).trim();
 
-    const rows = await models.Registro.findAll({
-      where,
-      order: [['registro_id', 'DESC']],
-      limit,
-      offset,
-    });
-    res.json(rows);
-  } catch (err) {
-    console.error('list registros error', err);
-    res.status(500).json({ error: 'Error al listar registros' });
-  }
+        const rows = await models.Registro.findAll({
+            where,
+            order: [['registro_id', 'DESC']],
+            limit,
+            offset,
+        });
+        res.json(rows);
+    } catch (err) {
+        console.error('list registros error', err);
+        res.status(500).json({ error: 'Error al listar registros' });
+    }
 }
 
 async function getOne(req, res) {
-  try {
-    const id = parseIdParam(req);
-    if (!id) return res.status(400).json({ error: 'id inválido' });
+    try {
+        const id = parseIdParam(req);
+        if (!id) return res.status(400).json({ error: 'id inválido' });
 
-    const row = await models.Registro.findByPk(id);
-    if (!row) return res.status(404).json({ error: 'No encontrado' });
-    res.json(row);
-  } catch (err) {
-    console.error('getOne registro error', err);
-    res.status(500).json({ error: 'Error al obtener registro' });
-  }
+        const row = await models.Registro.findByPk(id);
+        if (!row) return res.status(404).json({ error: 'No encontrado' });
+        res.json(row);
+    } catch (err) {
+        console.error('getOne registro error', err);
+        res.status(500).json({ error: 'Error al obtener registro' });
+    }
 }
 
 // POST /registros
-// body: { accion, fecha_registro, administrador_rut? }
-// actor_user_rut se toma del token (req.user.rut)
+// body: { accion, fecha_registro, administrador_id? }
+// actor_user_id se toma del token (req.user.id)
 async function create(req, res) {
-  try {
-    const { accion, fecha_registro } = req.body || {};
-    if (!accion) return res.status(400).json({ error: 'accion obligatoria' });
+    try {
+        const { accion, fecha_registro } = req.body || {};
+        if (!accion)
+            return res.status(400).json({ error: 'accion obligatoria' });
 
-    const fecha = parseDateOrNull(fecha_registro) || new Date(); // default: ahora
-    if (!fecha) return res.status(400).json({ error: 'fecha_registro inválida (ISO recomendado)' });
+        const fecha = parseDateOrNull(fecha_registro) || new Date(); // default: ahora
+        if (!fecha)
+            return res
+                .status(400)
+                .json({ error: 'fecha_registro inválida (ISO recomendado)' });
 
-    const actorRut = req.user?.rut || null;
-    const normRut = (r) => String(r || '').replace(/\./g, '').replace(/-/g, '').toUpperCase();
-    
-    let administrador_rut = null;
-    if (req.body?.administrador_rut != null) {
-      const rut = normRut(req.body.administrador_rut);
-      const user = await models.User.findOne({ where: { rut } });
-      if (!user) return res.status(400).json({ error: 'administrador_rut no existe' });
-      const adm = await models.Administrador.findByPk(user.id);
-      if (!adm) return res.status(400).json({ error: 'administrador_rut no corresponde a un administrador' });
-      administrador_rut = rut;
+        const actorUserId = req.user?.rut || null;
+        console.log('actorUserId:', actorUserId);
+        let administrador_id = null;
+        administrador_id = await models.User.findOne({
+            where: { rut: actorUserId },
+        });
+        console.log('administrador_id:', administrador_id);
+        if (req.body?.user.id != null) {
+            const id = Number(req.body.user.id);
+            const user = await models.User.findByPk(id);
+            if (!user)
+                return res
+                    .status(400)
+                    .json({ error: 'usuario no existe' });
+        }
+
+        const created = await models.Registro.create({
+            accion: String(accion).trim(),
+            fecha_registro: fecha,
+            administrador_id,
+            actor_user_id: actorUserId,
+        });
+
+        res.status(201)
+            .location(`/registros/${created.registro_id}`)
+            .json(created);
+    } catch (err) {
+        console.error('create registro error', err);
+        res.status(500).json({ error: 'Error al crear registro' });
     }
-
-    const created = await models.Registro.create({
-      accion: String(accion).trim(),
-      fecha_registro: fecha,
-      administrador_rut,
-      actor_user_rut: actorRut,
-    });
-
-    res
-      .status(201)
-      .location(`/registros/${created.registro_id}`)
-      .json(created);
-  } catch (err) {
-    console.error('create registro error', err);
-    res.status(500).json({ error: 'Error al crear registro' });
-  }
 }
 
 async function update(req, res) {
-  try {
-    const id = parseIdParam(req);
-    if (!id) return res.status(400).json({ error: 'id inválido' });
+    try {
+        const id = parseIdParam(req);
+        if (!id) return res.status(400).json({ error: 'id inválido' });
 
-    const row = await models.Registro.findByPk(id);
-    if (!row) return res.status(404).json({ error: 'No encontrado' });
+        const row = await models.Registro.findByPk(id);
+        if (!row) return res.status(404).json({ error: 'No encontrado' });
 
-    const { accion, fecha_registro, administrador_rut } = req.body || {};
+        const { accion, fecha_registro, administrador_id } = req.body || {};
 
-    if (accion !== undefined) row.accion = String(accion).trim();
+        if (accion !== undefined) row.accion = String(accion).trim();
 
-    if (fecha_registro !== undefined) {
-      const fecha = parseDateOrNull(fecha_registro);
-      if (!fecha) return res.status(400).json({ error: 'fecha_registro inválida' });
-      row.fecha_registro = fecha;
+        if (fecha_registro !== undefined) {
+            const fecha = parseDateOrNull(fecha_registro);
+            if (!fecha)
+                return res
+                    .status(400)
+                    .json({ error: 'fecha_registro inválida' });
+            row.fecha_registro = fecha;
+        }
+
+        if (administrador_id !== undefined) {
+            if (administrador_id) {
+                const userId = Number(administrador_id);
+                if (!Number.isInteger(userId) || userId <= 0) {
+                    return res.status(400).json({
+                        error: 'administrador_id debe ser un entero positivo',
+                    });
+                }
+                const user = await models.User.findByPk(userId);
+                if (!user)
+                    return res
+                        .status(400)
+                        .json({ error: 'administrador_id no existe' });
+                const adm = await models.Administrador.findByPk(userId);
+                if (!adm)
+                    return res.status(400).json({
+                        error: 'administrador_id no corresponde a un administrador',
+                    });
+                row.administrador_id = userId;
+            } else {
+                row.administrador_id = null;
+            }
+        }
+
+        await row.save();
+        res.json(row);
+    } catch (err) {
+        console.error('update registro error', err);
+        res.status(500).json({ error: 'Error al actualizar registro' });
     }
-
-    if (administrador_rut !== undefined) {
-      if (administrador_rut) {
-        const norm = String(administrador_rut).replace(/\./g, '').replace(/-/g, '').toUpperCase();
-        const user = await models.User.findOne({ where: { rut: norm } });
-        if (!user) return res.status(400).json({ error: 'administrador_rut no existe' });
-        const adm = await models.Administrador.findByPk(user.id);
-        if (!adm) return res.status(400).json({ error: 'administrador_rut no corresponde a un administrador' });
-        row.administrador_rut = norm;
-      } else {
-        row.administrador_rut = null;
-      }
-    }
-
-  
-    await row.save();
-    res.json(row);
-  } catch (err) {
-    console.error('update registro error', err);
-    res.status(500).json({ error: 'Error al actualizar registro' });
-  }
 }
 
 async function remove(req, res) {
-  try {
-    const id = parseIdParam(req);
-    if (!id) return res.status(400).json({ error: 'id inválido' });
+    try {
+        const id = parseIdParam(req);
+        if (!id) return res.status(400).json({ error: 'id inválido' });
 
-    const row = await models.Registro.findByPk(id);
-    if (!row) return res.status(404).json({ error: 'No encontrado' });
+        const row = await models.Registro.findByPk(id);
+        if (!row) return res.status(404).json({ error: 'No encontrado' });
 
-    await row.destroy();
-    res.status(204).send();
-  } catch (err) {
-    console.error('remove registro error', err);
-    res.status(500).json({ error: 'Error al eliminar registro' });
-  }
+        await row.destroy();
+        res.status(204).send();
+    } catch (err) {
+        console.error('remove registro error', err);
+        res.status(500).json({ error: 'Error al eliminar registro' });
+    }
 }
 
 // helper rápido para registrar acciones desde otros controladores
-async function logRegistro(req, accion, administrador_rut = null) {
-  try {
-    await models.Registro.create({
-      accion: String(accion).trim(),
-      fecha_registro: new Date(),
-      administrador_rut: administrador_rut ?? null,
-      actor_user_rut: req.user?.rut ?? null, // si existe token
-    });
-  } catch (e) {
-    console.error('logRegistro error:', e);
-  }
+// administrador_id: ID del administrador/usuario que realizó la acción (el actor)
+// user_afectado_id: ID del usuario sobre el que se realizó la acción (ej: paciente, usuario modificado)
+async function logRegistro(req, accion, user_afectado_id = null) {
+    try {
+        const administradorrut = req.user?.rut ?? null;
+        // Log de debugging para identificar cuando falta req.user
+        if (!administradorrut) {
+            console.warn(
+                '⚠️ logRegistro: req.user no disponible para acción:',
+                accion
+            );
+            console.warn('req.user:', req.user);
+        }
+        const administradorId = await models.User.findOne({
+            where: { rut: administradorrut },
+        });
+        await models.Registro.create({
+            accion: String(accion).trim(),
+            fecha_registro: new Date(),
+            administrador_id: administradorId.id, // usuario que realizó la acción (actor/admin)
+            actor_user_id: user_afectado_id ?? null, // usuario sobre el que se actuó (afectado)
+        });
+    } catch (e) {
+        console.error('logRegistro error:', e);
+    }
 }
 
 module.exports = { list, getOne, create, update, remove, logRegistro };

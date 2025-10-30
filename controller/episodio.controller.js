@@ -1,6 +1,7 @@
 // controller/episodio.controller.js
 const models = require('../model/initModels');
 const { idParam } = require('./_crud');
+const { logRegistro } = require('./registro.controller');
 
 function parseDate(input) {
     if (!input) return null;
@@ -181,11 +182,9 @@ async function create(req, res) {
             : null;
 
         if (!paciente_id || !cie10 || !fecha_diagnostico)
-            return res
-                .status(400)
-                .json({
-                    error: 'paciente_id, cie10, fecha_diagnostico son obligatorios',
-                });
+            return res.status(400).json({
+                error: 'paciente_id, cie10, fecha_diagnostico son obligatorios',
+            });
 
         const pac = await models.Paciente.findByPk(paciente_id);
         if (!pac)
@@ -198,7 +197,7 @@ async function create(req, res) {
             (procedencia === 'Urgencia' || procedencia === 'Otro centro')
         ) {
             procedenciaB = procedencia.toUpperCase();
-            procedenciaB = procedenciaB.replace(" ","_");
+            procedenciaB = procedenciaB.replace(' ', '_');
         }
 
         const fechaDiagnosticoDate = parseDate(fecha_diagnostico) || new Date();
@@ -263,6 +262,13 @@ async function create(req, res) {
             prequirurgicas: prequirurgicas ? prequirurgicas : null,
             postquirurgicas: postquirurgicas ? postquirurgicas : null,
         });
+
+        // Registrar la acción de creación de episodio
+        await logRegistro(
+            req,
+            `CREAR_EPISODIO: episodio_id=${created.episodio_id}, paciente_id=${paciente_id}`,
+            paciente_id // ID del paciente al que pertenece el episodio
+        );
 
         res.status(201).json(created);
     } catch (e) {
@@ -360,6 +366,14 @@ async function update(req, res) {
             fecha_hora_control: parsedFechaDiagnostico,
         });
         await ensureControlInicial(row, controlPayload);
+
+        // Registrar la acción de actualización de episodio
+        await logRegistro(
+            req,
+            `ACTUALIZAR_EPISODIO: episodio_id=${id}, paciente_id=${row.paciente_id}`,
+            row.paciente_id // ID del paciente al que pertenece el episodio
+        );
+
         res.json({ msg: 'ok' });
     } catch (e) {
         console.error('update episodio error', e);
@@ -373,7 +387,18 @@ async function remove(req, res) {
         if (!id) return res.status(400).json({ error: 'id inválido' });
         const row = await models.Episodio.findByPk(id);
         if (!row) return res.status(404).json({ error: 'No encontrado' });
+
+        const paciente_id = row.paciente_id;
+
         await row.destroy();
+
+        // Registrar la acción de eliminación de episodio
+        await logRegistro(
+            req,
+            `ELIMINAR_EPISODIO: episodio_id=${id}, paciente_id=${paciente_id}`,
+            paciente_id // ID del paciente al que pertenecía el episodio
+        );
+
         res.status(204).send();
     } catch (e) {
         console.error('remove episodio error', e);

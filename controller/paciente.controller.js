@@ -237,7 +237,11 @@ async function create(req, res) {
             edad: isEmpty(edad) ? null : Number(edad),
         });
 
-        await logRegistro(req, 'PACIENTE_REGISTRADO');
+        await logRegistro(
+            req,
+            `CREAR_PACIENTE: user_id=${id}, rut=${user.rut}`,
+            id // ID del paciente creado
+        );
 
         res.status(201).json(created);
     } catch (err) {
@@ -269,7 +273,12 @@ async function update(req, res) {
 
         await row.save();
 
-        await logRegistro(req, 'PACIENTE_ACTUALIZADO');
+        const user = await models.User.findByPk(id);
+        await logRegistro(
+            req,
+            `ACTUALIZAR_PACIENTE: user_id=${id}, rut=${user?.rut}`,
+            id // ID del paciente actualizado
+        );
 
         res.json(row);
     } catch (err) {
@@ -289,9 +298,14 @@ async function remove(req, res) {
         const row = await models.Paciente.findByPk(id);
         if (!row) return res.status(404).json({ error: 'No encontrado' });
 
+        const user = await models.User.findByPk(id);
         await row.destroy();
 
-        await logRegistro(req, 'PACIENTE_ELIMINADO');
+        await logRegistro(
+            req,
+            `ELIMINAR_PACIENTE: user_id=${id}, rut=${user?.rut}`,
+            id // ID del paciente eliminado
+        );
 
         res.status(204).send();
     } catch (err) {
@@ -1153,9 +1167,7 @@ async function getResumen(req, res) {
                                 where: {
                                     episodio_id: episodioActual.episodio_id,
                                 },
-                                order: [
-                                    ['episodio_indicador_id', 'ASC'],
-                                ],
+                                order: [['episodio_indicador_id', 'ASC']],
                             });
                     }
                 }

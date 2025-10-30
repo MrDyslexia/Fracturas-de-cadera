@@ -76,7 +76,7 @@ async function create(req, res) {
       return res.status(400).json({ error: 'El paciente no tiene episodios registrados' });
     }
 
-    const profesional = await models.ProfessionalProfile.findByPk(operador_id);
+    const profesional = await models.ProfessionalProfile.findOne({ where: { user_id: operador_id } });
     if (operador_id && !profesional) {
       return res.status(400).json({ error: 'operador_id no existe' });
     }
