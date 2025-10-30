@@ -10,7 +10,6 @@ function auth(requiredRoles = []) {
     const bearer = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
     const cookieToken = req.cookies?.auth || null;
     const token = cookieToken || bearer;
-
     if (!token) {
       res.set('WWW-Authenticate', 'Bearer');
       return res.status(401).json({ error: 'Token requerido' });

@@ -1,11 +1,12 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const c = require("../controller/minuta.controller");
+const c = require('../controller/minuta.controller');
+const { auth } = require('../middleware/auth');
 
-router.get("/", c.list);
-router.get("/:id", c.getOne);
-router.post("/", c.create);
-router.put("/:id", c.update);
-router.delete("/:id", c.remove);
+router.get('/', auth(), c.list);
+router.get('/:id', auth(), c.getOne);
+router.post('/', auth(), c.create);
+router.put('/:id', auth(), c.update);
+router.delete('/:id', auth(), c.remove);
 
 module.exports = router;
