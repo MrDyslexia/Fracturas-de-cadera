@@ -135,22 +135,24 @@ async function search(req, res) {
 }
 
 /**
- * GET /pacientes?limit=20&offset=0&tipo_sangre=O+
+ * GET /pacientes?limit=20&offset=0&tipo_sangre=O+&all=true
  */
 async function list(req, res) {
     try {
-        const limit = Math.min(Number(req.query.limit) || 20, 100);
-        const offset = Number(req.query.offset) || 0;
+        // Si se pasa ?all=true, no aplicar límite
+        const getAll = req.query.all === 'true' || req.query.all === '1';
+        const limit = getAll
+            ? undefined
+            : Math.min(Number(req.query.limit) || 20, 100);
+        const offset = getAll ? undefined : Number(req.query.offset) || 0;
         const where = {};
 
         if (!isEmpty(req.query.tipo_sangre))
             where.tipo_sangre = String(req.query.tipo_sangre).trim();
 
-        const rows = await models.Paciente.findAll({
+        const queryOptions = {
             where,
             order: [['user_id', 'DESC']],
-            limit,
-            offset,
             include: [
                 {
                     model: models.User,
@@ -164,7 +166,15 @@ async function list(req, res) {
                     required: false,
                 },
             ],
-        });
+        };
+
+        // Solo añadir limit y offset si no se solicita todo
+        if (!getAll) {
+            queryOptions.limit = limit;
+            queryOptions.offset = offset;
+        }
+
+        const rows = await models.Paciente.findAll(queryOptions);
 
         const items = rows.map((row) => {
             const data = row.toJSON();
@@ -982,7 +992,16 @@ async function getResumen(req, res) {
 
         const examenes = await models.Examen.findAll({
             where: { paciente_id: id },
-            order: [['examen_id', 'DESC']],
+            order: [
+                ['examen_id', 'DESC'],
+                [{ model: models.Muestra }, 'fecha_recepcion', 'ASC'],
+                [
+                    { model: models.Muestra },
+                    { model: models.Resultado },
+                    'resultado_id',
+                    'ASC',
+                ],
+            ],
             include: [
                 {
                     model: models.Muestra,

@@ -15,23 +15,23 @@ Backend/Fracturas-de-cadera/scripts/test_indicadores_riesgo.js
 
 ### Parámetros Bioquímicos
 
-| Parámetro | Criterio | Puntaje | Descripción |
-|-----------|----------|---------|-------------|
-| VITAMINA D | < 20 ng/mL | 2 | Deficiencia de vitamina D |
-| ALBÚMINA | < 3.5 g/dL | 1 | Riesgo nutricional |
-| HEMOGLOBINA | < 11 g/dL | 1 | Anemia |
-| CREATININA | >= 1.3 mg/dL | 1 | Compromiso renal |
-| CALCIO | < 8.5 mg/dL | 1 | Hipocalcemia |
-| CALCIO CORREGIDO | < 8.5 mg/dL | 1 | Hipocalcemia corregida |
-| INR | > 1.5 | 1 | Riesgo hemorrágico |
+| Parámetro        | Criterio     | Puntaje | Descripción               |
+| ---------------- | ------------ | ------- | ------------------------- |
+| VITAMINA D       | < 20 ng/mL   | 2       | Deficiencia de vitamina D |
+| ALBÚMINA         | < 3.5 g/dL   | 1       | Riesgo nutricional        |
+| HEMOGLOBINA      | < 11 g/dL    | 1       | Anemia                    |
+| CREATININA       | >= 1.3 mg/dL | 1       | Compromiso renal          |
+| CALCIO           | < 8.5 mg/dL  | 1       | Hipocalcemia              |
+| CALCIO CORREGIDO | < 8.5 mg/dL  | 1       | Hipocalcemia corregida    |
+| INR              | > 1.5        | 1       | Riesgo hemorrágico        |
 
 ### Ratios Inflamatorios
 
-| Parámetro | Criterio | Puntaje | Descripción |
-|-----------|----------|---------|-------------|
-| NLR | > 4.5 | 1 | Inflamación elevada |
-| MLR | > 0.35 | 1 | Inmunosenescencia |
-| PLR | > 200 | 1 | Actividad plaquetaria aumentada |
+| Parámetro | Criterio | Puntaje | Descripción                     |
+| --------- | -------- | ------- | ------------------------------- |
+| NLR       | > 4.5    | 1       | Inflamación elevada             |
+| MLR       | > 0.35   | 1       | Inmunosenescencia               |
+| PLR       | > 200    | 1       | Actividad plaquetaria aumentada |
 
 ## Uso
 
@@ -45,10 +45,11 @@ node scripts/test_indicadores_riesgo.js
 ```
 
 Este test:
-- ✅ Verifica la lógica de evaluación de riesgos
-- ✅ Consulta la base de datos para obtener estadísticas
-- ✅ Muestra ejemplos de resultados que cumplirían criterios
-- ✅ No modifica ningún dato
+
+-   ✅ Verifica la lógica de evaluación de riesgos
+-   ✅ Consulta la base de datos para obtener estadísticas
+-   ✅ Muestra ejemplos de resultados que cumplirían criterios
+-   ✅ No modifica ningún dato
 
 ### 2. Modo Dry-Run (Simulación)
 
@@ -140,9 +141,9 @@ Para cada resultado de laboratorio:
 
 ### Manejo de Duplicados
 
-- Si ya existe un indicador para el resultado: **actualiza** si cambió
-- Si no existe: **crea** nuevo registro
-- Los indicadores obsoletos no se eliminan automáticamente
+-   Si ya existe un indicador para el resultado: **actualiza** si cambió
+-   Si no existe: **crea** nuevo registro
+-   Los indicadores obsoletos no se eliminan automáticamente
 
 ## Estructura de la Tabla indicador_riesgo
 
@@ -160,10 +161,10 @@ Ejemplo de registro creado:
 
 ```json
 {
-  "indicador_id": 123,
-  "descripcion": "Vitamina D < 20 ng/mL - Deficiencia de vitamina D",
-  "puntaje": 2,
-  "resultado_id": 456
+    "indicador_id": 123,
+    "descripcion": "Vitamina D < 20 ng/mL - Deficiencia de vitamina D",
+    "puntaje": 2,
+    "resultado_id": 456
 }
 ```
 
@@ -277,10 +278,10 @@ node scripts/recalcular_indicadores_riesgo.js --resultado-id=123 --verbose
 
 El sistema ya recalcula automáticamente cuando se crean/actualizan resultados a través de la API, pero este script permite:
 
-- Recalcular datos históricos
-- Corregir errores masivos
-- Actualizar criterios para todos los datos
-- Sincronizar después de migraciones
+-   Recalcular datos históricos
+-   Corregir errores masivos
+-   Actualizar criterios para todos los datos
+-   Sincronizar después de migraciones
 
 ### Monitoreo
 
@@ -298,22 +299,22 @@ node scripts/test_indicadores_riesgo.js
 
 ### Rendimiento
 
-- Procesa resultados en secuencia (no en paralelo)
-- Para grandes volúmenes (>10,000), usar `--limit` en bloques
-- El modo `--verbose` genera mucha salida, usar solo para debugging
+-   Procesa resultados en secuencia (no en paralelo)
+-   Para grandes volúmenes (>10,000), usar `--limit` en bloques
+-   El modo `--verbose` genera mucha salida, usar solo para debugging
 
 ### Transacciones
 
-- No usa transacciones por defecto
-- Si falla un resultado, continúa con el siguiente
-- Los errores se registran en el reporte final
+-   No usa transacciones por defecto
+-   Si falla un resultado, continúa con el siguiente
+-   Los errores se registran en el reporte final
 
 ### Seguridad
 
-- ✅ No elimina datos existentes
-- ✅ Solo crea/actualiza indicadores
-- ✅ Modo dry-run para verificar antes de aplicar
-- ✅ Reporte detallado de cambios
+-   ✅ No elimina datos existentes
+-   ✅ Solo crea/actualiza indicadores
+-   ✅ Modo dry-run para verificar antes de aplicar
+-   ✅ Reporte detallado de cambios
 
 ## Troubleshooting
 
@@ -321,7 +322,8 @@ node scripts/test_indicadores_riesgo.js
 
 **Causa**: No hay resultados que coincidan con los filtros
 
-**Solución**: 
+**Solución**:
+
 ```bash
 # Verificar que existen resultados
 node scripts/test_indicadores_riesgo.js
@@ -332,6 +334,7 @@ node scripts/test_indicadores_riesgo.js
 **Causa**: Ruta incorrecta o modelos no inicializados
 
 **Solución**:
+
 ```bash
 # Ejecutar desde el directorio correcto
 cd Backend/Fracturas-de-cadera
@@ -343,6 +346,7 @@ node scripts/recalcular_indicadores_riesgo.js
 **Causa**: Datos inconsistentes o valores nulos
 
 **Solución**:
+
 ```bash
 # Ejecutar con verbose para ver detalles
 node scripts/recalcular_indicadores_riesgo.js --verbose --limit=10
@@ -354,18 +358,21 @@ node scripts/recalcular_indicadores_riesgo.js --verbose --limit=10
 
 1. Editar `CRITERIOS_RIESGO` en el script
 2. Agregar nuevo objeto con:
-   - `parametro`: nombre del parámetro en tabla resultado
-   - `criterio`: función que evalúa si cumple
-   - `descripcion`: texto descriptivo
-   - `puntaje`: puntos asignados
-   - `mensaje`: recomendación clínica
+
+    - `parametro`: nombre del parámetro en tabla resultado
+    - `criterio`: función que evalúa si cumple
+    - `descripcion`: texto descriptivo
+    - `puntaje`: puntos asignados
+    - `mensaje`: recomendación clínica
 
 3. Ejecutar test:
+
 ```bash
 node scripts/test_indicadores_riesgo.js
 ```
 
 4. Recalcular todos:
+
 ```bash
 node scripts/recalcular_indicadores_riesgo.js
 ```
@@ -376,8 +383,8 @@ Solo editar los valores en las funciones `criterio` de `CRITERIOS_RIESGO` y reca
 
 ## Relación con Otros Scripts
 
-- **recalcular_episodios_indicador.js**: Calcula riesgos a nivel de episodio (tabla `episodio_indicador`)
-- **recalcular_indicadores_riesgo.js**: Calcula riesgos a nivel de resultado (tabla `indicador_riesgo`)
+-   **recalcular_episodios_indicador.js**: Calcula riesgos a nivel de episodio (tabla `episodio_indicador`)
+-   **recalcular_indicadores_riesgo.js**: Calcula riesgos a nivel de resultado (tabla `indicador_riesgo`)
 
 Ambos scripts son complementarios y manejan diferentes niveles de granularidad en el sistema de riesgos.
 
