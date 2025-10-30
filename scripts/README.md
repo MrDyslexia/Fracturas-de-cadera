@@ -46,39 +46,42 @@ node scripts/recalcular-todos-los-riesgos.js
 
 ## ¿Cuál usar?
 
-| Necesidad | Script a usar |
-|-----------|---------------|
-| Recalcular riesgos por resultados de lab | `recalcular_indicadores_riesgo.js` |
-| Recalcular riesgos generales del episodio | `recalcular-todos-los-riesgos.js` |
-| Recalcular TODO | Ejecutar ambos scripts |
+| Necesidad                                 | Script a usar                      |
+| ----------------------------------------- | ---------------------------------- |
+| Recalcular riesgos por resultados de lab  | `recalcular_indicadores_riesgo.js` |
+| Recalcular riesgos generales del episodio | `recalcular-todos-los-riesgos.js`  |
+| Recalcular TODO                           | Ejecutar ambos scripts             |
 
 ## Flujo Recomendado
 
 ### Primera Vez
 
 1. **Verificar conexión**:
-   ```bash
-   node scripts/test_indicadores_riesgo.js
-   node scripts/test-recalculo-riesgos.js
-   ```
+
+    ```bash
+    node scripts/test_indicadores_riesgo.js
+    node scripts/test-recalculo-riesgos.js
+    ```
 
 2. **Simulación (dry-run)**:
-   ```bash
-   node scripts/recalcular_indicadores_riesgo.js --dry-run
-   node scripts/recalcular-todos-los-riesgos.js --dry-run
-   ```
+
+    ```bash
+    node scripts/recalcular_indicadores_riesgo.js --dry-run
+    node scripts/recalcular-todos-los-riesgos.js --dry-run
+    ```
 
 3. **Prueba limitada**:
-   ```bash
-   node scripts/recalcular_indicadores_riesgo.js --limit=10
-   node scripts/recalcular-todos-los-riesgos.js --limit=10
-   ```
+
+    ```bash
+    node scripts/recalcular_indicadores_riesgo.js --limit=10
+    node scripts/recalcular-todos-los-riesgos.js --limit=10
+    ```
 
 4. **Ejecución completa**:
-   ```bash
-   node scripts/recalcular_indicadores_riesgo.js
-   node scripts/recalcular-todos-los-riesgos.js
-   ```
+    ```bash
+    node scripts/recalcular_indicadores_riesgo.js
+    node scripts/recalcular-todos-los-riesgos.js
+    ```
 
 ### Actualización Rutinaria
 
@@ -104,18 +107,18 @@ node scripts/recalcular-todos-los-riesgos.js --episodio-id=123
 
 Ambos scripts soportan las mismas opciones:
 
-| Opción | Descripción | Ejemplo |
-|--------|-------------|---------|
-| `--dry-run` | Simular sin guardar | `--dry-run` |
-| `--verbose` | Mostrar detalles | `--verbose` |
-| `--episodio-id=N` | Procesar episodio específico | `--episodio-id=123` |
-| `--resultado-id=N` | Procesar resultado específico* | `--resultado-id=456` |
-| `--control-id=N` | Procesar control específico** | `--control-id=789` |
-| `--limit=N` | Limitar cantidad | `--limit=100` |
+| Opción             | Descripción                     | Ejemplo              |
+| ------------------ | ------------------------------- | -------------------- |
+| `--dry-run`        | Simular sin guardar             | `--dry-run`          |
+| `--verbose`        | Mostrar detalles                | `--verbose`          |
+| `--episodio-id=N`  | Procesar episodio específico    | `--episodio-id=123`  |
+| `--resultado-id=N` | Procesar resultado específico\* | `--resultado-id=456` |
+| `--control-id=N`   | Procesar control específico\*\* | `--control-id=789`   |
+| `--limit=N`        | Limitar cantidad                | `--limit=100`        |
 
 \* Solo en `recalcular_indicadores_riesgo.js`
 
-\** Solo en `recalcular-todos-los-riesgos.js`
+\*\* Solo en `recalcular-todos-los-riesgos.js`
 
 ## Tablas Afectadas
 
@@ -157,23 +160,25 @@ node scripts/[nombre-script].js
 
 ### Agregar nuevos criterios de riesgo
 
-1. **Para resultados de laboratorio**: 
-   - Editar `CRITERIOS_RIESGO` en `recalcular_indicadores_riesgo.js`
+1. **Para resultados de laboratorio**:
 
-2. **Para factores generales/clínicos**: 
-   - Editar `config/riesgoFactores.js`
+    - Editar `CRITERIOS_RIESGO` en `recalcular_indicadores_riesgo.js`
+
+2. **Para factores generales/clínicos**:
+
+    - Editar `config/riesgoFactores.js`
 
 3. Ejecutar test y recalcular:
-   ```bash
-   node scripts/test_indicadores_riesgo.js
-   node scripts/recalcular_indicadores_riesgo.js
-   ```
+    ```bash
+    node scripts/test_indicadores_riesgo.js
+    node scripts/recalcular_indicadores_riesgo.js
+    ```
 
 ## Documentación Completa
 
-- 📄 `docs/RECALCULO_INDICADORES_RIESGO.md` - Indicadores por resultado
-- 📄 `docs/RECALCULO_MASIVO.md` - Indicadores por episodio
-- 📄 `docs/API_RECALCULO.md` - API de recálculo automático
+-   📄 `docs/RECALCULO_INDICADORES_RIESGO.md` - Indicadores por resultado
+-   📄 `docs/RECALCULO_MASIVO.md` - Indicadores por episodio
+-   📄 `docs/API_RECALCULO.md` - API de recálculo automático
 
 ## Contacto
 

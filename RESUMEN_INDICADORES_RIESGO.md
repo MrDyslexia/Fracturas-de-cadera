@@ -9,14 +9,15 @@
 **Función**: Recorre todos los resultados de laboratorio y calcula indicadores de riesgo basados en criterios clínicos predefinidos, almacenándolos en la tabla `indicador_riesgo`.
 
 **Características**:
-- ✅ Procesa resultados de laboratorio (tabla `resultado`)
-- ✅ Evalúa 10 criterios de riesgo diferentes
-- ✅ Crea/actualiza registros en `indicador_riesgo`
-- ✅ Modo dry-run para simulación
-- ✅ Filtros por episodio, resultado o límite
-- ✅ Modo verbose para debugging
-- ✅ Manejo de errores robusto
-- ✅ Reportes detallados
+
+-   ✅ Procesa resultados de laboratorio (tabla `resultado`)
+-   ✅ Evalúa 10 criterios de riesgo diferentes
+-   ✅ Crea/actualiza registros en `indicador_riesgo`
+-   ✅ Modo dry-run para simulación
+-   ✅ Filtros por episodio, resultado o límite
+-   ✅ Modo verbose para debugging
+-   ✅ Manejo de errores robusto
+-   ✅ Reportes detallados
 
 ### 2. Script de Test: `test_indicadores_riesgo.js`
 
@@ -25,11 +26,12 @@
 **Función**: Valida la lógica de evaluación y consulta estadísticas de la base de datos.
 
 **Características**:
-- ✅ 10 casos de prueba automatizados
-- ✅ Verificación de criterios de riesgo
-- ✅ Estadísticas de la base de datos
-- ✅ Ejemplos de resultados monitoreados
-- ✅ No modifica datos
+
+-   ✅ 10 casos de prueba automatizados
+-   ✅ Verificación de criterios de riesgo
+-   ✅ Estadísticas de la base de datos
+-   ✅ Ejemplos de resultados monitoreados
+-   ✅ No modifica datos
 
 ### 3. Documentación
 
@@ -41,23 +43,23 @@
 
 ### Parámetros Bioquímicos (7 criterios)
 
-| Parámetro | Criterio | Puntaje |
-|-----------|----------|---------|
-| Vitamina D | < 20 ng/mL | 2 |
-| Albúmina | < 3.5 g/dL | 1 |
-| Hemoglobina | < 11 g/dL | 1 |
-| Creatinina | >= 1.3 mg/dL | 1 |
-| Calcio | < 8.5 mg/dL | 1 |
-| Calcio Corregido | < 8.5 mg/dL | 1 |
-| INR | > 1.5 | 1 |
+| Parámetro        | Criterio     | Puntaje |
+| ---------------- | ------------ | ------- |
+| Vitamina D       | < 20 ng/mL   | 2       |
+| Albúmina         | < 3.5 g/dL   | 1       |
+| Hemoglobina      | < 11 g/dL    | 1       |
+| Creatinina       | >= 1.3 mg/dL | 1       |
+| Calcio           | < 8.5 mg/dL  | 1       |
+| Calcio Corregido | < 8.5 mg/dL  | 1       |
+| INR              | > 1.5        | 1       |
 
 ### Ratios Inflamatorios (3 criterios)
 
 | Parámetro | Criterio | Puntaje |
-|-----------|----------|---------|
-| NLR | > 4.5 | 1 |
-| MLR | > 0.35 | 1 |
-| PLR | > 200 | 1 |
+| --------- | -------- | ------- |
+| NLR       | > 4.5    | 1       |
+| MLR       | > 0.35   | 1       |
+| PLR       | > 200    | 1       |
 
 ## 🚀 Uso Rápido
 
@@ -126,12 +128,13 @@ resultado_id      INT (FK -> resultado.resultado_id)
 ```
 
 **Ejemplo de registro**:
+
 ```json
 {
-  "indicador_id": 1,
-  "descripcion": "Vitamina D < 20 ng/mL - Deficiencia de vitamina D",
-  "puntaje": 2,
-  "resultado_id": 123
+    "indicador_id": 1,
+    "descripcion": "Vitamina D < 20 ng/mL - Deficiencia de vitamina D",
+    "puntaje": 2,
+    "resultado_id": 123
 }
 ```
 
@@ -156,6 +159,7 @@ resultado_id      INT (FK -> resultado.resultado_id)
 ## 🎯 Casos de Uso
 
 ### 1. Primera Implementación
+
 ```bash
 node scripts/test_indicadores_riesgo.js
 node scripts/recalcular_indicadores_riesgo.js --dry-run --verbose
@@ -164,6 +168,7 @@ node scripts/recalcular_indicadores_riesgo.js
 ```
 
 ### 2. Actualización de Criterios
+
 ```bash
 # Editar CRITERIOS_RIESGO en el script
 node scripts/test_indicadores_riesgo.js
@@ -171,39 +176,41 @@ node scripts/recalcular_indicadores_riesgo.js
 ```
 
 ### 3. Corrección de Episodio Específico
+
 ```bash
 node scripts/recalcular_indicadores_riesgo.js --episodio-id=456
 ```
 
 ### 4. Verificación de Resultado
+
 ```bash
 node scripts/recalcular_indicadores_riesgo.js --resultado-id=123 --verbose
 ```
 
 ## 🔗 Relación con Otros Scripts
 
-| Script | Tabla Destino | Nivel |
-|--------|---------------|-------|
-| `recalcular_indicadores_riesgo.js` | `indicador_riesgo` | Resultado individual |
-| `recalcular-todos-los-riesgos.js` | `episodio_indicador` | Episodio completo |
+| Script                             | Tabla Destino        | Nivel                |
+| ---------------------------------- | -------------------- | -------------------- |
+| `recalcular_indicadores_riesgo.js` | `indicador_riesgo`   | Resultado individual |
+| `recalcular-todos-los-riesgos.js`  | `episodio_indicador` | Episodio completo    |
 
 **Complementarios**: Ambos scripts deben ejecutarse para tener el sistema de riesgos completo.
 
 ## 📈 Rendimiento
 
-- **Velocidad**: ~100-200 resultados/segundo
-- **Memoria**: Bajo consumo (procesa en secuencia)
-- **Volúmenes grandes**: Usar `--limit` en bloques
-- **Seguridad**: No elimina datos, solo crea/actualiza
+-   **Velocidad**: ~100-200 resultados/segundo
+-   **Memoria**: Bajo consumo (procesa en secuencia)
+-   **Volúmenes grandes**: Usar `--limit` en bloques
+-   **Seguridad**: No elimina datos, solo crea/actualiza
 
 ## 🛡️ Seguridad y Validación
 
-- ✅ Modo dry-run disponible
-- ✅ No elimina datos existentes
-- ✅ Validación de valores numéricos
-- ✅ Manejo de errores individual
-- ✅ Reportes detallados
-- ✅ Logging completo en modo verbose
+-   ✅ Modo dry-run disponible
+-   ✅ No elimina datos existentes
+-   ✅ Validación de valores numéricos
+-   ✅ Manejo de errores individual
+-   ✅ Reportes detallados
+-   ✅ Logging completo en modo verbose
 
 ## 📚 Documentación
 
@@ -215,26 +222,29 @@ node scripts/recalcular_indicadores_riesgo.js --resultado-id=123 --verbose
 ## ✨ Próximos Pasos
 
 1. **Ejecutar test inicial**:
-   ```bash
-   node scripts/test_indicadores_riesgo.js
-   ```
+
+    ```bash
+    node scripts/test_indicadores_riesgo.js
+    ```
 
 2. **Probar en dry-run**:
-   ```bash
-   node scripts/recalcular_indicadores_riesgo.js --dry-run --limit=50
-   ```
+
+    ```bash
+    node scripts/recalcular_indicadores_riesgo.js --dry-run --limit=50
+    ```
 
 3. **Ejecutar producción**:
-   ```bash
-   node scripts/recalcular_indicadores_riesgo.js
-   ```
+    ```bash
+    node scripts/recalcular_indicadores_riesgo.js
+    ```
 
 ## 📞 Soporte
 
 Para más información, revisar:
-- `docs/RECALCULO_INDICADORES_RIESGO.md` - Documentación detallada
-- `scripts/README.md` - Guía rápida de todos los scripts
-- Código fuente - Comentarios inline
+
+-   `docs/RECALCULO_INDICADORES_RIESGO.md` - Documentación detallada
+-   `scripts/README.md` - Guía rápida de todos los scripts
+-   Código fuente - Comentarios inline
 
 ---
 
